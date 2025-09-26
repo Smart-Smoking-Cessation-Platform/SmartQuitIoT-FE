@@ -46,7 +46,7 @@ export function Header() {
         <Grid templateColumns={{ base: "auto 1fr auto", md: "auto 1fr auto" }} alignItems="center" h={20} w="full" columnGap={4}>
           {/* Brand: Logo + Text */}
           <Link href="/">
-            <Box w={24} h={24} position="relative">
+            <Box w={20} h={20} position="relative">
               <Image
                 src={logoImg}
                 alt="SmartQuit logo"

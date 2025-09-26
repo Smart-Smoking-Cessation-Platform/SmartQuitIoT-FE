@@ -35,6 +35,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <Menu.Item key="7" icon={<DollarOutlined />}>
                 <Link href="/admin/membership-packages">Membership Packages</Link>
               </Menu.Item>
+               <Menu.Item key="8" icon={<UserOutlined />}>
+                <Link href="/admin/members">Manage Members</Link>
+              </Menu.Item>
             </Menu>
         </Sider>
         <Layout>

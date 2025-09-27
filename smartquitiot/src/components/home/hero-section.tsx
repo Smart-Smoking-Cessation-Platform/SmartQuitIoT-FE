@@ -12,7 +12,7 @@ export function HeroSection() {
       <Container maxW="7xl" px={6}>
         <SimpleGrid columns={{ base: 1, lg: 2 }} gap={12} alignItems="center">
           <VStack align="start" gap={6}>
-            <Text textTransform="uppercase" letterSpacing="widest" color="green.700" fontWeight="semibold">Begin today</Text>
+            <Text textTransform="uppercase" letterSpacing="widest" color="#7AC555" fontWeight="semibold">Begin today</Text>
             <Heading as="h1" size="2xl" lineHeight="short" color="#7AC555">
               Your Journey to a <Text as="span">Smoke‑Free Life</Text>
             </Heading>

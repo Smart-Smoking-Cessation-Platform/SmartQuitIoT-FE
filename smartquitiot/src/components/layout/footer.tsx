@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import Image from "next/image"
-import { Box, Container, SimpleGrid, Stack, Text, HStack, Icon, Input, Button } from "@chakra-ui/react"
+import { Box, Container, SimpleGrid, Stack, Text, HStack, Icon } from "@chakra-ui/react"
 import { FaFacebook, FaTwitter, FaInstagram, FaLinkedin, FaYoutube } from "react-icons/fa"
 import { MdMail, MdPhone, MdLocationOn } from "react-icons/md"
 import logoImg from "@/assets/logo/logo.png"
@@ -37,17 +37,19 @@ const footerLinks = {
     { name: "Accessibility", href: "/accessibility" }
   ]
 }
+
 export function Footer() {
   return (
     <Box as="footer" bg="green.50" color="gray.800" borderTopWidth="1px" borderColor="green.100">
       <Container maxW="7xl" px={6} py={16}>
-        <SimpleGrid columns={{ base: 1, md: 4 }} gap={12}>
-          <Stack gap={6}>
+        <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} gap={12}>
+          {/* Logo & Contact */}
+          <Stack gap={6} gridColumn={{ base: "auto", md: "span 2", lg: "auto" }}>
             <HStack gap={3}>
-              <Box w={20} h={20} position="relative">
+              <Box w={24} h={24} position="relative">
                 <Image src={logoImg} alt="SmartQuit logo" fill style={{ objectFit: "contain" }} />
               </Box>
-              <Text fontSize="2xl" fontWeight="bold" color="green.700">SmartQuit</Text>
+              <Text fontSize="2xl" fontWeight="bold" color="#7AC555">SmartQuit</Text>
             </HStack>
             <Text color="gray.600">
               Empowering millions of people to quit smoking and live healthier lives. Join our community and start your smoke-free journey today.
@@ -58,31 +60,37 @@ export function Footer() {
               <HStack gap={2}><Icon as={MdLocationOn} color="#7AC555" /><Text>123 Health Street, Wellness City, WC 12345</Text></HStack>
             </Stack>
           </Stack>
+
+          {/* Product */}
           <Stack gap={3}>
-            <Text fontWeight="bold" color="green.700">Product</Text>
+            <Text fontWeight="bold" color="#7AC555">Product</Text>
             {footerLinks.product.map(link => (
               <Link key={link.name} href={link.href}>
-                <Text color="gray.600" _hover={{ color: "green.600" }} transition="color 0.2s">
+                <Text color="gray.600" _hover={{ color: "#6BB04B" }} transition="color 0.2s">
                   {link.name}
                 </Text>
               </Link>
             ))}
           </Stack>
+
+          {/* Support */}
           <Stack gap={3}>
-            <Text fontWeight="bold" color="green.700">Support</Text>
+            <Text fontWeight="bold" color="#7AC555">Support</Text>
             {footerLinks.support.map(link => (
               <Link key={link.name} href={link.href}>
-                <Text color="gray.600" _hover={{ color: "green.600" }} transition="color 0.2s">
+                <Text color="gray.600" _hover={{ color: "#6BB04B" }} transition="color 0.2s">
                   {link.name}
                 </Text>
               </Link>
             ))}
           </Stack>
+
+          {/* Company */}
           <Stack gap={3}>
-            <Text fontWeight="bold" color="green.700">Company</Text>
+            <Text fontWeight="bold" color="#7AC555">Company</Text>
             {footerLinks.company.map(link => (
               <Link key={link.name} href={link.href}>
-                <Text color="gray.600" _hover={{ color: "green.600" }} transition="color 0.2s">
+                <Text color="gray.600" _hover={{ color: "#6BB04B" }} transition="color 0.2s">
                   {link.name}
                 </Text>
               </Link>
@@ -92,6 +100,7 @@ export function Footer() {
 
         <Box borderTopWidth="1px" borderColor="green.200" my={12} />
 
+        {/* Bottom bar */}
         <SimpleGrid columns={{ base: 1, md: 2 }} gap={8} alignItems="center">
           <Text color="gray.500">© 2024 SmartQuit. All rights reserved. Made with ❤️ for a healthier world.</Text>
           <HStack gap={6} justify={{ base: "flex-start", md: "flex-end" }} color="#7AC555">
@@ -112,22 +121,6 @@ export function Footer() {
             </Link>
           </HStack>
         </SimpleGrid>
-
-        <Box mt={16} bg="white" rounded="lg" p={8} textAlign="center" boxShadow="sm" borderWidth="1px" borderColor="green.100">
-          <Text fontSize="2xl" fontWeight="bold" mb={4} color="green.700">Stay Updated</Text>
-          <Text color="gray.600" mb={6}>Get the latest tips, success stories, and updates from our community.</Text>
-          <HStack maxW="md" mx="auto" gap={4} flexDir={{ base: "column", sm: "row" }}>
-            <Input 
-              type="email" 
-              placeholder="Enter your email" 
-              bg="gray.50" 
-              borderColor="green.200" 
-              _placeholder={{ color: "gray.400" }}
-              _focus={{ borderColor: "green.400", boxShadow: "0 0 0 1px var(--chakra-colors-green-400)" }}
-            />
-            <Button colorScheme="green" size="sm">Subscribe</Button>
-          </HStack>
-        </Box>
       </Container>
     </Box>
   )

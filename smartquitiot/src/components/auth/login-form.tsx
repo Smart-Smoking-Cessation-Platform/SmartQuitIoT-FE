@@ -33,7 +33,7 @@ export function LoginForm({ onSubmit, isLoading = false }: LoginFormProps) {
         <Typography.Title level={3} className="!mb-1 !text-gray-800">
           Welcome back
         </Typography.Title>
-        <Typography.Paragraph className="!mb-6 !text-gray-600">
+        <Typography.Paragraph className="!mb-5 !text-gray-600">
           Enter your credentials to access your account
         </Typography.Paragraph>
 

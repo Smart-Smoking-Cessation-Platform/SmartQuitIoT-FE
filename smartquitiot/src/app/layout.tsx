@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { Poppins } from "next/font/google"
+import 'antd/dist/reset.css'
 import "./globals.css"
 import { QueryProvider } from "@/providers/query-provider"
 import { ChakraProviders } from "@/providers/chakra-provider"

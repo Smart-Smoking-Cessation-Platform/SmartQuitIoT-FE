@@ -26,7 +26,7 @@ export default function PostDetailPage({ params }: { params: { slug: string } })
               alignSelf="flex-start"
               onClick={() => router.back()}
               color="gray.600"
-              _hover={{ color: "green.600", bg: "green.50" }}
+              _hover={{ color: "#7AC555", bg: "green.50" }}
             >
               Back to Community
             </Button>

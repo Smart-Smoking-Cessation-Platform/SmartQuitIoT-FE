@@ -95,7 +95,7 @@ import {
               <VStack spacing={8} textAlign="center">
                 <Badge 
                   bg="white" 
-                  color="green.600" 
+                  color="#7AC555" 
                   px={6} 
                   py={2} 
                   rounded="full"
@@ -192,7 +192,7 @@ import {
                               bgGradient={`linear(to-r, ${
                                 index === 0 ? 'yellow.400, orange.500' :
                                 index === 1 ? 'cyan.400, teal.500' :
-                                index === 2 ? 'green.400, green.600' :
+                                index === 2 ? 'green.400, #7AC555' :
                                 'pink.400, pink.600'
                               })`}
                               bgClip="text"
@@ -341,7 +341,7 @@ import {
                               {member.name}
                             </Heading>
                             <Text 
-                              color="green.600"
+                              color="#7AC555"
                               fontWeight="bold" 
                               fontSize="md"
                             >
@@ -387,7 +387,7 @@ import {
                   <Button
                     size="xl"
                     bg="white"
-                    color="green.600"
+                    color="#7AC555"
                     px={12}
                     py={8}
                     rounded="full"

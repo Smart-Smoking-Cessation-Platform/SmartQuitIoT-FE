@@ -1,6 +1,7 @@
 import AppLoading from "@/components/loadings/AppLoading";
 import AdminLayout from "@/layouts/AdminLayout";
 import AdminPage from "@/pages/admin/AdminPage";
+import SchedulePage from "@/pages/admin/SchedulePage";
 import NotFound from "@/pages/error/NotFound";
 import Home from "@/pages/Home";
 import Login from "@/pages/Login";
@@ -55,6 +56,10 @@ function App() {
         {
           path: "/admin",
           element: <AdminPage />,
+        },
+        {
+          path: "/admin/schedule",
+          element: <SchedulePage />,
         },
       ],
     },

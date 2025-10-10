@@ -1,5 +1,5 @@
 import appLogo from "@/assets/logo.png";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 
 const Header = () => {
   const navigate = useNavigate();
@@ -17,13 +17,29 @@ const Header = () => {
           </div>
 
           {/* Navigation */}
-          <nav className="hidden md:flex items-center gap-8">
-            <Link to="/" className="text-gray-700 hover:text-gray-900 font-medium">Home</Link>
-            <Link to="/dashboard" className="text-gray-700 hover:text-gray-900 font-medium">Dashboard</Link>
-            <Link to="/resources" className="text-gray-700 hover:text-gray-900 font-medium">Resources</Link>
-            <Link to="/community" className="text-gray-700 hover:text-gray-900 font-medium">Community</Link>
-            <Link to="/news" className="text-gray-700 hover:text-gray-900 font-medium">News</Link>
-            <Link to="/about" className="text-gray-700 hover:text-gray-900 font-medium">About</Link>
+             <nav className="hidden md:flex items-center gap-8">
+            {[
+              { to: "/", label: "Home" },
+              { to: "/dashboard", label: "Dashboard" },
+              { to: "/resources", label: "Resources" },
+              { to: "/community", label: "Community" },
+              { to: "/news", label: "News" },
+              { to: "/about", label: "About" },
+            ].map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                className={({ isActive }) =>
+                  `font-medium transition-colors ${
+                    isActive
+                      ? "text-green-700 border-b-2 border-green-600 pb-1"
+                      : "text-gray-700 hover:text-gray-900"
+                  }`
+                }
+              >
+                {item.label}
+              </NavLink>
+            ))}
           </nav>
 
           {/* Auth Buttons */}

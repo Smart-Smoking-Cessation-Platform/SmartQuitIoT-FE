@@ -1,7 +1,7 @@
 :root {
   --accent-1: #00d09e;
   --accent-2: #00b88a;
-  --muted: #6b7280;
+  --muted: #000000;
   --card-bg: #ffffff;
   --panel-border: #e6eef0;
 }
@@ -344,7 +344,7 @@
   font-size: 14px;
 }
 .coachId {
-  color: var(--muted);
+  color: #0000002c;
   font-size: 11px;
 }
 

@@ -1,22 +1,7 @@
-import {
-  Calendar,
-  ChevronUp,
-  Home,
-  Inbox,
-  MoonIcon,
-  Search,
-  Settings,
-  SunIcon,
-  User2,
-} from "lucide-react";
+import { LayoutDashboard, List } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import logo from "@/assets/logo.png";
+import NavAdminSidebar from "@/components/ui/nav-admin-sidebar";
 import {
   Sidebar,
   SidebarContent,
@@ -29,72 +14,80 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { Switch } from "@/components/ui/switch";
-import { useTheme } from "@/context/theme-provider";
-import { useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
-import { getAdminProfile } from "@/services/accountService";
 
 const items = [
   {
-    title: "Home",
+    title: "Dashboard",
     url: "#",
-    icon: Home,
+    icon: LayoutDashboard,
   },
   {
-    title: "Inbox",
-    url: "#",
-    icon: Inbox,
+    title: "Manage Blogs",
+    url: "#blogs",
+    icon: List,
   },
   {
-    title: "Calendar",
-    url: "#",
-    icon: Calendar,
+    title: "Manage Missions",
+    url: "#missions",
+    icon: List,
   },
   {
-    title: "Search",
-    url: "#",
-    icon: Search,
+    title: "Manage Achievements",
+    url: "#achievements",
+    icon: List,
   },
   {
-    title: "Settings",
-    url: "#",
-    icon: Settings,
+    title: "Manage Users",
+    url: "#users",
+    icon: List,
+  },
+  {
+    title: "Manage Membership Packages",
+    url: "#membership-packages",
+    icon: List,
+  },
+  {
+    title: "Manage Pass Conditions",
+    url: "#pass-conditions",
+    icon: List,
+  },
+  {
+    title: "Manage Phases",
+    url: "#phases",
+    icon: List,
+  },
+  {
+    title: "Manage Coaches",
+    url: "#coaches",
+    icon: List,
+  },
+  {
+    title: "Manage Subscriptions",
+    url: "#subscriptions",
+    icon: List,
+  },
+  {
+    title: "Manage Payments",
+    url: "#payments",
+    icon: List,
   },
 ];
 
 const AdminSidebar = () => {
-  const { theme, setTheme } = useTheme();
-  const nav = useNavigate();
-  const [admin, setAdmin] = useState({});
-
-  const fetchAdminProfile = async () => {
-    try {
-      const response = await getAdminProfile();
-      if (response.status === 200) {
-        setAdmin(response.data);
-      }
-    } catch (error) {
-      console.error("Error fetching admin profile:", error);
-    }
-  };
-
-  useEffect(() => {
-    fetchAdminProfile();
-  }, []);
-
-  const handleLogout = () => {
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
-    nav("/login");
-  };
-
   return (
     <Sidebar>
-      <SidebarHeader />
+      <SidebarHeader>
+        <div className="flex justify-center items-center space-x-2">
+          <img src={logo} alt="Logo" className="h-12 w-auto" />
+          <h1 className="text-2xl font-bold">
+            <span className="text-green-600">Smart</span>
+            <span className="text-emerald-950">Quit</span>
+          </h1>
+        </div>
+      </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Application</SidebarGroupLabel>
+          <SidebarGroupLabel>Administrator</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => (
@@ -112,50 +105,7 @@ const AdminSidebar = () => {
         </SidebarGroup>
       </SidebarContent>
       <SidebarFooter>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <Popover>
-              <PopoverTrigger asChild>
-                <SidebarMenuButton>
-                  <User2 /> {admin.username}
-                  <ChevronUp className="ml-auto" />
-                </SidebarMenuButton>
-              </PopoverTrigger>
-              <PopoverContent className="w-80">
-                <div className="grid gap-4">
-                  <div className="space-y-2">
-                    <h4 className="leading-none font-medium">Smart Quit IoT</h4>
-                  </div>
-                  <p className="text-muted-foreground text-sm">{admin.email}</p>
-                  <div className="grid gap-2">
-                    <div className="grid grid-cols-3 items-center gap-4">
-                      <Switch
-                        id="theme-mode"
-                        className="data-[state=checked]:bg-white data-[state=unchecked]:bg-zinc-800"
-                        checked={theme === "dark"}
-                        onCheckedChange={() =>
-                          setTheme(theme === "light" ? "dark" : "light")
-                        }
-                      />
-                      <Label htmlFor="theme-mode" className="">
-                        {theme === "dark" ? (
-                          <MoonIcon className="w-5 h-5" />
-                        ) : (
-                          <SunIcon className="w-5 h-5" />
-                        )}
-                      </Label>
-                    </div>
-                    <div className="grid grid-cols-1 items-center gap-4">
-                      <Button variant={"destructive"} onClick={handleLogout}>
-                        Log Out
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </PopoverContent>
-            </Popover>
-          </SidebarMenuItem>
-        </SidebarMenu>
+        <NavAdminSidebar />
       </SidebarFooter>
     </Sidebar>
   );

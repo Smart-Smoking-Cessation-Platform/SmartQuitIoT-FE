@@ -19,6 +19,8 @@ import CoachPage from "./pages/coach/CoachPage";
 import Community from "./pages/Community";
 import News from "./pages/News";
 import Resources from "./pages/Resources";
+import ManageSlots from "@/pages/admin/ManageSlots";
+import AddCoachPage from "@/pages/admin/AddCoachPage";
 function App() {
   const [isLoading, setIsLoading] = useState(true);
 
@@ -60,16 +62,24 @@ function App() {
           element: <AdminPage />,
         },
         {
-          path: "/admin/manage/schedule",
+          path: "/admin/manage-schedule",
           element: <SchedulePage />,
         },
         {
-          path: "/admin/manage/coaches",
+          path: "/admin/manage-coaches",
           element: <ManageCoaches />,
         },
         {
-          path: "/admin/manage/membership-packages",
+          path: "/admin/manage-coaches/create",
+          element: <AddCoachPage />,
+        },
+        {
+          path: "/admin/manage-membership-packages",
           element: <ManageMembershipPackage />,
+        },
+        {
+          path: "/admin/manage-slot-times",
+          element: <ManageSlots />,
         },
       ],
     },

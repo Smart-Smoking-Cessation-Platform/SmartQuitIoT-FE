@@ -24,57 +24,63 @@ const items = [
   },
   {
     title: "Manage Blogs",
-    url: "/admin/manage/blogs",
+    url: "/admin/manage-blogs",
     icon: List,
   },
   {
     title: "Manage Missions",
-    url: "/admin/manage/missions",
+    url: "/admin/manage-missions",
     icon: List,
   },
   {
     title: "Manage Achievements",
-    url: "/admin/manage/achievements",
+    url: "/admin/manage-achievements",
     icon: List,
   },
   {
     title: "Manage Users",
-    url: "/admin/manage/users",
-    icon: List,
-  },
-  {
-    title: "Manage Membership Packages",
-    url: "/admin/manage/membership-packages",
-    icon: List,
-  },
-  {
-    title: "Manage Pass Conditions",
-    url: "/admin/manage/pass-conditions",
-    icon: List,
-  },
-  {
-    title: "Manage Phases",
-    url: "/admin/manage/phases",
+    url: "/admin/manage-users",
     icon: List,
   },
   {
     title: "Manage Coaches",
-    url: "/admin/manage/coaches",
+    url: "/admin/manage-coaches",
+    icon: List,
+  },
+  {
+    title: "Manage Packages",
+    url: "/admin/manage-membership-packages",
     icon: List,
   },
   {
     title: "Manage Subscriptions",
-    url: "/admin/manage/subscriptions",
+    url: "/admin/manage-subscriptions",
     icon: List,
   },
   {
     title: "Manage Payments",
-    url: "/admin/manage/payments",
+    url: "/admin/manage-payments",
     icon: List,
   },
   {
+    title: "Manage Pass Conditions",
+    url: "/admin/manage-pass-conditions",
+    icon: List,
+  },
+  {
+    title: "Manage Phases",
+    url: "/admin/manage-phases",
+    icon: List,
+  },
+
+  {
     title: "Manage Schedules",
-    url: "/admin/manage/schedule",
+    url: "/admin/manage-schedule",
+    icon: List,
+  },
+  {
+    title: "Manage Slot Times",
+    url: "/admin/manage-slot-times",
     icon: List,
   },
 ];

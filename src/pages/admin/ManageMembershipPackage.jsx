@@ -1,4 +1,5 @@
 import { membershipPackageColumns as buildMembershipPackageColumns } from "@/components/columns/membershipPackageColumns";
+import AppBreadcrumb from "@/components/ui/app-breadcrumb";
 import { DataTable } from "@/components/ui/tables/data-table";
 import { getAllMembershipPackages } from "@/services/membershipPackage";
 import { useEffect, useState } from "react";
@@ -40,6 +41,7 @@ const ManageMembershipPackage = () => {
   return (
     <div>
       <div className="p-6 space-y-6">
+        <AppBreadcrumb paths={["admin", "manage-membership-packages"]} />
         <div className="flex justify-between items-center">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-emerald-800">

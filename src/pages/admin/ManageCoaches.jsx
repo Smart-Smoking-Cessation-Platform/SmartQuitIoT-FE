@@ -1,10 +1,12 @@
 import { coachesColumns as buildCoachesColumns } from "@/components/columns/coachesColumns";
+import AppBreadcrumb from "@/components/ui/app-breadcrumb";
 import { Button } from "@/components/ui/button";
 import SearchBar from "@/components/ui/search-bar";
 import { DataTable } from "@/components/ui/tables/data-table";
 import useDebounce from "@/hooks/useDebounce";
 import { getAllPagedCoaches } from "@/services/coachService";
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 const ManageCoaches = () => {
@@ -16,6 +18,7 @@ const ManageCoaches = () => {
   const [sortBy, setSortBy] = useState("ASC");
   const [searchString, setSearchString] = useState("");
   const inputSearchDebounce = useDebounce(searchString, 300);
+  const nav = useNavigate();
 
   const fetchCoaches = async () => {
     try {
@@ -61,6 +64,7 @@ const ManageCoaches = () => {
 
   return (
     <div className="p-6 space-y-6">
+      <AppBreadcrumb paths={["admin", "manage-coaches"]} />
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-emerald-800">
@@ -71,7 +75,9 @@ const ManageCoaches = () => {
           </p>
         </div>
         <div className="">
-          <Button>Add Coach</Button>
+          <Button onClick={() => nav("/admin/manage-coaches/create")}>
+            Add Coach
+          </Button>
         </div>
       </div>
       <SearchBar

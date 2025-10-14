@@ -666,3 +666,36 @@
   display: flex;
   gap: 8px;
 }
+.monthPicker {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.monthSelect,
+.yearSelect {
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: none;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  color: #0f172a;
+  background: rgba(255, 255, 255, 0.9);
+  transition: background 0.15s ease;
+}
+.monthSelect:hover,
+.yearSelect:hover {
+  background: rgba(255, 255, 255, 1);
+}
+.noCoachCell {
+  color: #94a3b8;
+  font-style: italic;
+  font-size: 13px;
+  padding: 8px 0;
+}
+
+.noActionText {
+  color: #cbd5e1;
+  font-size: 14px;
+}

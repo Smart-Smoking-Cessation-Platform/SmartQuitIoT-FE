@@ -1,7 +1,7 @@
 import AppLoading from "@/components/loadings/AppLoading";
 import AdminLayout from "@/layouts/AdminLayout";
 import AdminPage from "@/pages/admin/AdminPage";
-import SchedulePage from "@/pages/admin/SchedulePage";
+import SchedulePage from "@/pages/admin/schedule/SchedulePage";
 import NotFound from "@/pages/error/NotFound";
 import Home from "@/pages/Home";
 import Login from "@/pages/Login";
@@ -16,6 +16,7 @@ import Community from "./pages/Community";
 import About from "./pages/About";
 import News from "./pages/News";
 import ToastProvider from "./components/ui/ToastProvider";
+import ConfirmProvider from "./components/ui/ConfirmProvider";
 function App() {
   const [isLoading, setIsLoading] = useState(true);
 
@@ -75,7 +76,9 @@ function App() {
 
   return (
     <ToastProvider>
-      <RouterProvider router={router} />
+      <ConfirmProvider>
+        <RouterProvider router={router} />
+      </ConfirmProvider>
     </ToastProvider>
   );
 }

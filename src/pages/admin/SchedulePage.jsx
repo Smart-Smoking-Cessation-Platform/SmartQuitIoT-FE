@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -9,15 +9,7 @@ import {
   X,
 } from "lucide-react";
 import styles from "../../styles/SchedulePage.module.css";
-
-/* ---------------- sample coaches ---------------- */
-const SAMPLE_COACHES = Array.from({ length: 12 }).map((_, i) => ({
-  id: i + 1,
-  name: `Coach ${String.fromCharCode(65 + i)}`,
-  avatar: `https://ui-avatars.com/api/?name=Coach+${String.fromCharCode(
-    65 + i
-  )}&background=random`,
-}));
+import { getAllCoaches, assignSchedules } from "../../services/scheduleService";
 
 /* ---------- helpers ---------- */
 const pad = (n) => (n < 10 ? `0${n}` : `${n}`);
@@ -42,32 +34,22 @@ function getMonthGrid(year, month) {
   return weeks;
 }
 
-/* ---------- CSV download helper ---------- */
-const downloadCSV = (masterSchedule, filename = "master-schedule.csv") => {
-  const rows = masterSchedule.flatMap((r) =>
-    r.coachIds.map((cid) => `${r.date},${cid}`)
-  );
-  const csv = ["date,coachId", ...rows].join("\n");
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-};
-
 /* ---------- Main component ---------- */
 export default function SchedulePage() {
-  const [year, setYear] = useState(2025);
-  const [month, setMonth] = useState(10); // Set to current month
+  const now = new Date();
+  const [year, setYear] = useState(now.getFullYear());
+  const [month, setMonth] = useState(now.getMonth() + 1); // 1..12
   const [selectedDates, setSelectedDates] = useState([]);
-  const [coaches] = useState(SAMPLE_COACHES);
+  const [coaches, setCoaches] = useState([]);
   const [coachSearch, setCoachSearch] = useState("");
   const [selectedCoachIds, setSelectedCoachIds] = useState([]);
   const [masterSchedule, setMasterSchedule] = useState([
-    { date: "2025-10-10", coachIds: [1, 2] },
+    // optional initial seed; you can keep empty []
+    // { date: "2025-10-10", coachIds: [1, 2] },
   ]);
+
+  const [loadingCoaches, setLoadingCoaches] = useState(false);
+  const [assigning, setAssigning] = useState(false);
 
   const weeks = useMemo(() => getMonthGrid(year, month), [year, month]);
   const monthLabel = useMemo(
@@ -79,6 +61,45 @@ export default function SchedulePage() {
     [year, month]
   );
 
+  useEffect(() => {
+    let mounted = true;
+    const fetchCoaches = async () => {
+      setLoadingCoaches(true);
+      try {
+        const res = await getAllCoaches();
+        if (res?.data?.success) {
+          const data = res.data.data || [];
+          const mapped = data.map((c) => ({
+            id: c.id,
+            name:
+              `${c.firstName || ""} ${c.lastName || ""}`.trim() ||
+              `Coach ${c.id}`,
+            avatar:
+              c.avatarUrl ||
+              `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                `${c.firstName || ""} ${c.lastName || ""}`
+              )}&background=random`,
+          }));
+          if (mounted) setCoaches(mapped);
+        } else {
+          console.error("Coaches API unexpected response:", res);
+          if (mounted)
+            alert("Không load được danh sách coach (server trả về lỗi).");
+        }
+      } catch (err) {
+        console.error("Failed to load coaches:", err);
+        if (mounted) alert("Không thể kết nối server để lấy danh sách coach.");
+      } finally {
+        if (mounted) setLoadingCoaches(false);
+      }
+    };
+
+    fetchCoaches();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   const visibleCoaches = useMemo(() => {
     const q = coachSearch.trim().toLowerCase();
     return q
@@ -89,7 +110,7 @@ export default function SchedulePage() {
   const toggleDate = (y, m, d) => {
     const iso = toISODate(y, m, d);
     setSelectedDates((prev) =>
-      prev.includes(iso) ? prev.filter((x) => x !== iso) : [...prev, iso]
+      prev.includes(iso) ? prev.filter((x) => x !== iso) : [...prev, iso].sort()
     );
   };
 
@@ -121,30 +142,63 @@ export default function SchedulePage() {
 
   const clearCoaches = () => setSelectedCoachIds([]);
 
-  const assignCoachesToDates = () => {
+  // handle assign -> call API
+  const handleAssign = async () => {
     if (!selectedDates.length) return alert("Chọn ít nhất 1 ngày làm việc.");
     if (!selectedCoachIds.length) return alert("Chọn ít nhất 1 coach.");
 
-    setMasterSchedule((prev) => {
-      const map = {};
-      prev.forEach((r) => (map[r.date] = new Set(r.coachIds)));
-      selectedDates.forEach((d) => {
-        if (!map[d]) map[d] = new Set();
-        selectedCoachIds.forEach((cid) => map[d].add(cid));
-      });
-      const out = Object.keys(map)
-        .sort()
-        .map((date) => ({
-          date,
-          coachIds: Array.from(map[date]).sort((a, b) => a - b),
-        }));
-      return out;
-    });
+    if (
+      !confirm(
+        `Gán ${selectedCoachIds.length} coach cho ${selectedDates.length} ngày?`
+      )
+    )
+      return;
 
-    setSelectedDates([]);
+    setAssigning(true);
+    try {
+      const body = {
+        dates: selectedDates,
+        coachIds: selectedCoachIds,
+      };
+      const res = await assignSchedules(body);
+      if (res?.data?.success) {
+        alert("✅ Gán lịch thành công!");
+
+        // Merge server result into local masterSchedule optimistically.
+        // Server response may be count or updated records; here we merge locally:
+        setMasterSchedule((prev) => {
+          const map = {};
+          prev.forEach((r) => (map[r.date] = new Set(r.coachIds)));
+          selectedDates.forEach((d) => {
+            if (!map[d]) map[d] = new Set();
+            selectedCoachIds.forEach((cid) => map[d].add(cid));
+          });
+          const out = Object.keys(map)
+            .sort()
+            .map((date) => ({
+              date,
+              coachIds: Array.from(map[date]).sort((a, b) => a - b),
+            }));
+          return out;
+        });
+
+        // clear selections
+        setSelectedDates([]);
+        setSelectedCoachIds([]);
+      } else {
+        console.error("Assign API returned failure:", res);
+        alert("Gán lịch thất bại (server trả về lỗi).");
+      }
+    } catch (err) {
+      console.error("Assign request failed:", err);
+      alert("Lỗi kết nối hoặc server khi gán lịch.");
+    } finally {
+      setAssigning(false);
+    }
   };
 
   const removeCoachFromDate = (date, cid) => {
+    // NOTE: optionally call API to remove - currently local only
     setMasterSchedule((prev) =>
       prev
         .map((r) =>
@@ -159,6 +213,7 @@ export default function SchedulePage() {
   const removeDate = (date) => {
     if (!confirm(`Xóa ngày ${formatDisplay(date)} khỏi master schedule?`))
       return;
+    // NOTE: optionally call API to delete - currently local only
     setMasterSchedule((prev) => prev.filter((r) => r.date !== date));
   };
 
@@ -330,36 +385,42 @@ export default function SchedulePage() {
               />
 
               <div className={styles.coachList}>
-                {visibleCoaches.map((c) => {
-                  const checked = selectedCoachIds.includes(c.id);
-                  return (
-                    <label
-                      key={c.id}
-                      className={`${styles.coachItem} ${
-                        checked ? styles.coachItemSelected : ""
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={checked}
-                        onChange={() => toggleCoach(c.id)}
-                        className={styles.checkbox}
-                      />
-                      <img
-                        src={c.avatar}
-                        alt={c.name}
-                        className={styles.avatar}
-                      />
-                      <div className={styles.coachInfo}>
-                        <div className={styles.coachName}>{c.name}</div>
-                        <div className={styles.coachId}>Coach ID: {c.id}</div>
-                      </div>
-                      {checked && (
-                        <Check className={styles.iconCheckSelected} />
-                      )}
-                    </label>
-                  );
-                })}
+                {loadingCoaches ? (
+                  <div style={{ padding: 12 }}>Đang tải coaches...</div>
+                ) : visibleCoaches.length === 0 ? (
+                  <div style={{ padding: 12 }}>Không có coach phù hợp.</div>
+                ) : (
+                  visibleCoaches.map((c) => {
+                    const checked = selectedCoachIds.includes(c.id);
+                    return (
+                      <label
+                        key={c.id}
+                        className={`${styles.coachItem} ${
+                          checked ? styles.coachItemSelected : ""
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() => toggleCoach(c.id)}
+                          className={styles.checkbox}
+                        />
+                        <img
+                          src={c.avatar}
+                          alt={c.name}
+                          className={styles.avatar}
+                        />
+                        <div className={styles.coachInfo}>
+                          <div className={styles.coachName}>{c.name}</div>
+                          <div className={styles.coachId}>Coach ID: {c.id}</div>
+                        </div>
+                        {checked && (
+                          <Check className={styles.iconCheckSelected} />
+                        )}
+                      </label>
+                    );
+                  })
+                )}
               </div>
 
               <div className={styles.coachActions}>
@@ -378,12 +439,15 @@ export default function SchedulePage() {
               </div>
 
               <button
-                onClick={assignCoachesToDates}
-                disabled={!selectedDates.length || !selectedCoachIds.length}
+                onClick={handleAssign}
+                disabled={
+                  !selectedDates.length || !selectedCoachIds.length || assigning
+                }
                 className={styles.assignButton}
               >
-                Gán {selectedCoachIds.length} coach cho {selectedDates.length}{" "}
-                ngày
+                {assigning
+                  ? "Đang gán..."
+                  : `Gán ${selectedCoachIds.length} coach cho ${selectedDates.length} ngày`}
               </button>
 
               <p className={styles.note}>
@@ -406,15 +470,6 @@ export default function SchedulePage() {
               </p>
             </div>
           </div>
-
-          <button
-            className={styles.exportBtn}
-            onClick={() =>
-              downloadCSV(masterSchedule, `master-${year}-${pad(month)}.csv`)
-            }
-          >
-            📥 Export CSV
-          </button>
         </div>
 
         {masterSchedule.length === 0 ? (

@@ -15,7 +15,7 @@ import MainLayout from "./layouts/MainLayout";
 import Community from "./pages/Community";
 import About from "./pages/About";
 import News from "./pages/News";
-
+import ToastProvider from "./components/ui/ToastProvider";
 function App() {
   const [isLoading, setIsLoading] = useState(true);
 
@@ -33,23 +33,22 @@ function App() {
       path: "*",
       element: <NotFound />,
     },
-    { path: "/dashboard", element: <DashboardRedirect /> }
-    ,
+    { path: "/dashboard", element: <DashboardRedirect /> },
     {
       path: "/login",
       element: <Login />,
     },
 
     {
-    element: <MainLayout />, 
-    children: [
-      { path: "/", element: <Home /> },
-      { path: "/resources", element: <Resources /> },
-      { path: "/community", element: <Community /> },
-      { path: "/news", element: <News /> },
-      { path: "/about", element: <About /> },
-    ],
-  },
+      element: <MainLayout />,
+      children: [
+        { path: "/", element: <Home /> },
+        { path: "/resources", element: <Resources /> },
+        { path: "/community", element: <Community /> },
+        { path: "/news", element: <News /> },
+        { path: "/about", element: <About /> },
+      ],
+    },
     {
       element: <AdminLayout />,
       children: [
@@ -71,10 +70,14 @@ function App() {
           element: <CoachPage />,
         },
       ],
-    }
+    },
   ]);
 
-  return <RouterProvider router={router} />;
+  return (
+    <ToastProvider>
+      <RouterProvider router={router} />
+    </ToastProvider>
+  );
 }
 
 export default App;

@@ -1,5 +1,5 @@
 import { useContext } from "react";
-import ConfirmContext from "../components/ui/confirmContext";
+import ConfirmContext from "../context/confirmContext";
 
 export default function useConfirm() {
   const ctx = useContext(ConfirmContext);

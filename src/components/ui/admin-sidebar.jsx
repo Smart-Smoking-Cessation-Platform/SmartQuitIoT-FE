@@ -14,83 +14,81 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { useNavigate } from "react-router-dom";
 
 const items = [
-  { title: "Home", url: "/admin", icon: Home },
-  { title: "Schedule", url: "/admin/schedule", icon: Calendar },
-  { title: "Inbox", url: "/admin/inbox", icon: Inbox },
-  { title: "Calendar", url: "/admin/calendar", icon: Calendar },
-  { title: "Search", url: "/admin/search", icon: Search },
-  { title: "Settings", url: "/admin/settings", icon: Settings },
   {
     title: "Dashboard",
-    url: "#",
+    url: "/admin",
     icon: LayoutDashboard,
   },
   {
     title: "Manage Blogs",
-    url: "#blogs",
+    url: "/admin/manage/blogs",
     icon: List,
   },
   {
     title: "Manage Missions",
-    url: "#missions",
+    url: "/admin/manage/missions",
     icon: List,
   },
   {
     title: "Manage Achievements",
-    url: "#achievements",
+    url: "/admin/manage/achievements",
     icon: List,
   },
   {
     title: "Manage Users",
-    url: "#users",
+    url: "/admin/manage/users",
     icon: List,
   },
   {
     title: "Manage Membership Packages",
-    url: "#membership-packages",
+    url: "/admin/manage/membership-packages",
     icon: List,
   },
   {
     title: "Manage Pass Conditions",
-    url: "#pass-conditions",
+    url: "/admin/manage/pass-conditions",
     icon: List,
   },
   {
     title: "Manage Phases",
-    url: "#phases",
+    url: "/admin/manage/phases",
     icon: List,
   },
   {
     title: "Manage Coaches",
-    url: "#coaches",
+    url: "/admin/manage/coaches",
     icon: List,
   },
   {
     title: "Manage Subscriptions",
-    url: "#subscriptions",
+    url: "/admin/manage/subscriptions",
     icon: List,
   },
   {
     title: "Manage Payments",
-    url: "#payments",
+    url: "/admin/manage/payments",
+    icon: List,
+  },
+  {
+    title: "Manage Schedules",
+    url: "/admin/manage/schedule",
     icon: List,
   },
 ];
 
-function initialsFromName(name = "") {
-  if (!name) return "AD";
-  const parts = name.trim().split(/\s+/);
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-}
-
 const AdminSidebar = () => {
+  const nav = useNavigate();
+
   return (
     <Sidebar>
       <SidebarHeader>
-        <div className="flex justify-center items-center space-x-2">
+        <div
+          className="flex justify-center items-center space-x-2 cursor-pointer"
+          onClick={() => nav("/admin")}
+        >
           <img src={logo} alt="Logo" className="h-12 w-auto" />
           <h1 className="text-2xl font-bold">
             <span className="text-green-600">Smart</span>
@@ -106,28 +104,13 @@ const AdminSidebar = () => {
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                    <NavLink
-                      to={item.url}
-                      className={({ isActive }) =>
-                        [
-                          "flex items-center gap-3 px-3 py-2 rounded-md transition-colors",
-                          isActive
-                            ? `bg-${accent}-50 text-${accent}-700 font-semibold`
-                            : "text-slate-700 hover:bg-slate-100",
-                          collapsed ? "justify-center px-0" : "",
-                        ].join(" ")
-                      }
+                    <a
+                      onClick={() => nav(item.url)}
+                      className="flex items-center space-x-2 cursor-pointer"
                     >
-                      <item.icon
-                        className={`w-5 h-5 ${
-                          // color icon when active for better contrast
-                          "text-slate-600"
-                        }`}
-                      />
-                      {!collapsed && (
-                        <span className="truncate">{item.title}</span>
-                      )}
-                    </NavLink>
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </a>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}

@@ -1,6 +1,6 @@
 // src/ui/ToastProvider.jsx
 import React, { useCallback, useState } from "react";
-import ToastContext from "../../context/toastContext";
+import ToastContext from "./toastContext";
 import { X } from "lucide-react";
 
 /* Embedded CSS (keeps file self-contained) */

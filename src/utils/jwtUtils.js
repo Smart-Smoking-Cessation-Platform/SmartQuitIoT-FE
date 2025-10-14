@@ -1,11 +1,11 @@
 import { jwtDecode } from "jwt-decode";
 import axios from "axios";
 
-const API_BASE_URL = `${import.meta.env.VITE_URL_API}/auth/system`;
+const API_BASE_URL = `${import.meta.env.VITE_URL_API}`;
 
 const refreshAccessToken = async (refreshToken) => {
   try {
-    const response = await axios.post(`${API_BASE_URL}/refresh`, {
+    const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
       refreshToken,
     });
     const { accessToken, refreshToken: newRefreshToken } = response.data;

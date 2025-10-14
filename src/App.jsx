@@ -1,6 +1,7 @@
 import AppLoading from "@/components/loadings/AppLoading";
 import AdminLayout from "@/layouts/AdminLayout";
 import AdminPage from "@/pages/admin/AdminPage";
+import SchedulePage from "@/pages/admin/schedule/SchedulePage";
 import NotFound from "@/pages/error/NotFound";
 import Home from "@/pages/Home";
 import Login from "@/pages/Login";
@@ -14,7 +15,8 @@ import MainLayout from "./layouts/MainLayout";
 import Community from "./pages/Community";
 import About from "./pages/About";
 import News from "./pages/News";
-
+import ToastProvider from "./components/ui/ToastProvider";
+import ConfirmProvider from "./components/ui/ConfirmProvider";
 function App() {
   const [isLoading, setIsLoading] = useState(true);
 
@@ -32,29 +34,32 @@ function App() {
       path: "*",
       element: <NotFound />,
     },
-    { path: "/dashboard", element: <DashboardRedirect /> }
-    ,
+    { path: "/dashboard", element: <DashboardRedirect /> },
     {
       path: "/login",
       element: <Login />,
     },
 
     {
-    element: <MainLayout />, 
-    children: [
-      { path: "/", element: <Home /> },
-      { path: "/resources", element: <Resources /> },
-      { path: "/community", element: <Community /> },
-      { path: "/news", element: <News /> },
-      { path: "/about", element: <About /> },
-    ],
-  },
+      element: <MainLayout />,
+      children: [
+        { path: "/", element: <Home /> },
+        { path: "/resources", element: <Resources /> },
+        { path: "/community", element: <Community /> },
+        { path: "/news", element: <News /> },
+        { path: "/about", element: <About /> },
+      ],
+    },
     {
       element: <AdminLayout />,
       children: [
         {
           path: "/admin",
           element: <AdminPage />,
+        },
+        {
+          path: "/admin/schedule",
+          element: <SchedulePage />,
         },
       ],
     },
@@ -66,10 +71,16 @@ function App() {
           element: <CoachPage />,
         },
       ],
-    }
+    },
   ]);
 
-  return <RouterProvider router={router} />;
+  return (
+    <ToastProvider>
+      <ConfirmProvider>
+        <RouterProvider router={router} />
+      </ConfirmProvider>
+    </ToastProvider>
+  );
 }
 
 export default App;

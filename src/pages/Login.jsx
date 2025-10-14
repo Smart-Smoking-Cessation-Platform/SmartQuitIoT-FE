@@ -1,6 +1,6 @@
 import logoBanner from "@/assets/login-banner.png";
-import LoginForm from "@/components/ui/login-form";
 import logo from "@/assets/logo.png";
+import LoginForm from "@/components/ui/login-form";
 
 const Login = () => {
   return (

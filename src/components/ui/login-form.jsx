@@ -1,3 +1,4 @@
+import CircleLoading from "@/components/loadings/CircleLoading";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -6,6 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import ErrorMessage from "@/components/ui/error-message";
 import {
   Form,
   FormControl,
@@ -27,6 +29,8 @@ import { toast } from "sonner";
 
 const LoginForm = () => {
   const [showPassword, setShowPassword] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const nav = useNavigate();
 
   const loginForm = useForm({
@@ -38,6 +42,7 @@ const LoginForm = () => {
   });
 
   const onSubmit = async (data) => {
+    setIsLoading(true);
     try {
       const response = await login(data);
       if (response.status === 200) {
@@ -52,7 +57,10 @@ const LoginForm = () => {
         }
       }
     } catch (error) {
-      console.error("Login failed:", error);
+      console.error("Login failed >>>", error);
+      setErrorMessage(error?.response?.data?.message);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -142,13 +150,17 @@ const LoginForm = () => {
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2"></div>
             </div>
-
-            <Button
-              type="submit"
-              className="w-full bg-emerald-500 hover:bg-emerald-600 cursor-pointer transition-colors"
-            >
-              Sign In
-            </Button>
+            {errorMessage && <ErrorMessage text={errorMessage} />}
+            {isLoading ? (
+              <CircleLoading />
+            ) : (
+              <Button
+                type="submit"
+                className="w-full bg-emerald-500 hover:bg-emerald-600 cursor-pointer transition-colors"
+              >
+                Sign In
+              </Button>
+            )}
           </form>
         </Form>
       </CardContent>

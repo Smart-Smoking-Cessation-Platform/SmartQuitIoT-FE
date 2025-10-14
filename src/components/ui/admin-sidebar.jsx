@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import React, { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 import {
@@ -20,6 +21,12 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+=======
+import { LayoutDashboard, List } from "lucide-react";
+
+import logo from "@/assets/logo.png";
+import NavAdminSidebar from "@/components/ui/nav-admin-sidebar";
+>>>>>>> 208df09 (feat: modified admin layout, fix error message at login)
 import {
   Sidebar,
   SidebarContent,
@@ -32,10 +39,13 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+<<<<<<< HEAD
 import { Switch } from "@/components/ui/switch";
 import { useTheme } from "@/context/theme-provider";
 import { useNavigate } from "react-router-dom";
 import { getAdminProfile } from "@/services/accountService";
+=======
+>>>>>>> 208df09 (feat: modified admin layout, fix error message at login)
 
 /**
  * Polished AdminSidebar
@@ -46,12 +56,70 @@ import { getAdminProfile } from "@/services/accountService";
  */
 
 const items = [
+<<<<<<< HEAD
   { title: "Home", url: "/admin", icon: Home },
   { title: "Schedule", url: "/admin/schedule", icon: Calendar },
   { title: "Inbox", url: "/admin/inbox", icon: Inbox },
   { title: "Calendar", url: "/admin/calendar", icon: Calendar },
   { title: "Search", url: "/admin/search", icon: Search },
   { title: "Settings", url: "/admin/settings", icon: Settings },
+=======
+  {
+    title: "Dashboard",
+    url: "#",
+    icon: LayoutDashboard,
+  },
+  {
+    title: "Manage Blogs",
+    url: "#blogs",
+    icon: List,
+  },
+  {
+    title: "Manage Missions",
+    url: "#missions",
+    icon: List,
+  },
+  {
+    title: "Manage Achievements",
+    url: "#achievements",
+    icon: List,
+  },
+  {
+    title: "Manage Users",
+    url: "#users",
+    icon: List,
+  },
+  {
+    title: "Manage Membership Packages",
+    url: "#membership-packages",
+    icon: List,
+  },
+  {
+    title: "Manage Pass Conditions",
+    url: "#pass-conditions",
+    icon: List,
+  },
+  {
+    title: "Manage Phases",
+    url: "#phases",
+    icon: List,
+  },
+  {
+    title: "Manage Coaches",
+    url: "#coaches",
+    icon: List,
+  },
+  {
+    title: "Manage Subscriptions",
+    url: "#subscriptions",
+    icon: List,
+  },
+  {
+    title: "Manage Payments",
+    url: "#payments",
+    icon: List,
+  },
+>>>>>>> 208df09 (feat: modified admin layout, fix error message at login)
 ];
 
 function initialsFromName(name = "") {
@@ -62,6 +130,7 @@ function initialsFromName(name = "") {
 }
 
 const AdminSidebar = () => {
+<<<<<<< HEAD
   const { theme, setTheme } = useTheme();
   const nav = useNavigate();
   const [admin, setAdmin] = useState({});
@@ -133,6 +202,22 @@ const AdminSidebar = () => {
       <SidebarContent className="overflow-auto">
         <SidebarGroup>
           {!collapsed && <SidebarGroupLabel>Application</SidebarGroupLabel>}
+=======
+  return (
+    <Sidebar>
+      <SidebarHeader>
+        <div className="flex justify-center items-center space-x-2">
+          <img src={logo} alt="Logo" className="h-12 w-auto" />
+          <h1 className="text-2xl font-bold">
+            <span className="text-green-600">Smart</span>
+            <span className="text-emerald-950">Quit</span>
+          </h1>
+        </div>
+      </SidebarHeader>
+      <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupLabel>Administrator</SidebarGroupLabel>
+>>>>>>> 208df09 (feat: modified admin layout, fix error message at login)
           <SidebarGroupContent>
             <SidebarMenu>
               {items.map((item) => (
@@ -167,6 +252,7 @@ const AdminSidebar = () => {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+<<<<<<< HEAD
 
       {/* Footer / Profile */}
       <SidebarFooter className="px-3 py-4">
@@ -255,6 +341,10 @@ const AdminSidebar = () => {
             </Popover>
           </SidebarMenuItem>
         </SidebarMenu>
+=======
+      <SidebarFooter>
+        <NavAdminSidebar />
+>>>>>>> 208df09 (feat: modified admin layout, fix error message at login)
       </SidebarFooter>
     </Sidebar>
   );

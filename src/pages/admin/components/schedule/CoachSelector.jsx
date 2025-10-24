@@ -1,6 +1,5 @@
-import React from "react";
-import { Users, Check } from "lucide-react";
-import styles from "../../../styles/SchedulePage.module.css";
+import { Check, Users } from "lucide-react";
+import styles from "../../../../styles/SchedulePage.module.css";
 
 export default function CoachSelector({
   coaches,

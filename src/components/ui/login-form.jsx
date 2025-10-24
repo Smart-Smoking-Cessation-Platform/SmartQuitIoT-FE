@@ -58,7 +58,9 @@ const LoginForm = () => {
       }
     } catch (error) {
       console.error("Login failed >>>", error);
-      setErrorMessage(error?.response?.data?.message);
+      setErrorMessage(
+        error?.response?.data?.message || "Login failed. Please try again."
+      );
     } finally {
       setIsLoading(false);
     }

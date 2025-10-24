@@ -1,4 +1,4 @@
-import { LayoutDashboard, List } from "lucide-react";
+import { LayoutDashboard, List, Newspaper } from "lucide-react";
 
 import logo from "@/assets/logo.png";
 import NavAdminSidebar from "@/components/ui/nav-admin-sidebar";
@@ -21,6 +21,11 @@ const items = [
     title: "Dashboard",
     url: "/admin",
     icon: LayoutDashboard,
+  },
+  {
+    title: "Manage News",
+    url: "/admin/manage-news",
+    icon: List,
   },
   {
     title: "Manage Blogs",
@@ -85,6 +90,19 @@ const items = [
   },
 ];
 
+const appItems = [
+  {
+    title: "News Feed",
+    url: "/admin/news-feed",
+    icon: Newspaper,
+  },
+  {
+    title: "Community Posts",
+    url: "/admin/community-posts",
+    icon: Newspaper,
+  },
+];
+
 const AdminSidebar = () => {
   const nav = useNavigate();
 
@@ -103,6 +121,26 @@ const AdminSidebar = () => {
         </div>
       </SidebarHeader>
       <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupLabel>Applications</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {appItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild>
+                    <a
+                      onClick={() => nav(item.url)}
+                      className="flex items-center space-x-2 cursor-pointer"
+                    >
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </a>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
         <SidebarGroup>
           <SidebarGroupLabel>Administrator</SidebarGroupLabel>
           <SidebarGroupContent>

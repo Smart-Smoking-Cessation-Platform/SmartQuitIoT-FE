@@ -1,9 +1,8 @@
 import AppLoading from "@/components/loadings/AppLoading";
 import AdminLayout from "@/layouts/AdminLayout";
-import AdminPage from "@/pages/admin/AdminPage";
-import ManageCoaches from "@/pages/admin/ManageCoaches";
-import ManageMembershipPackage from "@/pages/admin/ManageMembershipPackage";
-import SchedulePage from "@/pages/admin/schedule/SchedulePage";
+import AdminPage from "@/pages/admin/pages/AdminPage";
+import ManageCoaches from "@/pages/admin/pages/ManageCoaches";
+import ManageMembershipPackage from "@/pages/admin/pages/ManageMembershipPackage";
 import NotFound from "@/pages/error/NotFound";
 import Home from "@/pages/Home";
 import Login from "@/pages/Login";
@@ -19,8 +18,11 @@ import CoachPage from "./pages/coach/CoachPage";
 import Community from "./pages/Community";
 import News from "./pages/News";
 import Resources from "./pages/Resources";
-import ManageSlots from "@/pages/admin/ManageSlots";
-import AddCoachPage from "@/pages/admin/AddCoachPage";
+import ManageSlots from "@/pages/admin/pages/ManageSlots";
+import AddCoachPage from "@/pages/admin/pages/AddCoachPage";
+import ManageNews from "@/pages/admin/pages/ManageNews";
+import SchedulePage from "@/pages/admin/pages/SchedulePage";
+import CreateNewsPage from "@/pages/admin/pages/CreateNewsPage";
 function App() {
   const [isLoading, setIsLoading] = useState(true);
 
@@ -80,6 +82,14 @@ function App() {
         {
           path: "/admin/manage-slot-times",
           element: <ManageSlots />,
+        },
+        {
+          path: "/admin/manage-news",
+          element: <ManageNews />,
+        },
+        {
+          path: "/admin/manage-news/create",
+          element: <CreateNewsPage />,
         },
       ],
     },

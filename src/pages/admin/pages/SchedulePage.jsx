@@ -5,12 +5,12 @@ import {
   assignSchedules,
   getMonthlySchedules,
   updateScheduleByDate,
-} from "../../../services/scheduleService";
-import useToast from "../../../hooks/useToast";
-import useConfirm from "../../../hooks/useConfirm";
-import CalendarSection from "./CalendarSection";
-import CoachSelector from "./CoachSelector";
-import MasterScheduleTable from "./MasterScheduleTable";
+} from "@/services/scheduleService";
+import useToast from "@/hooks/useToast";
+import useConfirm from "@/hooks/useConfirm";
+import CalendarSection from "../components/schedule/CalendarSection";
+import CoachSelector from "../components/schedule/CoachSelector";
+import MasterScheduleTable from "../components/schedule/MasterScheduleTable";
 
 export default function SchedulePage() {
   const now = new Date();

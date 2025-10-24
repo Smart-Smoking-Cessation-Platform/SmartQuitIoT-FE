@@ -1,6 +1,6 @@
-import React, { useMemo } from "react";
-import { Calendar, Trash, X, CalendarX } from "lucide-react";
-import styles from "../../../styles/SchedulePage.module.css";
+import { Calendar, CalendarX, Trash, X } from "lucide-react";
+import { useMemo } from "react";
+import styles from "../../../../styles/SchedulePage.module.css";
 import { formatDisplay } from "./utils";
 
 export default function MasterScheduleTable({

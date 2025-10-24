@@ -81,6 +81,7 @@ const ManageCoaches = () => {
         </div>
       </div>
       <SearchBar
+        placeholderText={"Search by Coaches name"}
         searchString={searchString}
         setSearchString={setSearchString}
         sortBy={sortBy}

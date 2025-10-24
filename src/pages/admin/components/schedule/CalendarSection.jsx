@@ -1,13 +1,6 @@
-import React from "react";
-import {
-  ChevronLeft,
-  ChevronRight,
-  Check,
-  Users,
-  CalendarPlus,
-} from "lucide-react";
-import styles from "../../../styles/SchedulePage.module.css";
-import { getMonthGrid, toISODate, isPast } from "./utils";
+import { Check, ChevronLeft, ChevronRight, Users } from "lucide-react";
+import styles from "../../../../styles/SchedulePage.module.css";
+import { getMonthGrid, isPast, toISODate } from "./utils";
 
 export default function CalendarSection({
   year,

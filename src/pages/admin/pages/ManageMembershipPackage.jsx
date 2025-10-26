@@ -10,7 +10,6 @@ const ManageMembershipPackage = () => {
   const fetchMembershipPackages = async () => {
     try {
       const response = await getAllMembershipPackages();
-      console.log(response.data?.data);
       setPackages(response.data?.data);
     } catch (error) {
       console.log(error);

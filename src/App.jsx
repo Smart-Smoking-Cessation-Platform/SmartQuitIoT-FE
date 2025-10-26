@@ -1,8 +1,14 @@
 import AppLoading from "@/components/loadings/AppLoading";
 import AdminLayout from "@/layouts/AdminLayout";
+import AddCoachPage from "@/pages/admin/pages/AddCoachPage";
 import AdminPage from "@/pages/admin/pages/AdminPage";
+import CreateNewsPage from "@/pages/admin/pages/CreateNewsPage";
 import ManageCoaches from "@/pages/admin/pages/ManageCoaches";
 import ManageMembershipPackage from "@/pages/admin/pages/ManageMembershipPackage";
+import ManageMissions from "@/pages/admin/pages/ManageMissions";
+import ManageNews from "@/pages/admin/pages/ManageNews";
+import ManageSlots from "@/pages/admin/pages/ManageSlots";
+import SchedulePage from "@/pages/admin/pages/SchedulePage";
 import NotFound from "@/pages/error/NotFound";
 import Home from "@/pages/Home";
 import Login from "@/pages/Login";
@@ -18,11 +24,6 @@ import CoachPage from "./pages/coach/CoachPage";
 import Community from "./pages/Community";
 import News from "./pages/News";
 import Resources from "./pages/Resources";
-import ManageSlots from "@/pages/admin/pages/ManageSlots";
-import AddCoachPage from "@/pages/admin/pages/AddCoachPage";
-import ManageNews from "@/pages/admin/pages/ManageNews";
-import SchedulePage from "@/pages/admin/pages/SchedulePage";
-import CreateNewsPage from "@/pages/admin/pages/CreateNewsPage";
 function App() {
   const [isLoading, setIsLoading] = useState(true);
 
@@ -90,6 +91,10 @@ function App() {
         {
           path: "/admin/manage-news/create",
           element: <CreateNewsPage />,
+        },
+        {
+          path: "/admin/manage-missions",
+          element: <ManageMissions />,
         },
       ],
     },

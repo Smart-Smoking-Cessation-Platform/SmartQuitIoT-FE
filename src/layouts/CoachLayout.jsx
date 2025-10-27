@@ -1,3 +1,5 @@
+// src/layouts/CoachLayout.jsx
+import CoachSidebar from "@/components/ui/coach-sidebar/CoachSidebar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Navigate, Outlet } from "react-router-dom";
 
@@ -10,8 +12,13 @@ const CoachLayout = () => {
 
   return (
     <SidebarProvider>
-      <div>coach header</div>
-      <Outlet />
+      <CoachSidebar />
+      <div className="w-full min-h-screen">
+        <SidebarTrigger />
+        <main className="p-4">
+          <Outlet />
+        </main>
+      </div>
     </SidebarProvider>
   );
 };

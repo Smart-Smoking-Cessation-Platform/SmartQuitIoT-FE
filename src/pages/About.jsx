@@ -1,8 +1,11 @@
+import NotificationTest from '@/ws/NotificationTest';
 import React from 'react';
 
 const About = () => {
     return (
         <div style={{ padding: '2rem' }}>
+
+            <NotificationTest/>
             <h1>About SmartQuitIoT</h1>
             <p>
                 SmartQuitIoT is an innovative project aimed at helping individuals quit smoking using IoT technology.

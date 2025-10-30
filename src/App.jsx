@@ -24,6 +24,7 @@ import CoachPage from "./pages/coach/CoachPage";
 import Community from "./pages/Community";
 import News from "./pages/News";
 import Resources from "./pages/Resources";
+import TestChatbot from "@/test/TestChatbot";
 function App() {
   const [isLoading, setIsLoading] = useState(true);
 
@@ -40,6 +41,10 @@ function App() {
     {
       path: "*",
       element: <NotFound />,
+    },
+    {
+      path: "/test/chatbot",
+      element: <TestChatbot />,
     },
     { path: "/dashboard", element: <DashboardRedirect /> },
     {

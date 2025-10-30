@@ -24,6 +24,10 @@ import CoachPage from "./pages/coach/CoachPage";
 import Community from "./pages/Community";
 import News from "./pages/News";
 import Resources from "./pages/Resources";
+import CoachSchedulePage from "@/pages/coach/CoachSchedulePage";
+import CoachAppointmentsPage from "@/pages/coach/CoachAppointmentsPage";
+import CoachChatPage from "@/pages/coach/CoachChatPage";
+import MeetingPage from "@/pages/coach/MeetingPage";
 function App() {
   const [isLoading, setIsLoading] = useState(true);
 
@@ -55,6 +59,16 @@ function App() {
         { path: "/community", element: <Community /> },
         { path: "/news", element: <News /> },
         { path: "/about", element: <About /> },
+      ],
+    },
+    {
+      element: <CoachLayout />,
+      children: [
+        { path: "/coach", element: <CoachPage /> },
+        { path: "/coach/schedule", element: <CoachSchedulePage /> },
+        { path: "/coach/appointments", element: <CoachAppointmentsPage /> },
+        { path: "/coach/chat", element: <CoachChatPage /> },
+        { path: "/meeting/:appointmentId", element: <MeetingPage /> },
       ],
     },
     {

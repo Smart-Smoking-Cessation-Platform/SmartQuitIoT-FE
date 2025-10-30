@@ -27,6 +27,7 @@ import Resources from "./pages/Resources";
 import CoachSchedulePage from "@/pages/coach/CoachSchedulePage";
 import CoachAppointmentsPage from "@/pages/coach/CoachAppointmentsPage";
 import CoachChatPage from "@/pages/coach/CoachChatPage";
+import MeetingPage from "@/pages/coach/MeetingPage";
 function App() {
   const [isLoading, setIsLoading] = useState(true);
 
@@ -67,6 +68,7 @@ function App() {
         { path: "/coach/schedule", element: <CoachSchedulePage /> },
         { path: "/coach/appointments", element: <CoachAppointmentsPage /> },
         { path: "/coach/chat", element: <CoachChatPage /> },
+        { path: "/meeting/:appointmentId", element: <MeetingPage /> },
       ],
     },
     {

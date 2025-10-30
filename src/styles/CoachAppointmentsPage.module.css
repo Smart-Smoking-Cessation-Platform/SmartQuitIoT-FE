@@ -529,3 +529,18 @@
     width: 56px;
   }
 }
+/* replace/insert */
+.dateInner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 6px;
+  min-width: 52px;
+  text-align: center;
+}
+
+/* nếu file còn chứa .dateCount, ẩn nó */
+.dateCount {
+  display: none;
+}

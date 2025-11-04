@@ -1,4 +1,4 @@
-import { coachesColumns as buildCoachesColumns } from "@/components/columns/coachesColumns";
+import { coachesColumns as buildCoachesColumns } from "@/pages/admin/components/columns/coachesColumns";
 import AppBreadcrumb from "@/components/ui/app-breadcrumb";
 import { Button } from "@/components/ui/button";
 import SearchBar from "@/components/ui/search-bar";

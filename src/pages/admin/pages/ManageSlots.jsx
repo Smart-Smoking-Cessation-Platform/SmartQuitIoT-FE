@@ -1,4 +1,4 @@
-import { slotColumns as buildSlotsColumns } from "@/components/columns/slotColumns";
+import { slotColumns as buildSlotsColumns } from "@/pages/admin/components/columns/slotColumns";
 import AppBreadcrumb from "@/components/ui/app-breadcrumb";
 import { DataTable } from "@/components/ui/tables/data-table";
 import { getAllSlots } from "@/services/slotService";

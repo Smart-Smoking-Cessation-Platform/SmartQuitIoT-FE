@@ -1,23 +1,20 @@
-import { newsColumns as buildNewsColumns } from "@/pages/admin/components/columns/newsColumns";
 import AppBreadcrumb from "@/components/ui/app-breadcrumb";
-import { Button } from "@/components/ui/button";
-import SearchBar from "@/components/ui/search-bar";
 import { DataTable } from "@/components/ui/tables/data-table";
+import React, { useEffect, useState } from "react";
+import { achievementColumns as buildAchievementColumns } from "@/pages/admin/components/columns/achivementColumns";
 import useDebounce from "@/hooks/useDebounce";
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import SearchBar from "@/components/ui/search-bar";
+import { toast } from "sonner";
+import { getAllAchievements } from "@/services/achievementService";
 
-const ManageNews = () => {
-  const [news, setNews] = useState([]);
+const ManageAchievements = () => {
   const [currentPage, setCurrentPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
-  const [sortBy, setSortBy] = useState("ASC");
   const [searchString, setSearchString] = useState("");
+  const [achievements, setAchievements] = useState([]);
   const inputSearchDebounce = useDebounce(searchString, 300);
-  const nav = useNavigate();
-
   const handlePageChange = (newPage) => {
     setCurrentPage(newPage);
   };
@@ -34,39 +31,52 @@ const ManageNews = () => {
     console.log("Delete id:", id);
   };
 
-  const cols = buildNewsColumns({
+  const cols = buildAchievementColumns({
     onEdit: handleEdit,
     onDelete: handleDelete,
   });
 
+  const fetchAchievements = async () => {
+    try {
+      const response = await getAllAchievements(
+        currentPage,
+        pageSize,
+        inputSearchDebounce
+      );
+      setTotalPages(response.data?.page?.totalPages);
+      setTotalElements(response.data?.page?.totalElements);
+      setAchievements(response.data?.content);
+    } catch (error) {
+      console.log(error);
+      toast.error("Failed to fetch achievements. Please try again.");
+    }
+  };
+
+  useEffect(() => {
+    fetchAchievements();
+  }, [currentPage, inputSearchDebounce]);
+
   return (
     <div className="p-6 space-y-6">
-      <AppBreadcrumb paths={["admin", "manage-news"]} />
+      <AppBreadcrumb paths={["admin", "manage-achievements"]} />
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-emerald-800">
-            Manage News
+            Manage Achievements
           </h1>
           <p className="text-gray-600 mt-1 dark:text-gray-400">
-            Manage and review news articles ({totalElements} articles)
+            Manage and review achievements ({totalElements} achievements)
           </p>
-        </div>
-        <div className="">
-          <Button onClick={() => nav("/admin/manage-news/create")}>
-            Add News Article
-          </Button>
         </div>
       </div>
       <SearchBar
-        placeholderText={"Search News"}
+        placeholderText={"Search achievements by name or description"}
         searchString={searchString}
         setSearchString={setSearchString}
-        sortBy={sortBy}
-        setSortBy={setSortBy}
       />
       <DataTable
         columns={cols}
-        data={news}
+        data={achievements}
         currentPage={currentPage}
         totalPages={totalPages}
         onPageChange={handlePageChange}
@@ -75,4 +85,4 @@ const ManageNews = () => {
   );
 };
 
-export default ManageNews;
+export default ManageAchievements;

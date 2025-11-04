@@ -54,6 +54,7 @@ const LoginForm = () => {
           nav("/admin");
         } else if (payload?.scope === "COACH") {
           toast.success("Login successful! COACH");
+          nav("/coach");
         }
       }
     } catch (error) {

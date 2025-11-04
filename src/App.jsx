@@ -28,6 +28,7 @@ import CoachSchedulePage from "@/pages/coach/CoachSchedulePage";
 import CoachAppointmentsPage from "@/pages/coach/CoachAppointmentsPage";
 import CoachChatPage from "@/pages/coach/CoachChatPage";
 import MeetingPage from "@/pages/coach/MeetingPage";
+import ManageAchievements from "@/pages/admin/pages/ManageAchievements";
 function App() {
   const [isLoading, setIsLoading] = useState(true);
 
@@ -110,14 +111,9 @@ function App() {
           path: "/admin/manage-missions",
           element: <ManageMissions />,
         },
-      ],
-    },
-    {
-      element: <CoachLayout />,
-      children: [
         {
-          path: "/coach",
-          element: <CoachPage />,
+          path: "/admin/manage-achievements",
+          element: <ManageAchievements />,
         },
       ],
     },

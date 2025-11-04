@@ -1,4 +1,4 @@
-import { membershipPackageColumns as buildMembershipPackageColumns } from "@/components/columns/membershipPackageColumns";
+import { membershipPackageColumns as buildMembershipPackageColumns } from "@/pages/admin/components/columns/membershipPackageColumns";
 import AppBreadcrumb from "@/components/ui/app-breadcrumb";
 import { DataTable } from "@/components/ui/tables/data-table";
 import { getAllMembershipPackages } from "@/services/membershipPackage";

@@ -2,7 +2,7 @@ import AppBreadcrumb from "@/components/ui/app-breadcrumb";
 import { getAllMission } from "@/services/missionService";
 import { CloudLightning } from "lucide-react";
 import React, { useEffect, useState } from "react";
-import { missionsColumns as buildMissionColumns } from "@/components/columns/missionColumns";
+import { missionsColumns as buildMissionColumns } from "@/pages/admin/components/columns/missionColumns";
 import { DataTable } from "@/components/ui/tables/data-table";
 
 const ManageMissions = () => {

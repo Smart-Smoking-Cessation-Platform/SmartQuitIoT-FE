@@ -3,6 +3,7 @@ import AppBreadcrumb from "@/components/ui/app-breadcrumb";
 import { DataTable } from "@/components/ui/tables/data-table";
 import { getAllSlots } from "@/services/slotService";
 import { useEffect, useState } from "react";
+import TableLoadingSkeleton from "@/components/loadings/TableLoadingSkeleton";
 
 const ManageSlots = () => {
   const [slots, setSlots] = useState([]);
@@ -10,9 +11,11 @@ const ManageSlots = () => {
   const [pageSize, setPageSize] = useState(10);
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
 
   const fetchSlots = async () => {
     try {
+      setIsLoading(true);
       const response = await getAllSlots(currentPage, pageSize);
       setSlots(response.data?.data?.content);
       setTotalPages(response.data?.data?.page?.totalPages);
@@ -20,12 +23,16 @@ const ManageSlots = () => {
     } catch (error) {
       console.log(error);
       toast.error("Failed to fetch slots. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
   useEffect(() => {
     fetchSlots();
   }, [currentPage, pageSize]);
+
+  if (isLoading) return <TableLoadingSkeleton />;
 
   const cols = buildSlotsColumns({});
 

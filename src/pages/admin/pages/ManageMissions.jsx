@@ -4,6 +4,7 @@ import { CloudLightning } from "lucide-react";
 import React, { useEffect, useState } from "react";
 import { missionsColumns as buildMissionColumns } from "@/pages/admin/components/columns/missionColumns";
 import { DataTable } from "@/components/ui/tables/data-table";
+import TableLoadingSkeleton from "@/components/loadings/TableLoadingSkeleton";
 
 const ManageMissions = () => {
   const [missions, setMissions] = useState([]);
@@ -11,15 +12,19 @@ const ManageMissions = () => {
   const [pageSize, setPageSize] = useState(10);
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
 
   const fetchMissions = async (page, size) => {
     try {
+      setIsLoading(true);
       const response = await getAllMission(page, size);
       setMissions(response.data?.content);
       setTotalPages(response.data?.page?.totalPages);
       setTotalElements(response.data?.page?.totalElements);
     } catch (error) {
       console.log(error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -47,6 +52,8 @@ const ManageMissions = () => {
   const handlePageChange = (newPage) => {
     setCurrentPage(newPage);
   };
+
+  if (isLoading) return <TableLoadingSkeleton />;
 
   return (
     <div className="p-6 space-y-6">

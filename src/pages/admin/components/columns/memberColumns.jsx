@@ -1,16 +1,17 @@
 import ActionMenu from "@/components/ui/action-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { User, UserCircle } from "lucide-react";
+import { Monitor, User, UserCircle } from "lucide-react";
+import { FcGoogle } from "react-icons/fc";
 
-export const coachesColumns = (handlers) => [
+export const memberColumns = (handlers) => [
   {
     accessorKey: "id",
     header: "ID",
   },
   {
-    id: "coach",
-    header: "Coach",
+    id: "member",
+    header: "Member",
     accessorFn: (row) => `${row.firstName ?? ""} ${row.lastName ?? ""}`.trim(),
     cell: ({ row, getValue }) => {
       const name = getValue();
@@ -104,27 +105,33 @@ export const coachesColumns = (handlers) => [
     },
   },
   {
-    id: "experience",
-    header: "Experience",
-    accessorFn: (row) => row.experienceYears ?? 0,
-    cell: ({ getValue }) => <span>{getValue()} yrs</span>,
-  },
-
-  // Rating (avg + count)
-  {
-    id: "rating",
-    header: "Rating",
-    accessorFn: (row) => ({
-      avg: row.ratingAvg ?? 0,
-      count: row.ratingCount ?? 0,
-    }),
+    id: "accountType",
+    header: "Type",
+    accessorFn: (row) => row?.account?.accountType ?? "",
     cell: ({ getValue }) => {
-      const { avg, count } = getValue();
+      const accountType = getValue();
+      switch (accountType) {
+        case "SYSTEM":
+          return <Monitor className="w-4 h-4 text-gray-500" />;
+        case "GOOGLE":
+          return <FcGoogle className="w-4 h-4 text-gray-500" />;
+        case "FACEBOOK":
+          return <Badge variant="primary">Facebook</Badge>;
+        default:
+          return <span className="text-muted-foreground">—</span>;
+      }
+    },
+  },
+  {
+    id: "createdAt",
+    header: "Created At",
+    accessorFn: (row) => row?.account?.createdAt ?? "",
+    cell: ({ getValue }) => {
+      const createdAt = getValue();
       return (
-        <span className="tabular-nums">
-          {avg?.toFixed?.(1) ?? "0.0"}{" "}
-          <span className="text-muted-foreground">({count})</span>
-        </span>
+        <Badge>
+          {createdAt ? new Date(createdAt).toLocaleDateString() : "—"}
+        </Badge>
       );
     },
   },

@@ -5,3 +5,7 @@ export const getAllPagedCoaches = async (page, size, search, sortBy) => {
     `/coaches/all?page=${page}&size=${size}&searchString=${search}&sortBy=${sortBy}`
   );
 };
+
+export const getCoachById = async (id) => {
+  return instance.get(`/coaches/${id}`);
+};

@@ -33,7 +33,7 @@ export default function ActionMenu({ row, onEdit, onDelete }) {
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-40">
           <DropdownMenuItem onClick={() => onEdit?.(row)}>
-            <Pencil className="mr-2 h-4 w-4" /> Edit
+            <Pencil className="mr-2 h-4 w-4" /> Detail
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem

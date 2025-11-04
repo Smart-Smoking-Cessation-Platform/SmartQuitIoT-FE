@@ -3,17 +3,22 @@ import AppBreadcrumb from "@/components/ui/app-breadcrumb";
 import { DataTable } from "@/components/ui/tables/data-table";
 import { getAllMembershipPackages } from "@/services/membershipPackage";
 import { useEffect, useState } from "react";
+import TableLoadingSkeleton from "@/components/loadings/TableLoadingSkeleton";
 
 const ManageMembershipPackage = () => {
   const [packages, setPackages] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   const fetchMembershipPackages = async () => {
+    setIsLoading(true);
     try {
       const response = await getAllMembershipPackages();
       setPackages(response.data?.data);
     } catch (error) {
       console.log(error);
       toast.error("Failed to fetch membership packages. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -37,6 +42,9 @@ const ManageMembershipPackage = () => {
   useEffect(() => {
     fetchMembershipPackages();
   }, []);
+
+  if (isLoading) return <TableLoadingSkeleton />;
+
   return (
     <div>
       <div className="p-6 space-y-6">

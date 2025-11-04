@@ -29,6 +29,14 @@ import CoachAppointmentsPage from "@/pages/coach/CoachAppointmentsPage";
 import CoachChatPage from "@/pages/coach/CoachChatPage";
 import MeetingPage from "@/pages/coach/MeetingPage";
 import ManageAchievements from "@/pages/admin/pages/ManageAchievements";
+import ManagePhases from "@/pages/admin/pages/ManagePhases";
+import ManagePassCondition from "@/pages/admin/pages/ManagePassCondition";
+import ManagePayment from "@/pages/admin/pages/ManagePayment";
+import ManageSubscriptions from "@/pages/admin/pages/ManageSubscriptions";
+import ManageMembers from "@/pages/admin/pages/ManageMembers";
+import ManageBlogs from "@/pages/admin/pages/ManageBlogs";
+import MemberDetail from "@/pages/admin/pages/MemberDetail";
+import CoachDetail from "@/pages/admin/pages/CoachDetail";
 function App() {
   const [isLoading, setIsLoading] = useState(true);
 
@@ -114,6 +122,38 @@ function App() {
         {
           path: "/admin/manage-achievements",
           element: <ManageAchievements />,
+        },
+        {
+          path: "/admin/manage-phases",
+          element: <ManagePhases />,
+        },
+        {
+          path: "/admin/manage-pass-conditions",
+          element: <ManagePassCondition />,
+        },
+        {
+          path: "/admin/manage-payments",
+          element: <ManagePayment />,
+        },
+        {
+          path: "/admin/manage-subscriptions",
+          element: <ManageSubscriptions />,
+        },
+        {
+          path: "/admin/manage-members",
+          element: <ManageMembers />,
+        },
+        {
+          path: "/admin/manage-blogs",
+          element: <ManageBlogs />,
+        },
+        {
+          path: "/admin/manage-members/:memberId",
+          element: <MemberDetail />,
+        },
+        {
+          path: "/admin/manage-coaches/:coachId",
+          element: <CoachDetail />,
         },
       ],
     },

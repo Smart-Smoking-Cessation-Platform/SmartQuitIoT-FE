@@ -43,8 +43,8 @@ const items = [
     icon: List,
   },
   {
-    title: "Manage Users",
-    url: "/admin/manage-users",
+    title: "Manage Members",
+    url: "/admin/manage-members",
     icon: List,
   },
   {

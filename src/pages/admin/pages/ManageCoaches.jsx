@@ -1,9 +1,10 @@
-import { coachesColumns as buildCoachesColumns } from "@/pages/admin/components/columns/coachesColumns";
+import TableLoadingSkeleton from "@/components/loadings/TableLoadingSkeleton";
 import AppBreadcrumb from "@/components/ui/app-breadcrumb";
 import { Button } from "@/components/ui/button";
 import SearchBar from "@/components/ui/search-bar";
 import { DataTable } from "@/components/ui/tables/data-table";
 import useDebounce from "@/hooks/useDebounce";
+import { coachesColumns as buildCoachesColumns } from "@/pages/admin/components/columns/coachesColumns";
 import { getAllPagedCoaches } from "@/services/coachService";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -18,9 +19,11 @@ const ManageCoaches = () => {
   const [sortBy, setSortBy] = useState("ASC");
   const [searchString, setSearchString] = useState("");
   const inputSearchDebounce = useDebounce(searchString, 300);
+  const [isLoading, setIsLoading] = useState(false);
   const nav = useNavigate();
 
   const fetchCoaches = async () => {
+    setIsLoading(true);
     try {
       const response = await getAllPagedCoaches(
         currentPage,
@@ -31,6 +34,7 @@ const ManageCoaches = () => {
       setCoaches(response.data?.data?.content);
       setTotalPages(response.data?.data?.page?.totalPages);
       setTotalElements(response.data?.data?.page?.totalElements);
+      setIsLoading(false);
     } catch (error) {
       console.log(error);
       toast.error("Failed to fetch coaches. Please try again.");
@@ -42,9 +46,10 @@ const ManageCoaches = () => {
   }, [currentPage, inputSearchDebounce, sortBy]);
 
   const handleEdit = (row) => {
-    const values = row.original; // your row data
+    const { id } = row.original; // your row data
     // open edit modal, navigate, etc.
-    console.log("Edit:", values);
+    console.log("View Detail:", id);
+    nav(`/admin/manage-coaches/${id}`);
   };
 
   const handleDelete = (row) => {
@@ -61,6 +66,8 @@ const ManageCoaches = () => {
   const handlePageChange = (newPage) => {
     setCurrentPage(newPage);
   };
+
+  if (isLoading) return <TableLoadingSkeleton />;
 
   return (
     <div className="p-6 space-y-6">

@@ -1,21 +1,21 @@
-import { newsColumns as buildNewsColumns } from "@/pages/admin/components/columns/newsColumns";
+import TableLoadingSkeleton from "@/components/loadings/TableLoadingSkeleton";
 import AppBreadcrumb from "@/components/ui/app-breadcrumb";
-import { Button } from "@/components/ui/button";
 import SearchBar from "@/components/ui/search-bar";
 import { DataTable } from "@/components/ui/tables/data-table";
 import useDebounce from "@/hooks/useDebounce";
-import { useState } from "react";
+import { memberColumns as buildMemberColumns } from "@/pages/admin/components/columns/memberColumns";
+import { getAllMembers } from "@/services/memberService";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import TableLoadingSkeleton from "@/components/loadings/TableLoadingSkeleton";
+import { toast } from "sonner";
 
-const ManageNews = () => {
-  const [news, setNews] = useState([]);
+const ManageMembers = () => {
   const [currentPage, setCurrentPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
-  const [sortBy, setSortBy] = useState("ASC");
   const [searchString, setSearchString] = useState("");
+  const [members, setMembers] = useState([]);
   const inputSearchDebounce = useDebounce(searchString, 300);
   const [isLoading, setIsLoading] = useState(false);
   const nav = useNavigate();
@@ -24,10 +24,35 @@ const ManageNews = () => {
     setCurrentPage(newPage);
   };
 
-  const handleEdit = (row) => {
-    const values = row.original; // your row data
+  const fetchMembers = async () => {
+    setIsLoading(true);
+    try {
+      const response = await getAllMembers(
+        currentPage,
+        pageSize,
+        inputSearchDebounce
+      );
+      const { content, totalPages, totalElements } = response.data;
+      setMembers(content);
+      setTotalPages(totalPages);
+      setTotalElements(totalElements);
+    } catch (error) {
+      console.error("Failed to fetch members:", error);
+      toast.error("Failed to fetch members");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMembers();
+  }, [currentPage, inputSearchDebounce]);
+
+  const handleViewDetail = (row) => {
+    const { id } = row.original; // your row data
     // open edit modal, navigate, etc.
-    console.log("Edit:", values);
+    console.log("View Detail:", id);
+    nav(`/admin/manage-members/${id}`);
   };
 
   const handleDelete = (row) => {
@@ -36,41 +61,33 @@ const ManageNews = () => {
     console.log("Delete id:", id);
   };
 
-  const cols = buildNewsColumns({
-    onEdit: handleEdit,
+  const cols = buildMemberColumns({
+    onEdit: handleViewDetail,
     onDelete: handleDelete,
   });
 
   if (isLoading) return <TableLoadingSkeleton />;
-
   return (
     <div className="p-6 space-y-6">
-      <AppBreadcrumb paths={["admin", "manage-news"]} />
+      <AppBreadcrumb paths={["admin", "manage-members"]} />
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-emerald-800">
-            Manage News
+            Manage Members
           </h1>
           <p className="text-gray-600 mt-1 dark:text-gray-400">
-            Manage and review news articles ({totalElements} articles)
+            Manage and review members ({totalElements} members)
           </p>
-        </div>
-        <div className="">
-          <Button onClick={() => nav("/admin/manage-news/create")}>
-            Add News Article
-          </Button>
         </div>
       </div>
       <SearchBar
-        placeholderText={"Search News"}
+        placeholderText={"Search members by name"}
         searchString={searchString}
         setSearchString={setSearchString}
-        sortBy={sortBy}
-        setSortBy={setSortBy}
       />
       <DataTable
         columns={cols}
-        data={news}
+        data={members}
         currentPage={currentPage}
         totalPages={totalPages}
         onPageChange={handlePageChange}
@@ -79,4 +96,4 @@ const ManageNews = () => {
   );
 };
 
-export default ManageNews;
+export default ManageMembers;

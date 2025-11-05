@@ -37,6 +37,7 @@ import ManageMembers from "@/pages/admin/pages/ManageMembers";
 import ManageBlogs from "@/pages/admin/pages/ManageBlogs";
 import MemberDetail from "@/pages/admin/pages/MemberDetail";
 import CoachDetail from "@/pages/admin/pages/CoachDetail";
+import MemberDiaryRecords from "@/pages/admin/pages/MemberDiaryRecords";
 function App() {
   const [isLoading, setIsLoading] = useState(true);
 
@@ -154,6 +155,10 @@ function App() {
         {
           path: "/admin/manage-coaches/:coachId",
           element: <CoachDetail />,
+        },
+        {
+          path: "/admin/manage-members/diary/:memberId",
+          element: <MemberDiaryRecords />,
         },
       ],
     },

@@ -130,7 +130,9 @@ const CoachDetail = () => {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Coach Details</h1>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-emerald-800">
+            Coach Details
+          </h1>
           <p className="text-gray-600 mt-1">
             Complete information about {coach.firstName} {coach.lastName}
           </p>

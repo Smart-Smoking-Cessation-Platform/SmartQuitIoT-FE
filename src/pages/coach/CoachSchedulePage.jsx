@@ -1,19 +1,27 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import styles from "../../styles/CoachSchedulePage.module.css";
+import { getMyWorkdays } from "@/services/scheduleService";
 
 /**
- * Minimal calendar for Coach:
+ * Read-only calendar for Coach (server-controlled):
  * - show month view
  * - working day (green) vs off day (muted)
- * - default working hours 07:00 - 15:00 when day is working
- *
- * This version hides days from other months (renders empty cells).
+ * - server is single source-of-truth: user CANNOT toggle days locally
  */
 
-const ISO = (d) => d.toISOString().slice(0, 10);
+/** CONFIG: thay 2 biến này để đổi giờ mặc định hiển thị trên toàn bộ calendar */
+const DEFAULT_START_TIME = "07:00";
+const DEFAULT_END_TIME = "19:00";
 
-// get first day shown on calendar (start from Sunday)
+/** ISO (local) - trả về "YYYY-MM-DD" theo local date (KHÔNG dùng toISOString()) */
+const ISO = (d) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0"); // getMonth() trả 0..11
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${dd}`;
+};
+
 const monthGridStart = (year, month) => {
   const firstOfMonth = new Date(year, month, 1);
   const start = new Date(firstOfMonth);
@@ -32,12 +40,6 @@ const buildMonthGrid = (year, month) => {
   return grid;
 };
 
-const defaultWorkingForDate = (date) => {
-  // default: Mon-Fri working, Sat/Sun off
-  const day = date.getDay();
-  return day !== 0 && day !== 6;
-};
-
 const CoachSchedulePage = () => {
   const today = new Date();
   const todayIso = ISO(
@@ -48,7 +50,7 @@ const CoachSchedulePage = () => {
     new Date(today.getFullYear(), today.getMonth(), 1)
   );
 
-  // schedule: map iso -> { working: bool, start: "07:00", end: "15:00" }
+  // schedule: map iso -> { working: bool, start: DEFAULT_START_TIME, end: DEFAULT_END_TIME }
   const [schedule, setSchedule] = useState(() => {
     const start = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1);
     const map = {};
@@ -56,9 +58,9 @@ const CoachSchedulePage = () => {
     grid.forEach((d) => {
       const iso = ISO(new Date(d.getFullYear(), d.getMonth(), d.getDate()));
       map[iso] = {
-        working: defaultWorkingForDate(d),
-        start: "07:00",
-        end: "15:00",
+        working: false,
+        start: DEFAULT_START_TIME,
+        end: DEFAULT_END_TIME,
       };
     });
     return map;
@@ -73,9 +75,9 @@ const CoachSchedulePage = () => {
         const iso = ISO(new Date(d.getFullYear(), d.getMonth(), d.getDate()));
         if (!copy[iso]) {
           copy[iso] = {
-            working: defaultWorkingForDate(d),
-            start: "07:00",
-            end: "15:00",
+            working: false,
+            start: DEFAULT_START_TIME,
+            end: DEFAULT_END_TIME,
           };
         }
       });
@@ -83,6 +85,54 @@ const CoachSchedulePage = () => {
     });
     return grid;
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewDate]);
+
+  // fetch workdays for the visible month and apply to schedule (server-only truth)
+  useEffect(() => {
+    let cancelled = false;
+    const year = viewDate.getFullYear();
+    const month = viewDate.getMonth() + 1; // backend expects 1-based month
+
+    const fetch = async () => {
+      try {
+        const resp = await getMyWorkdays(year, month);
+        const workdaysRaw = resp?.data?.data || []; // array of "YYYY-MM-DD"
+        if (cancelled) return;
+
+        const workdaySet = new Set(
+          workdaysRaw.map((s) => {
+            const dt = new Date(`${s}T00:00:00`);
+            return ISO(dt);
+          })
+        );
+
+        setSchedule(() => {
+          const copy = {};
+          const grid = buildMonthGrid(
+            viewDate.getFullYear(),
+            viewDate.getMonth()
+          );
+          grid.forEach((d) => {
+            const iso = ISO(
+              new Date(d.getFullYear(), d.getMonth(), d.getDate())
+            );
+            copy[iso] = {
+              working: workdaySet.has(iso) ? true : false,
+              start: DEFAULT_START_TIME,
+              end: DEFAULT_END_TIME,
+            };
+          });
+          return copy;
+        });
+      } catch (err) {
+        console.error("Error fetching workdays:", err);
+      }
+    };
+
+    fetch();
+    return () => {
+      cancelled = true;
+    };
   }, [viewDate]);
 
   const goPrev = () => {
@@ -94,40 +144,12 @@ const CoachSchedulePage = () => {
     setViewDate(n);
   };
 
-  const toggleDay = (d) => {
-    const iso = ISO(new Date(d.getFullYear(), d.getMonth(), d.getDate()));
-    setSchedule((prev) => {
-      const copy = { ...prev };
-      const cur = copy[iso] || { working: false, start: "07:00", end: "15:00" };
-      copy[iso] = {
-        ...cur,
-        working: !cur.working,
-        start: cur.start || "07:00",
-        end: cur.end || "15:00",
-      };
-      return copy;
-    });
-  };
-
+  // NOTE: user cannot toggle days — UI is read-only (server-controlled)
   const isCurrentMonth = (d) => d.getMonth() === viewDate.getMonth();
 
   const monthLabel = `${viewDate.toLocaleString("vi-VN", {
     month: "long",
   })} ${viewDate.getFullYear()}`;
-
-  // placeholder save
-  const mockSaveSchedule = () => {
-    const payload = {};
-    Object.keys(schedule).forEach((iso) => {
-      const info = schedule[iso];
-      const dt = new Date(iso);
-      if (dt.getMonth() === viewDate.getMonth()) {
-        payload[iso] = info;
-      }
-    });
-    console.log("payload to save:", payload);
-    alert("Đã mock save. Check console (payload). Khi có API bạn gọi ở đây.");
-  };
 
   return (
     <div className={styles.container}>
@@ -135,8 +157,11 @@ const CoachSchedulePage = () => {
         <div>
           <h1 className={styles.title}>Lịch làm việc (Calendar)</h1>
           <p className={styles.subtitle}>
-            Click ngày để bật/tắt ngày làm. Mặc định giờ làm:{" "}
-            <strong>07:00 - 15:00</strong>.
+            Lịch chỉ để xem — trạng thái ngày do hệ thống quyết định (server).{" "}
+            <strong>
+              {DEFAULT_START_TIME} - {DEFAULT_END_TIME}
+            </strong>{" "}
+            là giờ mặc định khi là ngày làm.
           </p>
         </div>
 
@@ -156,7 +181,12 @@ const CoachSchedulePage = () => {
           >
             <ChevronRight />
           </button>
-          <button className={styles.saveBtn} onClick={mockSaveSchedule}>
+          {/* Disabled save: không dùng vì BE mới là source-of-truth */}
+          <button
+            className={styles.saveBtn}
+            disabled
+            title="Không khả dụng - read only từ server"
+          >
             Lưu
           </button>
         </div>
@@ -177,9 +207,9 @@ const CoachSchedulePage = () => {
               new Date(d.getFullYear(), d.getMonth(), d.getDate())
             );
             const info = schedule[iso] || {
-              working: defaultWorkingForDate(d),
-              start: "07:00",
-              end: "15:00",
+              working: false,
+              start: DEFAULT_START_TIME,
+              end: DEFAULT_END_TIME,
             };
             const working = info.working;
             const outside = !isCurrentMonth(d);
@@ -199,18 +229,20 @@ const CoachSchedulePage = () => {
               );
             }
 
+            // Read-only cell (no onClick)
             return (
-              <button
+              <div
                 key={iso}
-                onClick={() => toggleDay(d)}
                 className={`${styles.day} ${
                   working ? styles.working : styles.off
                 } ${isToday ? styles.today : ""}`}
-                aria-pressed={working}
-                aria-label={`${d.toLocaleDateString()} ${
-                  working ? "Làm (07:00-15:00)" : "Nghỉ"
-                }`}
-                aria-current={isToday ? "date" : undefined}
+                role="gridcell"
+                aria-disabled="true"
+                title={
+                  working
+                    ? "Ngày làm (do hệ thống quyết định)"
+                    : "Ngày nghỉ (do hệ thống quyết định)"
+                }
               >
                 <div className={styles.dayTop}>
                   <span className={styles.dayNum}>{d.getDate()}</span>
@@ -228,7 +260,7 @@ const CoachSchedulePage = () => {
                     <div className={styles.offLabel}>OFF</div>
                   )}
                 </div>
-              </button>
+              </div>
             );
           })}
         </div>
@@ -236,8 +268,8 @@ const CoachSchedulePage = () => {
 
       <div className={styles.legend}>
         <div className={styles.legendItem}>
-          <span className={styles.legendSwatchWorking} /> Ngày làm (07:00 -
-          15:00)
+          <span className={styles.legendSwatchWorking} /> Ngày làm (
+          {DEFAULT_START_TIME} - {DEFAULT_END_TIME})
         </div>
         <div className={styles.legendItem}>
           <span className={styles.legendSwatchOff} /> Ngày nghỉ

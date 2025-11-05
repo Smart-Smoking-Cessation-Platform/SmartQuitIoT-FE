@@ -1,3 +1,13 @@
+/* global process */
+if (typeof window !== "undefined") {
+  // some libs (sockjs, crypto shims) expect global / process to exist
+  if (typeof window.global === "undefined") window.global = window;
+  if (typeof window.process === "undefined") {
+    // minimal process shim so libraries that read process.env won't crash in browser
+    window.process = { env: {} };
+  }
+}
+
 import { ThemeProvider } from "@/context/theme-provider";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";

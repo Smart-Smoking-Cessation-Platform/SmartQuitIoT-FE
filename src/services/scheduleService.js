@@ -1,3 +1,4 @@
+// src/services/scheduleService.js
 import instance from "@/config/axiosConfig";
 
 /**
@@ -6,7 +7,7 @@ import instance from "@/config/axiosConfig";
  * @param {number} month - Tháng muốn lấy
  */
 export const getMonthlySchedules = async (year, month) => {
-  return instance.get(`/admin/schedules`, {
+  return instance.get(`/schedules`, {
     params: { year, month },
   });
 };
@@ -17,7 +18,7 @@ export const getMonthlySchedules = async (year, month) => {
  * @param {object} body - Dữ liệu update { addCoachIds: [], removeCoachIds: [] }
  */
 export const updateScheduleByDate = async (date, body) => {
-  return instance.put(`/admin/schedules/${date}`, body);
+  return instance.put(`/schedules/${date}`, body);
 };
 
 /**
@@ -31,5 +32,12 @@ export const getAllCoaches = async () => {
  * POST: Gán lịch cho danh sách coach và ngày
  */
 export const assignSchedules = async (body) => {
-  return instance.post(`/admin/schedules/assign`, body);
+  return instance.post(`/schedules/assign`, body);
+};
+
+// GET: coach tự get lịch của coach theo tháng
+export const getMyWorkdays = async (year, month) => {
+  return instance.get(`/schedules/me/workdays`, {
+    params: { year, month },
+  });
 };

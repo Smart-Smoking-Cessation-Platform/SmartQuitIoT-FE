@@ -42,7 +42,7 @@ export const requestJoinToken = (appointmentId) => {
 };
 
 /**
- * Lấy appointment trong tương lai (ví dụ: từ hôm nay trở đi) — tiện cho UI "upcoming"
+ * Lấy appointment trong tương lai (ví dụ: từ hôm nay trở đi — tiện cho UI "upcoming"
  * Sử dụng backend filter date bằng param `date`
  */
 export const getUpcomingAppointments = ({
@@ -54,10 +54,15 @@ export const getUpcomingAppointments = ({
   return listCoachAppointments({ date: fromDate, page, size });
 };
 
+//  PUT endpoint to mark appointment completed by coach
+export const completeAppointmentByCoach = (appointmentId) => {
+  return instance.put(`/appointments/${appointmentId}/complete`);
+};
 export default {
   listCoachAppointments,
   getAppointmentDetailForCoach,
   cancelAppointmentByCoach,
   requestJoinToken,
   getUpcomingAppointments,
+  completeAppointmentByCoach,
 };

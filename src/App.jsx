@@ -38,6 +38,7 @@ import ManageBlogs from "@/pages/admin/pages/ManageBlogs";
 import MemberDetail from "@/pages/admin/pages/MemberDetail";
 import CoachDetail from "@/pages/admin/pages/CoachDetail";
 import MemberDiaryRecords from "@/pages/admin/pages/MemberDiaryRecords";
+import MemberManagementPage from "@/pages/coach/MemberManagementPage";
 function App() {
   const [isLoading, setIsLoading] = useState(true);
 
@@ -79,6 +80,7 @@ function App() {
         { path: "/coach/appointments", element: <CoachAppointmentsPage /> },
         { path: "/coach/chat", element: <CoachChatPage /> },
         { path: "/meeting/:appointmentId", element: <MeetingPage /> },
+        { path: "/coach/members", element: <MemberManagementPage /> },
       ],
     },
     {

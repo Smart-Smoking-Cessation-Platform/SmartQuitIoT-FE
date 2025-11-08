@@ -5,6 +5,7 @@ import {
   Calendar,
   ClipboardList,
   MessageSquare,
+  Users,
 } from "lucide-react";
 import logo from "@/assets/logo.png";
 import NavCoachSidebar from "./NavCoachSidebar";
@@ -24,6 +25,7 @@ const items = [
   { title: "Schedule", url: "/coach/schedule", icon: Calendar },
   { title: "Appointments", url: "/coach/appointments", icon: ClipboardList },
   { title: "Chat", url: "/coach/chat", icon: MessageSquare },
+  { title: "Members", url: "/coach/members", icon: Users },
 ];
 
 const CoachSidebar = () => {

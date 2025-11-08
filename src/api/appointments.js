@@ -45,10 +45,16 @@ export const requestJoinToken = async (id) => {
   return unwrap(resp);
 };
 
+export const completeAppointmentByCoach = async (id) => {
+  const resp = await appointmentService.completeAppointmentByCoach(id);
+  return unwrap(resp);
+};
+
 export default {
   getUpcomingAppointments,
   listCoachAppointments,
   getAppointmentDetailForCoach,
   cancelAppointmentByCoach,
   requestJoinToken,
+  completeAppointmentByCoach,
 };

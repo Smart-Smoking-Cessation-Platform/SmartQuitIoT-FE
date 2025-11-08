@@ -104,6 +104,62 @@ export default function CoachAppointmentsPage() {
   // modal state
   const [modalOpen, setModalOpen] = useState(false);
   const [modalAppointment, setModalAppointment] = useState(null);
+  const [completingId, setCompletingId] = useState(null);
+
+  // ------------- 2) ADDED: helpers & handler for complete logic -------------
+  // place these near handleJoin / handleStart (same scope)
+  const parseLocalDateTime = (dateStr, timeStr) => {
+    // dateStr: "yyyy-MM-dd", timeStr: "HH:mm" or "HH:mm:ss"
+    try {
+      const [y, m, d] = (dateStr || "").split("-").map((n) => parseInt(n, 10));
+      const [hh, mm] = (timeStr || "00:00")
+        .split(":")
+        .map((n) => parseInt(n, 10));
+      if (!y || !m || !d || isNaN(hh) || isNaN(mm)) return null;
+      return new Date(y, m - 1, d, hh, mm, 0, 0); // local time
+    } catch (e) {
+      return null;
+    }
+  };
+
+  const MINUTES_AFTER_START_TO_ALLOW_COMPLETE = 10; // kiểm tra có sau 10' kể từ slot bắt đầu cha
+
+  const canComplete = (appointment) => {
+    if (!appointment || appointment.status !== "IN_PROGRESS") return false;
+    // appointment.time is "HH:mm", appointment.date is "yyyy-MM-dd"
+    const startDt = parseLocalDateTime(appointment.date, appointment.time);
+    if (!startDt) return false;
+    const allowAt = new Date(
+      startDt.getTime() + MINUTES_AFTER_START_TO_ALLOW_COMPLETE * 60 * 1000
+    );
+    const now = new Date();
+    return now >= allowAt;
+  };
+
+  const handleComplete = async (appointment) => {
+    if (!window.confirm("Are you sure that complete this session? ")) return;
+    try {
+      setCompletingId(appointment.id);
+      await api.completeAppointmentByCoach(appointment.id);
+      setAppointments((prev) =>
+        prev.map((a) =>
+          a.id === appointment.id ? { ...a, status: "COMPLETED" } : a
+        )
+      );
+      // feedback
+      alert("Marked as completed ✅");
+    } catch (err) {
+      console.error("complete error", err);
+      const msg =
+        err?.response?.data?.message ||
+        err?.message ||
+        "Failed to complete appointment";
+      setError(msg);
+      alert("Error: " + msg);
+    } finally {
+      setCompletingId(null);
+    }
+  };
 
   // Join handler — requests join token then navigate to meeting route
   const handleJoin = async (appointment) => {
@@ -599,13 +655,57 @@ export default function CoachAppointmentsPage() {
                         )}
 
                         {appointment.status === "IN_PROGRESS" && (
-                          <button
-                            className={`${styles.btnPrimary} ${styles.btnSmall}`}
-                            onClick={() => handleJoin(appointment)}
+                          <div
+                            style={{
+                              display: "flex",
+                              gap: 8,
+                              alignItems: "center",
+                            }}
                           >
-                            <Video className="w-4 h-4" />
-                            <span>Join</span>
-                          </button>
+                            <button
+                              className={`${styles.btnPrimary} ${styles.btnSmall}`}
+                              onClick={() => handleJoin(appointment)}
+                            >
+                              <Video className="w-4 h-4" />
+                              <span>Join</span>
+                            </button>
+
+                            {/* ADDED: Complete button (only visible when canComplete) */}
+                            {canComplete(appointment) ? (
+                              completingId === appointment.id ? (
+                                <button
+                                  className={`${styles.btnPrimary} ${styles.btnSmall}`}
+                                  disabled
+                                >
+                                  <CheckCircle className="w-4 h-4" />
+                                  <span>Completing...</span>
+                                </button>
+                              ) : (
+                                <button
+                                  className={`${styles.btnPrimary} ${styles.btnSmall}`}
+                                  onClick={() => handleComplete(appointment)}
+                                  title="Mark session completed (available after 10 minutes from start)"
+                                  style={{
+                                    backgroundColor:
+                                      "#0b845f" /* optional slight different green */,
+                                  }}
+                                >
+                                  <CheckCircle className="w-4 h-4" />
+                                  <span>Complete</span>
+                                </button>
+                              )
+                            ) : (
+                              // optional: minhdat sau chac fix cho nay
+                              // null
+                              <button
+                                className={`${styles.btnDisabled} ${styles.btnSmall}`}
+                                disabled
+                                title="Available after 10 minutes from start"
+                              >
+                                <span>Complete</span>
+                              </button>
+                            )}
+                          </div>
                         )}
 
                         {appointment.status === "COMPLETED" && (

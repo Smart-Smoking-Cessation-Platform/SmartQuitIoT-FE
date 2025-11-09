@@ -3,12 +3,14 @@ import React, { useEffect, useState, useRef } from "react";
 import MemberCard from "../../pages/coach/components/MemberCard";
 import MemberDetailsModal from "../../pages/coach/components/MemberDetailsModal";
 import { getMembersForCoach, getMemberById } from "@/services/memberService";
-
+import { postMessage } from "@/services/conversationService";
+import { useNavigate } from "react-router-dom";
 /**
  * MemberManagementPage (API-only, no mock fallback)
  */
 
 export default function MemberManagementPage() {
+  const navigate = useNavigate();
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -86,14 +88,53 @@ export default function MemberManagementPage() {
       // keep selectedMember null so modal won't open with bad data
     }
   }
+  // Mở inbox chat với member
+  async function openInboxForMember(member) {
+    try {
+      // optional: show spinner / disable button
+      const clientMessageId =
+        crypto && crypto.randomUUID
+          ? crypto.randomUUID()
+          : `cmsg-${Date.now()}`;
 
+      const payload = {
+        targetMemberId: member.id,
+        content: "Xin chào! Mình muốn bắt đầu cuộc trò chuyện.", // backend requires non-blank
+        messageType: "TEXT",
+        clientMessageId,
+      };
+
+      const resp = await postMessage(payload);
+      // backend trả GlobalResponse => resp.data.data = MessageDTO
+      const body = resp && resp.data ? resp.data : resp;
+      const message = body && body.data ? body.data : body;
+      const conversationId =
+        message &&
+        (message.conversationId || message.conversationId === 0
+          ? message.conversationId
+          : message.conversation_id);
+
+      if (!conversationId) {
+        console.warn("Không lấy được conversationId từ response", message);
+        // fallback: navigate inbox list page
+        navigate("/coach/chat");
+        return;
+      }
+
+      // navigate to chat with query param (FE sẽ read và open/subcribe)
+      navigate(`/coach/chat?conversationId=${conversationId}`);
+    } catch (err) {
+      console.error("Open inbox failed", err);
+      // show toast or error UI
+      alert("Không thể mở inbox. Kiểm tra mạng hoặc thử lại.");
+    } finally {
+      // optional: hide spinner
+    }
+  }
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       <header className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Member management</h1>
-        <div className="text-sm text-gray-500">
-          Data từ API /members/summary
-        </div>
       </header>
 
       {error && (
@@ -116,10 +157,7 @@ export default function MemberManagementPage() {
               key={m.id}
               member={m}
               onOpenDetails={(tab = "metric") => handleOpenDetails(m.id, tab)}
-              onOpenInbox={() => {
-                // navigate to chat or open inbox UI
-                console.log("Open inbox for", m.id);
-              }}
+              onOpenInbox={() => openInboxForMember(m)}
             />
           ))
         ) : (

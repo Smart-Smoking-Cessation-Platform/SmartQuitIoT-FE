@@ -18,7 +18,7 @@ export const getMessages = (
 };
 
 export const postMessage = (payload) => {
-  // payload: { conversationId?, targetUserId?, content, messageType }
+  // payload: { conversationId?, targetUserId?, targetMemberId?, content, messageType }
   return instance.post(`/conversations/messages`, payload);
 };
 

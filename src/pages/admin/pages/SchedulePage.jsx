@@ -11,7 +11,7 @@ import useConfirm from "@/hooks/useConfirm";
 import CalendarSection from "../components/schedule/CalendarSection";
 import CoachSelector from "../components/schedule/CoachSelector";
 import MasterScheduleTable from "../components/schedule/MasterScheduleTable";
-
+import { formatDisplay } from "../../../utils/formatDate";
 export default function SchedulePage() {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
@@ -145,7 +145,7 @@ export default function SchedulePage() {
   ) => {
     const ok = await confirm({
       title: "Cập nhật lịch",
-      message: `Cập nhật lịch ngày ${date}?`,
+      message: `Cập nhật lịch ngày ${formatDisplay(date)}?`,
       okText: "Cập nhật",
     });
     if (!ok) return;

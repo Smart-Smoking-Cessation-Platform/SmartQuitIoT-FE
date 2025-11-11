@@ -9,3 +9,7 @@ export const getAllPagedCoaches = async (page, size, search, sortBy) => {
 export const getCoachById = async (id) => {
   return instance.get(`/coaches/${id}`);
 };
+
+export const getCoachStatistics = async () => {
+  return instance.get(`/coaches/statistics`);
+};

@@ -62,7 +62,7 @@ const ManagePassCondition = () => {
       await updateSystemPhaseCondition(updatedCondition.id, {
         condition: updatedCondition.condition,
       });
-      
+      console.log("Updated Condition:", JSON.stringify(updatedCondition, null, 2));
       toast.success("Pass condition updated successfully");
       fetchPassConditions();
     } catch (error) {

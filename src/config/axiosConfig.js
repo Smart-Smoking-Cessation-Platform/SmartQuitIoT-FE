@@ -21,7 +21,9 @@ instance.interceptors.request.use(
 );
 
 instance.interceptors.response.use(
-  (r) => r,
+  (r) => {
+    return r;
+  },
   async (err) => {
     const originalRequest = err.config;
     if (err.response.status === 401 && !originalRequest._retry) {
@@ -45,8 +47,9 @@ instance.interceptors.response.use(
       } catch (error) {
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
+        localStorage.clear();
+        window.location.href = "/login";
         console.log("err", err);
-
         return Promise.reject(err);
       }
     }

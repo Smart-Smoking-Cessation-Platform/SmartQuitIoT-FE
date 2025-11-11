@@ -7,3 +7,7 @@ export const getAdminProfile = async () => {
 export const addCoach = async (coach) => {
   return instance.post("/accounts/coach/create", coach);
 };
+
+export const getMemberStatistics = async () => {
+  return instance.get("/accounts/statistics");
+};

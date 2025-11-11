@@ -15,7 +15,7 @@ const ManagePassCondition = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedCondition, setSelectedCondition] = useState(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const { addToast } = useToast();
+  const toast = useToast();
 
   const fetchPassConditions = async () => {
     try {
@@ -23,8 +23,7 @@ const ManagePassCondition = () => {
       const response = await getAllSystemPhaseConditions();
       setPassConditions(response.data);
     } catch (error) {
-      console.log("Error fetching pass conditions:", error);
-      addToast("Failed to fetch pass conditions", "error");
+      toast.error("Failed to fetch pass conditions");
     } finally {
       setIsLoading(false);
     }
@@ -41,37 +40,34 @@ const ManagePassCondition = () => {
   };
 
   const handleSaveCondition = async (updatedCondition) => {
-    console.log("=== START SAVE CONDITION ===");
-    console.log("Updated Condition:", JSON.stringify(updatedCondition, null, 2));
-    console.log("Condition ID:", updatedCondition.id);
-    console.log("Condition Object to send:", {
-      condition: updatedCondition.condition,
-    });
+    // Validation 1: Check condition structure
+    if (!updatedCondition.condition?.logic || !updatedCondition.condition?.rules) {
+      toast.error("Invalid condition structure: must have logic and rules");
+      throw new Error("Invalid condition structure");
+    }
+
+    // Validation 2: Check logic value
+    if (!["AND", "OR"].includes(updatedCondition.condition.logic)) {
+      toast.error("Logic must be either AND or OR");
+      throw new Error("Invalid logic operator");
+    }
+
+    // Validation 3: Check rules array
+    if (!Array.isArray(updatedCondition.condition.rules) || updatedCondition.condition.rules.length === 0) {
+      toast.error("Condition must have at least one rule");
+      throw new Error("Rules must be a non-empty array");
+    }
     
     try {
-      console.log("Calling API updateSystemPhaseCondition...");
-      const response = await updateSystemPhaseCondition(updatedCondition.id, {
+      await updateSystemPhaseCondition(updatedCondition.id, {
         condition: updatedCondition.condition,
       });
-      console.log("API Response:", response);
-      console.log("✅ Update successful");
       
-      addToast("Pass condition updated successfully", "success");
-      
-      console.log("Refreshing pass conditions list...");
-      fetchPassConditions(); // Refresh the list
+      toast.success("Pass condition updated successfully");
+      fetchPassConditions();
     } catch (error) {
-      console.error("❌ Error updating condition:", error);
-      console.error("Error details:", {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status,
-      });
-      
-      addToast("Failed to update pass condition", "error");
+      toast.error("Failed to update pass condition");
       throw error;
-    } finally {
-      console.log("=== END SAVE CONDITION ===");
     }
   };
 

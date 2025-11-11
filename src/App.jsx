@@ -34,11 +34,12 @@ import ManagePassCondition from "@/pages/admin/pages/ManagePassCondition";
 import ManagePayment from "@/pages/admin/pages/ManagePayment";
 import ManageSubscriptions from "@/pages/admin/pages/ManageSubscriptions";
 import ManageMembers from "@/pages/admin/pages/ManageMembers";
-import ManageBlogs from "@/pages/admin/pages/ManageBlogs";
+import ManagePosts from "@/pages/admin/pages/ManagePosts";
 import MemberDetail from "@/pages/admin/pages/MemberDetail";
 import CoachDetail from "@/pages/admin/pages/CoachDetail";
 import MemberDiaryRecords from "@/pages/admin/pages/MemberDiaryRecords";
 import MemberManagementPage from "@/pages/coach/MemberManagementPage";
+import CommunityPosts from "./pages/admin/pages/CommunityPosts";
 function App() {
   const [isLoading, setIsLoading] = useState(true);
 
@@ -86,6 +87,10 @@ function App() {
     {
       element: <AdminLayout />,
       children: [
+        {
+          path: "/admin/community-posts",
+          element: <CommunityPosts />,
+        },
         {
           path: "/admin",
           element: <AdminPage />,
@@ -147,8 +152,8 @@ function App() {
           element: <ManageMembers />,
         },
         {
-          path: "/admin/manage-blogs",
-          element: <ManageBlogs />,
+          path: "/admin/manage-posts",
+          element: <ManagePosts />,
         },
         {
           path: "/admin/manage-members/:memberId",

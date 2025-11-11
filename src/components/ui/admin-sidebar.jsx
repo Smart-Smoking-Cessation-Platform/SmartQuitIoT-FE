@@ -28,8 +28,8 @@ const items = [
     icon: List,
   },
   {
-    title: "Manage Blogs",
-    url: "/admin/manage-blogs",
+    title: "Manage Posts",
+    url: "/admin/manage-posts",
     icon: List,
   },
   {

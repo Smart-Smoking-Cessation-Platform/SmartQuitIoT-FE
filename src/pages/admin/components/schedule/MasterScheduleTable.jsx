@@ -1,7 +1,7 @@
 import { Calendar, CalendarX, Trash, X } from "lucide-react";
 import { useMemo } from "react";
 import styles from "../../../../styles/SchedulePage.module.css";
-import { formatDisplay } from "./utils";
+import { formatDisplay } from "../../../../utils/formatDate";
 
 export default function MasterScheduleTable({
   masterSchedule,
@@ -115,7 +115,7 @@ export default function MasterScheduleTable({
               <tr>
                 <th>Ngày</th>
                 <th>Coaches</th>
-                <th>Thao tác</th>
+                {/* <th>Thao tác</th> */}
               </tr>
             </thead>
             <tbody>
@@ -157,7 +157,7 @@ export default function MasterScheduleTable({
                   </td>
 
                   {/* Thao tác */}
-                  <td className={styles.tdActions}>
+                  {/* <td className={styles.tdActions}>
                     <button
                       onClick={() => removeDate(row.date)}
                       className={styles.removeDateBtn}
@@ -165,7 +165,7 @@ export default function MasterScheduleTable({
                       <Trash className={styles.iconSmall} />
                       Xóa ngày
                     </button>
-                  </td>
+                  </td> */}
                 </tr>
               ))}
             </tbody>

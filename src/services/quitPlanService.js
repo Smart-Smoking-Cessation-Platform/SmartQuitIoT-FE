@@ -6,11 +6,6 @@ export const getQuitPlanByMemberId = async (memberId) => {
 
 // Swagger trả về :
 // http://localhost:8080/api/quit-plan/1
-// Server response
-// Code	Details
-// 200
-// Response body
-// Download
 // {
 //   "id": 1,
 //   "name": "dat",

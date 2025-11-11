@@ -1,6 +1,6 @@
 import { Check, ChevronLeft, ChevronRight, Users } from "lucide-react";
 import styles from "../../../../styles/SchedulePage.module.css";
-import { getMonthGrid, isPast, toISODate } from "./utils";
+import { getMonthGrid, isPast, toISODate } from "../../../../utils/formatDate";
 
 export default function CalendarSection({
   year,

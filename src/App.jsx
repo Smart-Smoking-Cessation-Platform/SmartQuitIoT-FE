@@ -40,6 +40,8 @@ import CoachDetail from "@/pages/admin/pages/CoachDetail";
 import MemberDiaryRecords from "@/pages/admin/pages/MemberDiaryRecords";
 import MemberManagementPage from "@/pages/coach/MemberManagementPage";
 import CommunityPosts from "./pages/admin/pages/CommunityPosts";
+import WebsocketProvider from "./context/WebsocketProvider";
+import FeedbackPage from "./pages/coach/FeedbackPage";
 function App() {
   const [isLoading, setIsLoading] = useState(true);
 
@@ -82,6 +84,7 @@ function App() {
         { path: "/coach/chat", element: <CoachChatPage /> },
         { path: "/meeting/:appointmentId", element: <MeetingPage /> },
         { path: "/coach/members", element: <MemberManagementPage /> },
+        { path: "/coach/feedback", element: <FeedbackPage /> },
       ],
     },
     {
@@ -173,9 +176,11 @@ function App() {
 
   return (
     <ToastProvider>
-      <ConfirmProvider>
-        <RouterProvider router={router} />
-      </ConfirmProvider>
+      <WebsocketProvider>
+        <ConfirmProvider>
+          <RouterProvider router={router} />
+        </ConfirmProvider>
+      </WebsocketProvider>
     </ToastProvider>
   );
 }

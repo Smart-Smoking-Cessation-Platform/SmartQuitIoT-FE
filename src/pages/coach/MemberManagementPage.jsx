@@ -5,9 +5,6 @@ import MemberDetailsModal from "../../pages/coach/components/MemberDetailsModal"
 import { getMembersForCoach, getMemberById } from "@/services/memberService";
 import { postMessage } from "@/services/conversationService";
 import { useNavigate } from "react-router-dom";
-/**
- * MemberManagementPage (API-only, no mock fallback)
- */
 
 export default function MemberManagementPage() {
   const navigate = useNavigate();
@@ -132,7 +129,7 @@ export default function MemberManagementPage() {
     }
   }
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
+    <div className="px-10 min-h-screen  scrollbar-hidden">
       <header className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Member management</h1>
       </header>

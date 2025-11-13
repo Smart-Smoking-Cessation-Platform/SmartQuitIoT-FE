@@ -26,6 +26,7 @@ const items = [
   { title: "Appointments", url: "/coach/appointments", icon: ClipboardList },
   { title: "Chat", url: "/coach/chat", icon: MessageSquare },
   { title: "Members", url: "/coach/members", icon: Users },
+  { title: "Feedback", url: "/coach/feedback", icon: ClipboardList },
 ];
 
 const CoachSidebar = () => {

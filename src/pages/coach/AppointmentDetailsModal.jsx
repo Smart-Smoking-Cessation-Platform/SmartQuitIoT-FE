@@ -143,7 +143,7 @@ export default function AppointmentDetailsModal({
         )}
 
         <div style={{ marginTop: 16, display: "flex", gap: 8 }}>
-          <button
+          {/* <button
             disabled={doingStart}
             onClick={startMeeting}
             className={styles.btnPrimary}
@@ -156,7 +156,7 @@ export default function AppointmentDetailsModal({
                 <Video className="inline w-4 h-4" /> Start
               </>
             )}
-          </button>
+          </button> */}
 
           <button
             disabled={doingCancel}

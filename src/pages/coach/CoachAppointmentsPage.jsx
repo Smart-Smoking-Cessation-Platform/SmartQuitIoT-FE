@@ -639,12 +639,12 @@ export default function CoachAppointmentsPage() {
 
                         {appointment.status === "PENDING" && (
                           <>
-                            <button
+                            {/* <button
                               className={`${styles.btnPrimary} ${styles.btnSmall} ${styles.actionStart}`}
                               onClick={() => handleStart(appointment)}
                             >
                               <Video className="w-4 h-4" /> <span>Start</span>
-                            </button>
+                            </button> */}
                             <button
                               className={`${styles.btnDanger} ${styles.btnSmall}`}
                               onClick={() => openDetails(appointment)}

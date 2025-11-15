@@ -233,11 +233,11 @@ const CommentItem = ({ c, onReply }) => {
    Main CommunityPosts (list + improved detail image handling)
    --------------------------- */
 const CommunityPosts = () => {
-  // LIST state (same as before; we keep it minimal)
+  // LIST state (safer defaults)
   const [perPage] = useState(8);
   const [page, setPage] = useState(1);
-  const [posts, setPosts] = useState(null);
-  const [totalCount, setTotalCount] = useState(null);
+  const [posts, setPosts] = useState([]); // default []
+  const [totalCount, setTotalCount] = useState(0); // default 0
 
   // DETAIL state
   const [selectedPost, setSelectedPost] = useState(null);
@@ -252,6 +252,39 @@ const CommunityPosts = () => {
   // NEW: showComments toggle + ref for smooth scroll
   const [showComments, setShowComments] = useState(false);
   const commentsRef = useRef(null);
+  // xóa / ban post
+  const [deletingId, setDeletingId] = useState(null);
+
+  const handleBanPost = async (e, postId) => {
+    if (e && typeof e.stopPropagation === "function") e.stopPropagation();
+    const ok = window.confirm("Bạn có chắc muốn xóa bài này?");
+    if (!ok) return;
+
+    try {
+      setDeletingId(postId);
+      await postService.deletePost(postId);
+
+      // remove khỏi list
+      setPosts((prev) => {
+        if (!Array.isArray(prev)) return prev;
+        return prev.filter((x) => x.id !== postId);
+      });
+
+      // cập nhật tổng số (nếu bạn đang dùng totalCount cho pagination)
+      setTotalCount((t) => (typeof t === "number" ? Math.max(0, t - 1) : t));
+
+      // nếu đang xem detail của bài này thì quay về list
+      if (selectedPost && selectedPost.id === postId) {
+        setSelectedPost(null);
+        setShowComments(false);
+      }
+    } catch (err) {
+      console.error("deletePost error:", err);
+      alert("Delete failed.");
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   const totalPages = useMemo(() => {
     if (!totalCount) return 1;
@@ -391,8 +424,22 @@ const CommunityPosts = () => {
               <article
                 key={p.id}
                 onClick={() => handleOpenPost(p.id)}
-                className="bg-white rounded-2xl shadow-md overflow-hidden cursor-pointer hover:shadow-xl transition flex flex-col h-full"
+                className="relative bg-white rounded-2xl shadow-md overflow-hidden cursor-pointer hover:shadow-xl transition flex flex-col h-full"
               >
+                {/* <button
+                  type="button"
+                  onClick={(e) => handleBanPost(e, p.id)}
+                  aria-label="Xóa bài"
+                  disabled={deletingId === p.id}
+                  className={`absolute right-3 top-3 px-2 py-1 rounded-md text-xs shadow-sm z-40 ${
+                    deletingId === p.id
+                      ? "bg-gray-300 text-gray-700 cursor-not-allowed"
+                      : "bg-red-600 text-white hover:bg-red-700"
+                  }`}
+                >
+                  {deletingId === p.id ? "Đang..." : "Xóa"}
+                </button> */}
+
                 <div className="h-40 overflow-hidden rounded-t-2xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center">
                   {p.thumbnail ? (
                     <img
@@ -475,7 +522,6 @@ const CommunityPosts = () => {
   // DETAIL VIEW (improved image handling; related removed)
   const blocks = parsePostContent(selectedPost.content);
   const mediaList = Array.isArray(selectedPost.media) ? selectedPost.media : [];
-  const commentsCount = selectedPost.comments?.length || 0;
 
   // helper to pick cover image (media -> thumbnail -> first image block)
   const firstMedia = mediaList.length > 0 ? mediaList[0].mediaUrl : null;
@@ -489,15 +535,12 @@ const CommunityPosts = () => {
         {/* main column */}
         <div className="lg:col-span-2">
           {/* cover */}
-          {/* cover */}
           <div className="relative rounded-2xl overflow-hidden shadow-lg">
-            {/* responsive height: mobile -> medium -> large */}
             <div
               className="w-full flex items-center justify-center bg-gradient-to-br from-emerald-500 to-teal-500
                h-64 md:h-80 lg:h-[420px] transition-all duration-200"
             >
               {coverImage ? (
-                // full fill the container; no inline maxHeight to let container define final height
                 <img
                   src={coverImage}
                   alt="cover"
@@ -510,7 +553,6 @@ const CommunityPosts = () => {
               )}
             </div>
 
-            {/* subtle overlay to keep text readable */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/35 to-transparent" />
 
             {/* Back button top-left (always visible on cover) */}
@@ -539,9 +581,7 @@ const CommunityPosts = () => {
                 onClick={() => setShowComments((s) => !s)}
                 className="hidden sm:inline-flex items-center gap-2 bg-white/90 text-gray-800 px-3 py-2 rounded-md shadow-sm hover:bg-white"
               >
-                {showComments
-                  ? "Ẩn bình luận"
-                  : `Xem bình luận (${commentsCount})`}
+                {showComments ? "Ẩn bình luận" : "Xem bình luận"}
               </button>
 
               <button className="bg-white/10 backdrop-blur rounded-full p-2 hover:bg-white/20">
@@ -549,6 +589,20 @@ const CommunityPosts = () => {
               </button>
               <button className="bg-white/10 backdrop-blur rounded-full p-2 hover:bg-white/20">
                 <Heart className="w-5 h-5 text-white" />
+              </button>
+
+              {/* nút xóa bài (detail) */}
+              <button
+                type="button"
+                onClick={(e) => handleBanPost(e, selectedPost.id)}
+                disabled={deletingId === selectedPost.id}
+                className={`ml-2 px-3 py-2 rounded-md shadow-sm text-white ${
+                  deletingId === selectedPost.id
+                    ? "bg-gray-300 text-gray-700"
+                    : "bg-red-600 hover:bg-red-700"
+                }`}
+              >
+                {deletingId === selectedPost.id ? "Đang xóa..." : "Xóa bài"}
               </button>
             </div>
           </div>
@@ -579,12 +633,11 @@ const CommunityPosts = () => {
             {showComments ? (
               <>
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl font-semibold">
-                    Bình luận ({commentsCount})
-                  </h3>
+                  <h3 className="text-xl font-semibold">Bình luận</h3>
                   <div className="text-sm text-gray-500">
-                    {commentsCount > 0
-                      ? `${commentsCount} bình luận`
+                    {/* intentionally left count out */}
+                    {selectedPost.comments && selectedPost.comments.length > 0
+                      ? ""
                       : "Be the first to comment"}
                   </div>
                 </div>
@@ -629,7 +682,7 @@ const CommunityPosts = () => {
                   onClick={() => setShowComments(true)}
                   className="px-4 py-2 rounded-md bg-emerald-600 text-white hover:bg-emerald-700"
                 >
-                  Xem bình luận ({commentsCount})
+                  Xem bình luận
                 </button>
               </div>
             )}
@@ -653,7 +706,9 @@ const CommunityPosts = () => {
                 </div>
                 <div className="flex items-center justify-between mt-2">
                   <span className="text-gray-700">Bình luận</span>
-                  <span className="text-gray-500">{commentsCount}</span>
+                  <span className="text-gray-500">
+                    {/* intentionally empty */}
+                  </span>
                 </div>
               </div>
             </div>

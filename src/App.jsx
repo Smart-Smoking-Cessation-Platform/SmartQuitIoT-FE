@@ -42,6 +42,7 @@ import MemberManagementPage from "@/pages/coach/MemberManagementPage";
 import CommunityPosts from "./pages/admin/pages/CommunityPosts";
 import WebsocketProvider from "./context/WebsocketProvider";
 import FeedbackPage from "./pages/coach/FeedbackPage";
+import NewsFeeds from "./pages/admin/pages/NewsFeeds";
 function App() {
   const [isLoading, setIsLoading] = useState(true);
 
@@ -90,6 +91,10 @@ function App() {
     {
       element: <AdminLayout />,
       children: [
+        {
+          path: "/admin/news-feeds",
+          element: <NewsFeeds />,
+        },
         {
           path: "/admin/community-posts",
           element: <CommunityPosts />,

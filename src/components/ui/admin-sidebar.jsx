@@ -93,7 +93,7 @@ const items = [
 const appItems = [
   {
     title: "News Feed",
-    url: "/admin/news-feed",
+    url: "/admin/news-feeds",
     icon: Newspaper,
   },
   {

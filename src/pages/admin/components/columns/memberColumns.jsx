@@ -1,8 +1,7 @@
 import ActionMenu from "@/components/ui/action-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Monitor, User, UserCircle } from "lucide-react";
-import { FcGoogle } from "react-icons/fc";
+import { User, UserCircle } from "lucide-react";
 
 export const memberColumns = (handlers) => [
   {
@@ -25,7 +24,7 @@ export const memberColumns = (handlers) => [
           <div className="flex flex-col">
             <span className="font-medium">{name || "—"}</span>
             <span className="text-xs text-muted-foreground">
-              ID: {row.original.id}
+              ID: {row.original.account?.id}
             </span>
           </div>
         </div>
@@ -98,7 +97,10 @@ export const memberColumns = (handlers) => [
     cell: ({ getValue }) => {
       const role = getValue();
       return (
-        <Badge variant="secondary" className="uppercase">
+        <Badge
+          variant="primary"
+          className="bg-white text-[#00d09e] border-[#00d09e]"
+        >
           {role || "—"}
         </Badge>
       );
@@ -110,16 +112,36 @@ export const memberColumns = (handlers) => [
     accessorFn: (row) => row?.account?.accountType ?? "",
     cell: ({ getValue }) => {
       const accountType = getValue();
-      switch (accountType) {
-        case "SYSTEM":
-          return <Monitor className="w-4 h-4 text-gray-500" />;
-        case "GOOGLE":
-          return <FcGoogle className="w-4 h-4 text-gray-500" />;
-        case "FACEBOOK":
-          return <Badge variant="primary">Facebook</Badge>;
-        default:
-          return <span className="text-muted-foreground">—</span>;
-      }
+      return (
+        <Badge
+          variant="primary"
+          className="bg-white text-[#00d09e] border-[#00d09e]"
+        >
+          {accountType || "—"}
+        </Badge>
+      );
+    },
+  },
+  {
+    id: "isActive",
+    header: "Active",
+    accessorFn: (row) => row?.account?.isActive ?? "",
+    cell: ({ getValue }) => {
+      const isActive = getValue();
+      return (
+        <>{isActive ? <Badge variant="" /> : <Badge variant="destructive" />}</>
+      );
+    },
+  },
+  {
+    id: "isBanned",
+    header: "Banned",
+    accessorFn: (row) => row?.account?.isBanned ?? "",
+    cell: ({ getValue }) => {
+      const isBanned = getValue();
+      return (
+        <>{isBanned ? <Badge variant="" /> : <Badge variant="destructive" />}</>
+      );
     },
   },
   {
@@ -129,7 +151,10 @@ export const memberColumns = (handlers) => [
     cell: ({ getValue }) => {
       const createdAt = getValue();
       return (
-        <Badge>
+        <Badge
+          variant="primary"
+          className="bg-white text-[#00d09e] border-[#00d09e]"
+        >
           {createdAt ? new Date(createdAt).toLocaleDateString() : "—"}
         </Badge>
       );

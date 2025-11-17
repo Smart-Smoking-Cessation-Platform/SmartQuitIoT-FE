@@ -11,3 +11,7 @@ export const addCoach = async (coach) => {
 export const getMemberStatistics = async () => {
   return instance.get("/accounts/statistics");
 };
+
+export const deletedAccount = async (accountId) => {
+  return instance.put(`/accounts/ban/${accountId}`);
+};

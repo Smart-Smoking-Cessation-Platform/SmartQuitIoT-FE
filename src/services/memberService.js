@@ -1,8 +1,8 @@
 import instance from "@/config/axiosConfig";
 
-export const getAllMembers = async (page, size, search) => {
+export const getAllMembers = async (page, size, search, isActive) => {
   return instance.get(
-    `/members/manage?page=${page}&size=${size}&search=${search}`
+    `/members/manage?page=${page}&size=${size}&search=${search}&isActive=${isActive}`
   );
 };
 

@@ -1,6 +1,15 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ArrowUpDown, Search } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const SearchBar = ({
   placeholderText,
@@ -8,6 +17,8 @@ const SearchBar = ({
   setSearchString,
   sortBy,
   setSortBy,
+  filterBy,
+  setFilterBy,
 }) => {
   return (
     <div className="flex flex-col md:flex-row gap-4">
@@ -38,6 +49,31 @@ const SearchBar = ({
         <></>
       )}
       {/* Sort */}
+
+      {filterBy !== undefined ? (
+        <Select
+          value={
+            filterBy === true ? "true" : filterBy === false ? "false" : "all"
+          }
+          onValueChange={(val) => {
+            if (val === "all") return setFilterBy(undefined); // or null if you prefer
+            setFilterBy(val === "true");
+          }}
+        >
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              <SelectLabel>Status</SelectLabel>
+              <SelectItem value="true">Active</SelectItem>
+              <SelectItem value="false">Banned</SelectItem>
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+      ) : (
+        <></>
+      )}
     </div>
   );
 };

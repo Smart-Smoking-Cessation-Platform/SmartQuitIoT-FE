@@ -36,12 +36,14 @@ export default function ActionMenu({ row, onEdit, onDelete }) {
             <Pencil className="mr-2 h-4 w-4" /> Detail
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem
-            onClick={() => setConfirmOpen(true)}
-            className={"text-red-500"}
-          >
-            <Trash2 className="mr-2 h-4 w-4 text-red-500" /> Delete
-          </DropdownMenuItem>
+          {row.original?.account?.isActive ? (
+            <DropdownMenuItem
+              onClick={() => setConfirmOpen(true)}
+              className={"text-red-500"}
+            >
+              <Trash2 className="mr-2 h-4 w-4 text-red-500" /> Delete
+            </DropdownMenuItem>
+          ) : null}
         </DropdownMenuContent>
       </DropdownMenu>
 

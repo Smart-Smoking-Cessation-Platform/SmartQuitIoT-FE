@@ -4,6 +4,7 @@ import SearchBar from "@/components/ui/search-bar";
 import { DataTable } from "@/components/ui/tables/data-table";
 import useDebounce from "@/hooks/useDebounce";
 import { memberColumns as buildMemberColumns } from "@/pages/admin/components/columns/memberColumns";
+import { deletedAccount } from "@/services/accountService";
 import { getAllMembers } from "@/services/memberService";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -16,6 +17,7 @@ const ManageMembers = () => {
   const [totalElements, setTotalElements] = useState(0);
   const [searchString, setSearchString] = useState("");
   const [members, setMembers] = useState([]);
+  const [isActive, setIsActive] = useState(true);
   const inputSearchDebounce = useDebounce(searchString, 300);
   const [isLoading, setIsLoading] = useState(false);
   const nav = useNavigate();
@@ -30,7 +32,8 @@ const ManageMembers = () => {
       const response = await getAllMembers(
         currentPage,
         pageSize,
-        inputSearchDebounce
+        inputSearchDebounce,
+        isActive
       );
       const { content, totalPages, totalElements } = response.data;
       setMembers(content);
@@ -46,19 +49,23 @@ const ManageMembers = () => {
 
   useEffect(() => {
     fetchMembers();
-  }, [currentPage, inputSearchDebounce]);
+  }, [currentPage, inputSearchDebounce, isActive]);
 
   const handleViewDetail = (row) => {
     const { id } = row.original; // your row data
     // open edit modal, navigate, etc.
-    console.log("View Detail:", id);
     nav(`/admin/manage-members/${id}`);
   };
 
-  const handleDelete = (row) => {
-    const { id } = row.original;
+  const handleDelete = async (row) => {
+    const id = row.original?.account?.id;
+
     // call API then refresh table
-    console.log("Delete id:", id);
+    const response = await deletedAccount(id);
+    if (response) {
+      toast.success(response.data?.data);
+      fetchMembers();
+    }
   };
 
   const cols = buildMemberColumns({
@@ -84,6 +91,8 @@ const ManageMembers = () => {
         placeholderText={"Search members by name"}
         searchString={searchString}
         setSearchString={setSearchString}
+        filterBy={isActive}
+        setFilterBy={setIsActive}
       />
       <DataTable
         columns={cols}

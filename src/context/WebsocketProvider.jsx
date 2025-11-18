@@ -20,6 +20,8 @@ export default function WebsocketProvider({
   autoConnect = true,
 }) {
   const clientRef = useRef(null);
+  const subscriptionRef = useRef(null);
+  const presenceSubscriptionRef = useRef(null);
   const [connected, setConnected] = useState(false);
 
   // prefer hook if exists
@@ -38,6 +40,92 @@ export default function WebsocketProvider({
   // stable tokenProvider compatible with createStompClient
   const tokenProvider = async () =>
     auth.getToken?.() ?? localStorage.getItem("accessToken");
+
+  // Subscribe to notifications topic
+  const subscribeToNotifications = (client) => {
+    // Unsubscribe existing subscription if any
+    if (subscriptionRef.current) {
+      try {
+        subscriptionRef.current.unsubscribe();
+      } catch (e) {
+        console.warn(
+          "[WS] error unsubscribing old notification subscription",
+          e
+        );
+      }
+      subscriptionRef.current = null;
+    }
+
+    const accountId =
+      auth.getAccountId?.() ??
+      (() => {
+        try {
+          const a = localStorage.getItem("account");
+          return a ? JSON.parse(a).id : null;
+        } catch {
+          return null;
+        }
+      })();
+
+    if (!accountId) {
+      console.debug(
+        "[WS] accountId missing - skipping /topic/notifications subscribe"
+      );
+      return;
+    }
+
+    const topic = `/topic/notifications/${accountId}`;
+    try {
+      const subscription = client.subscribe(topic, (m) => {
+        if (!m || !m.body) {
+          console.warn("[WS] received empty notification message");
+          return;
+        }
+        try {
+          const payload = JSON.parse(m.body);
+          console.debug("[WS] received notification", payload);
+          window.dispatchEvent(
+            new CustomEvent("ws:notification", { detail: payload })
+          );
+        } catch (e) {
+          console.warn("[WS] invalid notification payload", e, m.body);
+        }
+      });
+      subscriptionRef.current = subscription;
+      console.debug("[WS] subscribed to", topic);
+    } catch (e) {
+      console.error("[WS] subscribe notifications failed", e);
+    }
+  };
+
+  // Subscribe to presence topic
+  const subscribeToPresence = (client) => {
+    // Unsubscribe existing subscription if any
+    if (presenceSubscriptionRef.current) {
+      try {
+        presenceSubscriptionRef.current.unsubscribe();
+      } catch (e) {
+        console.warn("[WS] error unsubscribing old presence subscription", e);
+      }
+      presenceSubscriptionRef.current = null;
+    }
+
+    try {
+      const subscription = client.subscribe("/topic/presence/coach", (m) => {
+        if (!m || !m.body) return;
+        try {
+          const p = JSON.parse(m.body);
+          window.dispatchEvent(new CustomEvent("ws:presence", { detail: p }));
+        } catch (e) {
+          console.warn("[WS] invalid presence payload", e);
+        }
+      });
+      presenceSubscriptionRef.current = subscription;
+      console.debug("[WS] subscribed to /topic/presence/coach");
+    } catch (e) {
+      console.warn("[WS] subscribe presence failed", e);
+    }
+  };
 
   useEffect(() => {
     if (!autoConnect) return;
@@ -63,64 +151,39 @@ export default function WebsocketProvider({
           tokenProvider,
           debug: false,
           onConnect: (frame, cl) => {
-            if (!mounted) return;
+            if (!mounted) {
+              console.debug("[WS] onConnect called but component unmounted");
+              return;
+            }
             console.debug("[WS] onConnect frame", frame?.headers);
             setConnected(true);
 
-            const accountId =
-              auth.getAccountId?.() ??
-              (() => {
-                try {
-                  const a = localStorage.getItem("account");
-                  return a ? JSON.parse(a).id : null;
-                } catch {
-                  return null;
-                }
-              })();
-            if (accountId) {
-              const topic = `/topic/notifications/${accountId}`;
-              try {
-                cl.subscribe(topic, (m) => {
-                  if (!m.body) return;
-                  try {
-                    const payload = JSON.parse(m.body);
-                    window.dispatchEvent(
-                      new CustomEvent("ws:notification", { detail: payload })
-                    );
-                    console.debug("[WS] received notification", payload);
-                  } catch (e) {
-                    console.warn("[WS] invalid notification payload", e);
-                  }
-                });
-                console.debug("[WS] subscribed to", topic);
-              } catch (e) {
-                console.warn("[WS] subscribe notifications failed", e);
-              }
-            } else {
-              console.debug(
-                "[WS] accountId missing - skipping /topic/notifications subscribe"
-              );
-            }
-
-            // presence
-            try {
-              cl.subscribe("/topic/presence/coach", (m) => {
-                if (!m.body) return;
-                try {
-                  const p = JSON.parse(m.body);
-                  window.dispatchEvent(
-                    new CustomEvent("ws:presence", { detail: p })
-                  );
-                } catch (e) {}
-              });
-            } catch (e) {
-              console.warn("[WS] subscribe presence failed", e);
-            }
+            // Subscribe to notifications and presence
+            // This will be called on every reconnect, ensuring subscriptions are always active
+            subscribeToNotifications(cl);
+            subscribeToPresence(cl);
           },
           onStompError: (frame) => {
             console.error("[WS] broker error", frame);
+            setConnected(false);
           },
         });
+
+        // Handle WebSocket close - STOMP client will auto-reconnect
+        // Note: STOMP client has built-in reconnect, subscriptions will be recreated in onConnect
+        if (client) {
+          const originalOnClose = client.onWebSocketClose;
+          client.onWebSocketClose = (evt) => {
+            console.warn("[WS] WebSocket closed", evt?.code);
+            setConnected(false);
+            // Clear subscription refs on close (will be recreated on reconnect)
+            subscriptionRef.current = null;
+            presenceSubscriptionRef.current = null;
+            if (originalOnClose && typeof originalOnClose === "function") {
+              originalOnClose(evt);
+            }
+          };
+        }
 
         clientRef.current = client;
       } catch (e) {
@@ -133,10 +196,30 @@ export default function WebsocketProvider({
       mounted = false;
       (async () => {
         try {
+          // Unsubscribe before deactivating
+          if (subscriptionRef.current) {
+            try {
+              subscriptionRef.current.unsubscribe();
+            } catch {
+              // Ignore unsubscribe errors
+            }
+            subscriptionRef.current = null;
+          }
+          if (presenceSubscriptionRef.current) {
+            try {
+              presenceSubscriptionRef.current.unsubscribe();
+            } catch {
+              // Ignore unsubscribe errors
+            }
+            presenceSubscriptionRef.current = null;
+          }
+
           if (clientRef.current) {
             await clientRef.current.deactivate?.();
           }
-        } catch (e) {}
+        } catch (e) {
+          console.warn("[WS] cleanup error", e);
+        }
         clientRef.current = null;
         setConnected(false);
       })();

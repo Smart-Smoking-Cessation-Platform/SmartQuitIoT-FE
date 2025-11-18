@@ -13,6 +13,7 @@ import {
   ChevronLeft,
   ChevronRight,
   CalendarDays,
+  Loader2,
 } from "lucide-react";
 import styles from "../../styles/CoachAppointmentsPage.module.css";
 import api from "@/api/appointments";
@@ -165,43 +166,54 @@ export default function CoachAppointmentsPage() {
   const handleJoin = async (appointment) => {
     try {
       setLoading(true);
+      setError(null);
       const tokenResp = await api.requestJoinToken(appointment.id);
       // tokenResp should be an object { channel, token, uid, expiresAt, ttlSeconds }
-      navigate(`/meeting/${appointment.id}`, {
-        state: { tokenData: tokenResp, appointment },
-      });
+      // Use setTimeout to ensure navigation happens after state updates
+      setTimeout(() => {
+        navigate(`/meeting/${appointment.id}`, {
+          state: { tokenData: tokenResp, appointment },
+          replace: false,
+        });
+      }, 0);
     } catch (e) {
       console.error("join token error", e);
       setError(e?.message || "Failed to request join token");
-    } finally {
       setLoading(false);
     }
+    // Note: Don't set loading to false here as we're navigating away
   };
+  
   // Start handler — for coach to start the session (same flow as join)
   const handleStart = async (appointment) => {
     try {
       setLoading(true);
+      setError(null);
       // optional: if backend needs "start" API to mark IN_PROGRESS, call it here
       // await api.startAppointment(appointment.id);
 
       const tokenResp = await api.requestJoinToken(appointment.id);
-      // navigate to meeting route (we use state so MeetingPage can reuse token)
-      navigate(`/meeting/${appointment.id}`, {
-        state: { tokenData: tokenResp, appointment },
-      });
-
+      
       // locally update status so UI reflects In Progress (optimistic)
       setAppointments((prev) =>
         prev.map((a) =>
           a.id === appointment.id ? { ...a, status: "IN_PROGRESS" } : a
         )
       );
+
+      // Use setTimeout to ensure navigation happens after state updates
+      setTimeout(() => {
+        navigate(`/meeting/${appointment.id}`, {
+          state: { tokenData: tokenResp, appointment },
+          replace: false,
+        });
+      }, 0);
     } catch (e) {
       console.error("start token error", e);
       setError(e?.message || "Failed to request start token");
-    } finally {
       setLoading(false);
     }
+    // Note: Don't set loading to false here as we're navigating away
   };
 
   // initial load: upcoming appointments from today
@@ -276,6 +288,7 @@ export default function CoachAppointmentsPage() {
         page: 0,
         size: 200,
       });
+      
       const rawList = toArray(resp);
       const mapped = rawList.map(mapBackendToUI);
       setAppointments((prev) => {
@@ -337,68 +350,27 @@ export default function CoachAppointmentsPage() {
   return (
     <div className={styles.container}>
       {/* Header */}
-      <div className={styles.headerWrap}>
-        <div>
-          <h1 className={styles.title}>Appointments</h1>
-          <p className={styles.subtitle}>
-            Track and manage your upcoming sessions
-          </p>
-        </div>
+      <div className="mb-6">
+        <h1 className="text-2xl font-semibold text-gray-900 mb-1">Appointments</h1>
+        <p className="text-sm text-gray-600">
+          Track and manage your upcoming sessions
+        </p>
       </div>
 
-      {/* Date Navigation & Calendar */}
-      <div className={`${styles.card} ${styles.mb6}`}>
-        <div className={styles.dateNavRow}>
-          <div className={styles.dateSelector}>
-            <button
-              onClick={() => setSelectedDate(addDaysIso(selectedDate, -1))}
-              className={styles.iconButton}
-            >
-              <ChevronLeft />
-            </button>
-
-            <div className={styles.centerDate}>
-              <div className={styles.currentDay}>
-                {currentDateInfo.dayOfWeek}, {currentDateInfo.day} /{" "}
-                {currentDateInfo.month}
-              </div>
-              <div className={styles.currentYear}>{currentDateInfo.year}</div>
-            </div>
-
-            <button
-              onClick={() => setSelectedDate(addDaysIso(selectedDate, 1))}
-              className={styles.iconButton}
-            >
-              <ChevronRight />
-            </button>
-          </div>
-
-          <div className={styles.quickActions}>
-            <button
-              onClick={() => {
-                setSelectedDate(todayIso());
-                setWeekStart(todayIso());
-              }}
-              className={`${styles.btnPrimary} ${styles.btnSmall}`}
-            >
-              <CalendarDays className="w-4 h-4" /> <span>Today</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Week view */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            marginTop: 12,
-          }}
-        >
-          <button className={styles.iconButton} onClick={() => shiftWeek(-7)}>
-            <ChevronLeft />
+      {/* Date Navigation & Calendar - Compact */}
+      <div className="bg-white rounded-xl p-3 border border-gray-200 shadow-sm mb-4">
+        <div className="flex items-center gap-3">
+          {/* Week navigation arrows */}
+          <button
+            onClick={() => shiftWeek(-7)}
+            className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+            aria-label="Previous week"
+          >
+            <ChevronLeft className="w-4 h-4 text-gray-600" />
           </button>
-          <div className={styles.weekGrid} style={{ flex: 1 }}>
+
+          {/* Week dates */}
+          <div className="flex-1 flex items-center gap-1.5 overflow-x-auto scrollbar-hide">
             {weekDates.map((date) => {
               const dateInfo = formatDate(date);
               const isSelected = date === selectedDate;
@@ -407,99 +379,129 @@ export default function CoachAppointmentsPage() {
                 <button
                   key={date}
                   onClick={() => handleSelectDate(date)}
-                  className={`${styles.dateButton} ${
-                    isSelected ? styles.dateButtonSelected : ""
+                  className={`flex flex-col items-center justify-center min-w-[48px] px-2 py-1.5 rounded-lg transition-all ${
+                    isSelected
+                      ? "bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-sm"
+                      : "hover:bg-gray-50 text-gray-700"
                   }`}
                 >
-                  <div className={styles.dateInner}>
-                    <div
-                      className={`${styles.dateWeek} ${
-                        isSelected ? styles.primaryText : ""
-                      }`}
-                    >
-                      {dateInfo.dayOfWeek}
-                    </div>
-                    <div
-                      className={`${styles.dateNumber} ${
-                        isSelected ? styles.primaryText : ""
-                      } ${isToday ? styles.underline : ""}`}
-                    >
-                      {dateInfo.day}
-                    </div>
-                  </div>
+                  <span
+                    className={`text-xs font-medium ${
+                      isSelected ? "text-white/90" : "text-gray-500"
+                    }`}
+                  >
+                    {dateInfo.dayOfWeek.slice(0, 3)}
+                  </span>
+                  <span
+                    className={`text-sm font-semibold ${
+                      isToday && !isSelected ? "underline" : ""
+                    }`}
+                  >
+                    {dateInfo.day}
+                  </span>
                 </button>
               );
             })}
           </div>
-          <button className={styles.iconButton} onClick={() => shiftWeek(7)}>
-            <ChevronRight />
+
+          {/* Next week arrow */}
+          <button
+            onClick={() => shiftWeek(7)}
+            className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+            aria-label="Next week"
+          >
+            <ChevronRight className="w-4 h-4 text-gray-600" />
+          </button>
+
+          {/* Today button */}
+          <button
+            onClick={() => {
+              setSelectedDate(todayIso());
+              setWeekStart(todayIso());
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-sm font-medium hover:from-emerald-600 hover:to-teal-700 transition-colors shadow-sm whitespace-nowrap"
+          >
+            <CalendarDays className="w-4 h-4" />
+            <span>Today</span>
           </button>
         </div>
       </div>
 
       {/* Stats */}
-      <div className={styles.statsGrid}>
-        <div className={`${styles.card}`}>
-          <div className={styles.statsRow}>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        {/* Total */}
+        <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between">
             <div>
-              <p className={styles.statsLabel}>Total today</p>
-              <p className={styles.statsValue}>{todayAppointments.length}</p>
+              <p className="text-xs text-gray-600 font-medium mb-1">Total today</p>
+              <p className="text-2xl font-bold text-gray-900">{todayAppointments.length}</p>
             </div>
-            <Calendar className={styles.statsIcon} />
+            <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center">
+              <Calendar className="w-6 h-6 text-gray-600" />
+            </div>
           </div>
         </div>
 
-        <div className={`${styles.card} ${styles.borderWarning}`}>
-          <div className={styles.statsRow}>
+        {/* Pending */}
+        <div className="bg-white rounded-xl p-5 border-2 border-amber-200 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between">
             <div>
-              <p className={styles.statsLabelWarning}>Pending</p>
-              <p className={styles.statsValueWarning}>
+              <p className="text-xs text-amber-700 font-medium mb-1">Pending</p>
+              <p className="text-2xl font-bold text-amber-700">
                 {todayAppointments.filter((a) => a.status === "PENDING").length}
               </p>
             </div>
-            <AlertCircle className={styles.statsIconWarning} />
+            <div className="w-12 h-12 rounded-lg bg-amber-50 flex items-center justify-center">
+              <AlertCircle className="w-6 h-6 text-amber-600" />
+            </div>
           </div>
         </div>
 
-        <div className={`${styles.card} ${styles.borderActive}`}>
-          <div className={styles.statsRow}>
+        {/* Active */}
+        <div className="bg-white rounded-xl p-5 border-2 border-blue-200 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between">
             <div>
-              <p className={styles.statsLabelActive}>Active</p>
-              <p className={styles.statsValueActive}>
+              <p className="text-xs text-blue-700 font-medium mb-1">Active</p>
+              <p className="text-2xl font-bold text-blue-700">
                 {
                   todayAppointments.filter((a) => a.status === "IN_PROGRESS")
                     .length
                 }
               </p>
             </div>
-            <Video className={styles.statsIconActive} />
+            <div className="w-12 h-12 rounded-lg bg-blue-50 flex items-center justify-center">
+              <Video className="w-6 h-6 text-blue-600" />
+            </div>
           </div>
         </div>
 
-        <div className={`${styles.card} ${styles.borderCompleted}`}>
-          <div className={styles.statsRow}>
+        {/* Completed */}
+        <div className="bg-white rounded-xl p-5 border-2 border-emerald-200 shadow-sm hover:shadow-md transition-shadow">
+          <div className="flex items-center justify-between">
             <div>
-              <p className={styles.statsLabelCompleted}>Completed</p>
-              <p className={styles.statsValueCompleted}>
+              <p className="text-xs text-emerald-700 font-medium mb-1">Completed</p>
+              <p className="text-2xl font-bold text-emerald-700">
                 {
                   todayAppointments.filter((a) => a.status === "COMPLETED")
                     .length
                 }
               </p>
             </div>
-            <CheckCircle className={styles.statsIconCompleted} />
+            <div className="w-12 h-12 rounded-lg bg-emerald-50 flex items-center justify-center">
+              <CheckCircle className="w-6 h-6 text-emerald-600" />
+            </div>
           </div>
         </div>
       </div>
 
       {/* Filters */}
-      <div className={`${styles.card} ${styles.mb6}`}>
-        <div className={styles.filterRow}>
-          <div className={styles.filterLabel}>
-            <Filter className={styles.filterIcon} />
-            <span className={styles.filterTitle}>Filter by status</span>
+      <div className="bg-white rounded-xl p-4 border border-gray-200 shadow-sm mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Filter className="w-5 h-5 text-gray-600" />
+            <span className="text-sm font-medium text-gray-700">Filter by status:</span>
           </div>
-          <div className={styles.filterButtons}>
+          <div className="flex flex-wrap items-center gap-2">
             {["ALL", "PENDING", "IN_PROGRESS", "COMPLETED", "CANCELLED"].map(
               (status) => {
                 const active = filterStatus === status;
@@ -507,8 +509,10 @@ export default function CoachAppointmentsPage() {
                   <button
                     key={status}
                     onClick={() => setFilterStatus(status)}
-                    className={`${styles.filterBtn} ${
-                      active ? styles.filterBtnActive : ""
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+                      active
+                        ? "bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-md"
+                        : "bg-white border border-gray-200 text-gray-700 hover:border-emerald-300 hover:bg-emerald-50"
                     }`}
                   >
                     {status === "ALL" ? "All" : getStatusLabel(status)}
@@ -522,31 +526,46 @@ export default function CoachAppointmentsPage() {
 
       {/* Timeline */}
       <div className={`${styles.card}`}>
-        <h2 className={styles.timelineTitle}>
-          <Clock className="w-5 h-5" />
-          <span className={styles.timelineTitleText}>
-            Schedule {currentDateInfo.dayOfWeek}, {currentDateInfo.day}/
-            {currentDateInfo.month}
-          </span>
-        </h2>
+        <div className="flex items-center gap-3 mb-6 pb-4 border-b">
+          <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
+            <Clock className="w-5 h-5 text-emerald-600" />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">
+              Schedule {currentDateInfo.dayOfWeek}, {currentDateInfo.day}/{currentDateInfo.month}
+            </h2>
+            <p className="text-xs text-gray-500 mt-0.5">
+              {todayAppointments.length} appointment{todayAppointments.length !== 1 ? 's' : ''} scheduled
+            </p>
+          </div>
+        </div>
 
         {loading ? (
-          <div style={{ padding: 24 }}>Loading...</div>
+          <div className="flex flex-col items-center justify-center py-16">
+            <Loader2 className="w-8 h-8 text-emerald-600 animate-spin mb-3" />
+            <p className="text-gray-600">Loading appointments...</p>
+          </div>
         ) : error ? (
-          <div style={{ padding: 24, color: "red" }}>
-            Error: {String(error)}
+          <div className="flex flex-col items-center justify-center py-16">
+            <AlertCircle className="w-12 h-12 text-red-500 mb-3" />
+            <p className="text-red-600 font-medium mb-2">Error loading appointments</p>
+            <p className="text-sm text-gray-600">{String(error)}</p>
           </div>
         ) : todayAppointments.length === 0 ? (
-          <div className={styles.emptyWrap}>
-            <Calendar className={styles.emptyIcon} />
-            <p className={styles.emptyTitle}>No appointments</p>
-            <p className={styles.emptySub}>
-              Pick another date or change filter
+          <div className="flex flex-col items-center justify-center py-16">
+            <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
+              <Calendar className="w-8 h-8 text-gray-400" />
+            </div>
+            <p className="text-lg font-semibold text-gray-900 mb-1">No appointments</p>
+            <p className="text-sm text-gray-500 text-center">
+              Pick another date or change filter to see appointments
             </p>
           </div>
         ) : (
           <div className={styles.timelineList}>
             {todayAppointments.map((appointment, index) => {
+              // Ensure unique key for each appointment
+              const appointmentKey = `appointment-${appointment.id}-${appointment.date}-${appointment.time}`;
               const configs = {
                 PENDING: {
                   label: "Pending",
@@ -582,7 +601,7 @@ export default function CoachAppointmentsPage() {
               const StatusIcon = statusConfig.icon;
 
               return (
-                <div key={appointment.id} className={styles.timelineItem}>
+                <div key={appointmentKey} className={styles.timelineItem}>
                   {index < todayAppointments.length - 1 && (
                     <div className={styles.timelineLine} />
                   )}
@@ -631,74 +650,61 @@ export default function CoachAppointmentsPage() {
 
                       <div className={styles.appActions}>
                         <button
-                          className={styles.btnGhost}
+                          className="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-700 text-sm font-medium hover:border-gray-300 hover:bg-gray-50 transition-colors"
                           onClick={() => openDetails(appointment)}
                         >
                           Details
                         </button>
 
+                        {/* Only show Cancel button for PENDING status */}
                         {appointment.status === "PENDING" && (
-                          <>
-                            {/* <button
-                              className={`${styles.btnPrimary} ${styles.btnSmall} ${styles.actionStart}`}
-                              onClick={() => handleStart(appointment)}
-                            >
-                              <Video className="w-4 h-4" /> <span>Start</span>
-                            </button> */}
-                            <button
-                              className={`${styles.btnDanger} ${styles.btnSmall}`}
-                              onClick={() => openDetails(appointment)}
-                            >
-                              Cancel
-                            </button>
-                          </>
+                          <button
+                            className="px-3 py-1.5 rounded-lg bg-red-500 text-white text-sm font-medium hover:bg-red-600 transition-colors shadow-sm hover:shadow"
+                            onClick={() => openDetails(appointment)}
+                          >
+                            Cancel
+                          </button>
                         )}
 
+                        {/* IN_PROGRESS: Show Join and Complete buttons only */}
                         {appointment.status === "IN_PROGRESS" && (
-                          <div
-                            style={{
-                              display: "flex",
-                              gap: 8,
-                              alignItems: "center",
-                            }}
-                          >
+                          <div className="flex gap-2 items-center">
                             <button
-                              className={`${styles.btnPrimary} ${styles.btnSmall}`}
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-sm font-medium hover:from-emerald-600 hover:to-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm hover:shadow"
                               onClick={() => handleJoin(appointment)}
+                              disabled={loading}
                             >
-                              <Video className="w-4 h-4" />
+                              {loading ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <Video className="w-4 h-4" />
+                              )}
                               <span>Join</span>
                             </button>
 
-                            {/* ADDED: Complete button (only visible when canComplete) */}
+                            {/* Complete button (only visible when canComplete) */}
                             {canComplete(appointment) ? (
                               completingId === appointment.id ? (
                                 <button
-                                  className={`${styles.btnPrimary} ${styles.btnSmall}`}
+                                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 text-white text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                                   disabled
                                 >
-                                  <CheckCircle className="w-4 h-4" />
+                                  <Loader2 className="w-4 h-4 animate-spin" />
                                   <span>Completing...</span>
                                 </button>
                               ) : (
                                 <button
-                                  className={`${styles.btnPrimary} ${styles.btnSmall}`}
+                                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-700 text-white text-sm font-medium hover:bg-emerald-800 transition-colors shadow-sm hover:shadow"
                                   onClick={() => handleComplete(appointment)}
                                   title="Mark session completed (available after 10 minutes from start)"
-                                  style={{
-                                    backgroundColor:
-                                      "#0b845f" /* optional slight different green */,
-                                  }}
                                 >
                                   <CheckCircle className="w-4 h-4" />
                                   <span>Complete</span>
                                 </button>
                               )
                             ) : (
-                              // optional: minhdat sau chac fix cho nay
-                              // null
                               <button
-                                className={`${styles.btnDisabled} ${styles.btnSmall}`}
+                                className="px-3 py-1.5 rounded-lg bg-gray-100 text-gray-400 text-sm font-medium cursor-not-allowed"
                                 disabled
                                 title="Available after 10 minutes from start"
                               >
@@ -709,12 +715,18 @@ export default function CoachAppointmentsPage() {
                         )}
 
                         {appointment.status === "COMPLETED" && (
-                          <button className={styles.btnDisabled} disabled>
+                          <button 
+                            className="px-3 py-1.5 rounded-lg bg-gray-100 text-gray-500 text-sm font-medium cursor-not-allowed"
+                            disabled
+                          >
                             Completed
                           </button>
                         )}
                         {appointment.status === "CANCELLED" && (
-                          <button className={styles.btnDisabled} disabled>
+                          <button 
+                            className="px-3 py-1.5 rounded-lg bg-gray-100 text-gray-500 text-sm font-medium cursor-not-allowed"
+                            disabled
+                          >
                             Cancelled
                           </button>
                         )}

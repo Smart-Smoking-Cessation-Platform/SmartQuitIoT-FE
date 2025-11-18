@@ -4,10 +4,11 @@ import MemberCard from "../../pages/coach/components/MemberCard";
 import MemberDetailsModal from "../../pages/coach/components/MemberDetailsModal";
 import { getMembersForCoach, getMemberById } from "@/services/memberService";
 import { postMessage } from "@/services/conversationService";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 
 export default function MemberManagementPage() {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -85,6 +86,17 @@ export default function MemberManagementPage() {
       // keep selectedMember null so modal won't open with bad data
     }
   }
+
+  // Handle memberId from query params (when navigating from FeedbackPage)
+  useEffect(() => {
+    const memberId = searchParams.get("memberId");
+    if (memberId && !selectedMember) {
+      handleOpenDetails(memberId, "metric");
+      // Clear the query param after opening modal
+      setSearchParams({});
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
   // Mở inbox chat với member
   async function openInboxForMember(member) {
     try {

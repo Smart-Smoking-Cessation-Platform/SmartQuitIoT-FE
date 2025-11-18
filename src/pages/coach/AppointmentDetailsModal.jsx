@@ -1,9 +1,19 @@
 // src/pages/coach/AppointmentDetailsModal.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Calendar, Clock, User, Video, XCircle, Loader2 } from "lucide-react";
+import {
+  Calendar,
+  Clock,
+  User,
+  Video,
+  XCircle,
+  Loader2,
+  X,
+  CheckCircle,
+  AlertCircle,
+  Radio,
+} from "lucide-react";
 import api from "@/api/appointments";
-import styles from "../../styles/AppointmentDetailsModal.module.css";
 
 /**
  * Props:
@@ -25,6 +35,7 @@ export default function AppointmentDetailsModal({
   const [doingCancel, setDoingCancel] = useState(false);
   const navigate = useNavigate();
 
+  // Fetch appointment details
   useEffect(() => {
     if (!open) return;
     let mounted = true;
@@ -38,8 +49,6 @@ export default function AppointmentDetailsModal({
         const resp = await api.getAppointmentDetailForCoach(
           appointmentBrief.id
         );
-        // If your api returns GlobalResponse, unwrap accordingly:
-        // const dto = resp?.data?.data ?? resp?.data ?? resp;
         const dto = resp?.data?.data ?? resp?.data ?? resp;
         if (!mounted) return;
         setDetail(dto);
@@ -62,6 +71,28 @@ export default function AppointmentDetailsModal({
       mounted = false;
     };
   }, [open, appointmentBrief]);
+
+  // Handle ESC key to close modal
+  useEffect(() => {
+    if (!open) return;
+    const handleEsc = (e) => {
+      if (e.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
+  }, [open, onClose]);
+
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [open]);
 
   if (!open) return null;
 
@@ -98,92 +129,291 @@ export default function AppointmentDetailsModal({
     }
   };
 
-  const renderBody = () => {
-    if (loading)
-      return (
-        <div style={{ padding: 20 }}>
-          Loading... <Loader2 className="w-4 h-4 inline" />
-        </div>
-      );
-    if (error) return <div style={{ padding: 20, color: "red" }}>{error}</div>;
-    if (!detail) return <div style={{ padding: 20 }}>No detail</div>;
-
-    const normalizeTime = (t) => (t ? String(t).slice(0, 5) : "-");
-    const start = normalizeTime(detail.startTime);
-    const end = normalizeTime(detail.endTime);
-    return (
-      <div className={styles.detailInner}>
-        <h3>Appointment #{detail.appointmentId}</h3>
-
-        <div className={styles.row}>
-          <Calendar /> <strong>Date:</strong> <span>{detail.date}</span>
-        </div>
-        <div className={styles.row}>
-          <Clock /> <strong>Time:</strong>{" "}
-          <span>
-            {start} - {end}
-          </span>
-        </div>
-        <div className={styles.row}>
-          <User /> <strong>Member:</strong>{" "}
-          <span>{detail.memberName || detail.member || "N/A"}</span>
-        </div>
-        <div className={styles.row}>
-          <strong>Channel:</strong> <span>{detail.channelName}</span>
-        </div>
-        <div className={styles.row}>
-          <strong>Runtime status:</strong> <span>{detail.runtimeStatus}</span>
-        </div>
-
-        {detail.joinWindowStart && detail.joinWindowEnd && (
-          <div style={{ marginTop: 8, fontSize: 13, color: "#555" }}>
-            Join window: {new Date(detail.joinWindowStart).toLocaleString()} —{" "}
-            {new Date(detail.joinWindowEnd).toLocaleString()}
-          </div>
-        )}
-
-        <div style={{ marginTop: 16, display: "flex", gap: 8 }}>
-          {/* <button
-            disabled={doingStart}
-            onClick={startMeeting}
-            className={styles.btnPrimary}
-          >
-            {doingStart ? (
-              "Starting..."
-            ) : (
-              <>
-                {" "}
-                <Video className="inline w-4 h-4" /> Start
-              </>
-            )}
-          </button> */}
-
-          <button
-            disabled={doingCancel}
-            onClick={cancelAppointment}
-            className={styles.btnDanger}
-          >
-            {doingCancel ? (
-              "Canceling..."
-            ) : (
-              <>
-                {" "}
-                <XCircle className="inline w-4 h-4" /> Cancel
-              </>
-            )}
-          </button>
-
-          <button onClick={onClose} className={styles.btnGhost}>
-            Close
-          </button>
-        </div>
-      </div>
-    );
+  const getStatusConfig = (status) => {
+    const configs = {
+      PENDING: {
+        label: "Pending",
+        icon: Clock,
+        bgClass: "bg-amber-50",
+        textClass: "text-amber-700",
+        borderClass: "border-amber-200",
+        iconClass: "text-amber-600",
+      },
+      IN_PROGRESS: {
+        label: "In Progress",
+        icon: Radio,
+        bgClass: "bg-blue-50",
+        textClass: "text-blue-700",
+        borderClass: "border-blue-200",
+        iconClass: "text-blue-600",
+      },
+      COMPLETED: {
+        label: "Completed",
+        icon: CheckCircle,
+        bgClass: "bg-emerald-50",
+        textClass: "text-emerald-700",
+        borderClass: "border-emerald-200",
+        iconClass: "text-emerald-600",
+      },
+      CANCELLED: {
+        label: "Cancelled",
+        icon: XCircle,
+        bgClass: "bg-red-50",
+        textClass: "text-red-700",
+        borderClass: "border-red-200",
+        iconClass: "text-red-600",
+      },
+    };
+    return configs[status] || configs.PENDING;
   };
 
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString("en-US", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      });
+    } catch {
+      return dateString;
+    }
+  };
+
+  const formatTime = (timeString) => {
+    if (!timeString) return "N/A";
+    try {
+      const time = String(timeString).slice(0, 5);
+      return time;
+    } catch {
+      return timeString;
+    }
+  };
+
+  if (!open) return null;
+
   return (
-    <div className={styles.modalBackdrop}>
-      <div className={styles.modal}>{renderBody()}</div>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-6"
+      aria-modal="true"
+      role="dialog"
+    >
+      {/* Backdrop */}
+      <div
+        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+        onClick={onClose}
+        aria-hidden="true"
+      />
+
+      {/* Modal Container */}
+      <div
+        className="relative w-full max-w-2xl bg-white rounded-xl shadow-2xl overflow-hidden z-10"
+        style={{ maxHeight: "90vh" }}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between p-6 border-b bg-gradient-to-r from-emerald-50 to-teal-50">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">
+              Appointment Details
+            </h2>
+            {detail && (
+              <p className="text-sm text-gray-600 mt-1">
+                ID: #{detail.appointmentId}
+              </p>
+            )}
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-lg hover:bg-white/80 transition-colors"
+            aria-label="Close modal"
+          >
+            <X className="w-5 h-5 text-gray-600" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-6 overflow-y-auto" style={{ maxHeight: "calc(90vh - 140px)" }}>
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-12">
+              <Loader2 className="w-8 h-8 text-emerald-600 animate-spin mb-3" />
+              <p className="text-gray-600">Loading appointment details...</p>
+            </div>
+          ) : error ? (
+            <div className="flex flex-col items-center justify-center py-12">
+              <AlertCircle className="w-12 h-12 text-red-500 mb-3" />
+              <p className="text-red-600 font-medium">{error}</p>
+              <button
+                onClick={onClose}
+                className="mt-4 px-4 py-2 text-sm text-gray-600 hover:text-gray-900 underline"
+              >
+                Close
+              </button>
+            </div>
+          ) : !detail ? (
+            <div className="flex flex-col items-center justify-center py-12">
+              <AlertCircle className="w-12 h-12 text-gray-400 mb-3" />
+              <p className="text-gray-600">No appointment details available</p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {/* Status Badge */}
+              {detail.runtimeStatus && (
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-medium text-gray-700">Status:</span>
+                  {(() => {
+                    const statusConfig = getStatusConfig(detail.runtimeStatus);
+                    const StatusIcon = statusConfig.icon;
+                    return (
+                      <div
+                        className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg border ${statusConfig.bgClass} ${statusConfig.borderClass}`}
+                      >
+                        <StatusIcon className={`w-4 h-4 ${statusConfig.iconClass}`} />
+                        <span className={`text-sm font-semibold ${statusConfig.textClass}`}>
+                          {statusConfig.label}
+                        </span>
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+
+              {/* Information Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Date Card */}
+                <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-4 border border-gray-200">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-10 h-10 rounded-lg bg-emerald-100 flex items-center justify-center">
+                      <Calendar className="w-5 h-5 text-emerald-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-600 font-medium">Date</p>
+                      <p className="text-sm font-semibold text-gray-900">
+                        {formatDate(detail.date)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Time Card */}
+                <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-4 border border-gray-200">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-10 h-10 rounded-lg bg-blue-100 flex items-center justify-center">
+                      <Clock className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-600 font-medium">Time</p>
+                      <p className="text-sm font-semibold text-gray-900">
+                        {formatTime(detail.startTime)} - {formatTime(detail.endTime)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Member Card */}
+              <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-xl p-4 border border-emerald-200">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-white border-2 border-emerald-200 flex items-center justify-center">
+                    <User className="w-6 h-6 text-emerald-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-600 font-medium">Member</p>
+                    <p className="text-base font-semibold text-gray-900">
+                      {detail.memberName || detail.member || "N/A"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Additional Info */}
+              <div className="space-y-3">
+                {detail.channelName && (
+                  <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <span className="text-sm font-medium text-gray-700">Channel:</span>
+                    <span className="text-sm text-gray-900 font-semibold">
+                      {detail.channelName}
+                    </span>
+                  </div>
+                )}
+
+                {detail.joinWindowStart && detail.joinWindowEnd && (
+                  <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-xs font-medium text-blue-900 mb-2">
+                      Join Window
+                    </p>
+                    <div className="space-y-1 text-sm text-blue-800">
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4" />
+                        <span>
+                          Start: {new Date(detail.joinWindowStart).toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4" />
+                        <span>
+                          End: {new Date(detail.joinWindowEnd).toLocaleString()}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Actions */}
+              <div className="flex flex-wrap gap-3 pt-4 border-t">
+                {detail.runtimeStatus === "PENDING" && (
+                  <button
+                    disabled={doingCancel}
+                    onClick={cancelAppointment}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-red-500 text-white font-medium text-sm hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-md hover:shadow-lg"
+                  >
+                    {doingCancel ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Canceling...</span>
+                      </>
+                    ) : (
+                      <>
+                        <XCircle className="w-4 h-4" />
+                        <span>Cancel Appointment</span>
+                      </>
+                    )}
+                  </button>
+                )}
+
+                {detail.runtimeStatus === "IN_PROGRESS" && (
+                  <button
+                    disabled={doingStart}
+                    onClick={startMeeting}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-medium text-sm hover:from-emerald-600 hover:to-teal-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-md hover:shadow-lg"
+                  >
+                    {doingStart ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Starting...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Video className="w-4 h-4" />
+                        <span>Join Meeting</span>
+                      </>
+                    )}
+                  </button>
+                )}
+
+                <button
+                  onClick={onClose}
+                  className="px-4 py-2.5 rounded-xl border-2 border-gray-200 text-gray-700 font-medium text-sm hover:border-gray-300 hover:bg-gray-50 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

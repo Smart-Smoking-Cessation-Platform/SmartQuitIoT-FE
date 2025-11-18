@@ -1,5 +1,9 @@
 import AdminSidebar from "@/components/ui/admin-sidebar";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import {
+  SidebarProvider,
+  SidebarRefreshButton,
+  SidebarTrigger,
+} from "@/components/ui/sidebar";
 import { Navigate, Outlet } from "react-router-dom";
 
 import { isAuthenticated, isAuthenticatedRole } from "@/utils/jwtUtils";
@@ -14,6 +18,7 @@ const AdminLayout = () => {
       <AdminSidebar />
       <div className="w-full">
         <SidebarTrigger />
+        <SidebarRefreshButton />
         <Outlet />
       </div>
     </SidebarProvider>

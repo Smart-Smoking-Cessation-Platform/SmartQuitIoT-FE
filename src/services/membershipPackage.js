@@ -11,3 +11,16 @@ export const getMembershipPackagesStatistics = async () => {
 export const getPaymentStatistics = async () => {
   return instance.get(`/payment/statistics`);
 };
+
+export const getAllMembershipSubscriptions = async (
+  page,
+  size,
+  sortBy,
+  sortDir,
+  orderCode,
+  status
+) => {
+  return instance.get(
+    `/membership-subscriptions/all?page=${page}&size=${size}&sortBy=${sortBy}&sortDir=${sortDir}&orderCode=${orderCode}&status=${status}`
+  );
+};

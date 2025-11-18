@@ -35,10 +35,10 @@ const ManageMembers = () => {
         inputSearchDebounce,
         isActive
       );
-      const { content, totalPages, totalElements } = response.data;
+      const { content } = response.data;
       setMembers(content);
-      setTotalPages(totalPages);
-      setTotalElements(totalElements);
+      setTotalPages(response.data.page?.totalPages);
+      setTotalElements(response.data.page?.totalElements);
     } catch (error) {
       console.error("Failed to fetch members:", error);
       toast.error("Failed to fetch members");

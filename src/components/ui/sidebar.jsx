@@ -2,7 +2,7 @@
 import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { cva } from "class-variance-authority";
-import { PanelLeftIcon } from "lucide-react";
+import { PanelLeftIcon, RefreshCw } from "lucide-react";
 
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
@@ -248,6 +248,24 @@ function SidebarTrigger({ className, onClick, ...props }) {
     >
       <PanelLeftIcon />
       <span className="sr-only">Toggle Sidebar</span>
+    </Button>
+  );
+}
+
+function SidebarRefreshButton({ className, onClick, ...props }) {
+  const { toggleSidebar } = useSidebar();
+
+  return (
+    <Button
+      data-sidebar="trigger"
+      data-slot="sidebar-trigger"
+      variant="outline"
+      size="icon"
+      className={cn("size-8", className)}
+      onClick={() => window.location.reload()}
+      {...props}
+    >
+      <RefreshCw />
     </Button>
   );
 }
@@ -653,5 +671,6 @@ export {
   SidebarRail,
   SidebarSeparator,
   SidebarTrigger,
+  SidebarRefreshButton,
   useSidebar,
 };

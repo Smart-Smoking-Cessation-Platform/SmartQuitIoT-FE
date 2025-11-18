@@ -19,22 +19,26 @@ const SearchBar = ({
   setSortBy,
   filterBy,
   setFilterBy,
+  filterBySubscriptionStatus,
+  setFilterBySubscriptionStatus,
 }) => {
   return (
     <div className="flex flex-col md:flex-row gap-4">
       {/* Search */}
-      <div className="flex-1">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-          <Input
-            type="text"
-            placeholder={placeholderText || "Search..."}
-            value={searchString}
-            onChange={(e) => setSearchString(e.target.value)}
-            className="pl-10"
-          />
+      {searchString !== undefined && setSearchString ? (
+        <div className="flex-1">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+            <Input
+              type="text"
+              placeholder={placeholderText || "Search..."}
+              value={searchString}
+              onChange={(e) => setSearchString(e.target.value)}
+              className="pl-10"
+            />
+          </div>
         </div>
-      </div>
+      ) : null}
 
       {sortBy ? (
         <Button
@@ -68,6 +72,30 @@ const SearchBar = ({
               <SelectLabel>Status</SelectLabel>
               <SelectItem value="true">Active</SelectItem>
               <SelectItem value="false">Banned</SelectItem>
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+      ) : (
+        <></>
+      )}
+      {filterBySubscriptionStatus !== undefined ? (
+        <Select
+          value={filterBySubscriptionStatus || "all"}
+          onValueChange={(val) => {
+            if (val === "all") return setFilterBySubscriptionStatus(undefined);
+            setFilterBySubscriptionStatus(val);
+          }}
+        >
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              <SelectLabel>Status</SelectLabel>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="AVAILABLE">Available</SelectItem>
+              <SelectItem value="EXPIRED">Expired</SelectItem>
+              <SelectItem value="UNAVAILABLE">Unavailable</SelectItem>
             </SelectGroup>
           </SelectContent>
         </Select>

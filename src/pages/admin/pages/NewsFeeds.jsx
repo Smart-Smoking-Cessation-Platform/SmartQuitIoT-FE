@@ -4,7 +4,7 @@ import newsService from "@/services/newsService";
 import NewsFeedList from "../components/form/NewsFeedList";
 import NewsFeedForm from "../components/form/NewsFeedForm";
 import NewsFeedDetailModal from "../components/modals/NewsFeedDetailModal";
-import ToastContext from "@/context/ToastContext";
+import ToastContext from "@/context/toastContext";
 
 /**
  * Map backend DTO -> UI model

@@ -94,92 +94,24 @@ export default function FloatingNotifications({ max = 3, ttl = 8 }) {
   const reminderAudioTimerRef = useRef(null);
 
   const [soundEnabled, setSoundEnabled] = useState(true);
-  const [audioReady, setAudioReady] = useState(false);
 
-  // Initialize audio with better error handling
   useEffect(() => {
-    let mounted = true;
+    bookedAudioRef.current = new Audio(bookedNoti);
+    cancelledAudioRef.current = new Audio(cancelledNoti);
+    reminderAudioRef.current = new Audio(reminderNoti);
 
-    const initAudio = () => {
-      try {
-        // Create audio elements with error handling
-        const createAudio = (src, name) => {
-          try {
-            if (!src) {
-              console.error(`[Audio] No source provided for ${name}`);
-              return null;
-            }
-
-            // Imported audio files are already URLs, use directly
-            const audio = new Audio(src);
-            audio.volume = 0.65;
-            audio.loop = false;
-            audio.preload = "auto";
-            
-            // Handle audio errors
-            audio.addEventListener("error", (e) => {
-              console.error(`[Audio] Failed to load ${name}:`, src, e, audio.error);
-            });
-            
-            // Handle audio canplay event
-            audio.addEventListener("canplaythrough", () => {
-              if (mounted) {
-                console.debug(`[Audio] ${name} ready to play`);
-                setAudioReady(true);
-              }
-            }, { once: true });
-
-            // Try to load audio
-            try {
-              audio.load();
-            } catch (loadErr) {
-              console.warn(`[Audio] Load error for ${name} (may be normal):`, loadErr);
-            }
-
-            console.debug(`[Audio] Created audio element for ${name}:`, src);
-            return audio;
-          } catch (e) {
-            console.error(`[Audio] Error creating audio for ${name}:`, e);
-            return null;
-          }
-        };
-
-        bookedAudioRef.current = createAudio(bookedNoti, "booked");
-        cancelledAudioRef.current = createAudio(cancelledNoti, "cancelled");
-        reminderAudioRef.current = createAudio(reminderNoti, "reminder");
-
-        // Verify audio elements were created
-        if (!bookedAudioRef.current) {
-          console.error("[Audio] Failed to create booked notification audio");
-        } else {
-          console.debug("[Audio] Booked audio created successfully");
-        }
-        if (!cancelledAudioRef.current) {
-          console.error("[Audio] Failed to create cancelled notification audio");
-        } else {
-          console.debug("[Audio] Cancelled audio created successfully");
-        }
-        if (!reminderAudioRef.current) {
-          console.error("[Audio] Failed to create reminder notification audio");
-        } else {
-          console.debug("[Audio] Reminder audio created successfully");
-        }
-      } catch (e) {
-        console.error("[Audio] Initialization error:", e);
+    [bookedAudioRef, cancelledAudioRef, reminderAudioRef].forEach((r) => {
+      if (r.current) {
+        r.current.volume = 0.65;
+        r.current.loop = false;
       }
-    };
-
-    initAudio();
+    });
 
     return () => {
-      mounted = false;
       try {
         bookedAudioRef.current?.pause();
         cancelledAudioRef.current?.pause();
         reminderAudioRef.current?.pause();
-        bookedAudioRef.current = null;
-        cancelledAudioRef.current = null;
-        reminderAudioRef.current = null;
       } catch (e) {}
       clearTimeout(bookedAudioTimerRef.current);
       clearTimeout(cancelledAudioTimerRef.current);
@@ -222,105 +154,28 @@ export default function FloatingNotifications({ max = 3, ttl = 8 }) {
     };
 
     const playWithLimit = async (audioRef, timerRef, maxMs = 3000) => {
-      if (!soundEnabled) {
-        console.debug("[Audio] Sound disabled, skipping playback");
-        return;
-      }
-      if (!audioRef?.current) {
-        console.warn("[Audio] Audio ref not available");
-        return;
-      }
-
-      const audio = audioRef.current;
-
+      if (!soundEnabled) return;
+      if (!audioRef?.current) return;
       try {
-        // Reset audio to start
-        if (audio.currentTime > 0) {
-          audio.currentTime = 0;
-        }
-        
-        // Ensure audio is loaded before playing
-        if (audio.readyState === 0) {
-          // HAVE_NOTHING - need to load
-          try {
-            audio.load();
-            // Wait for audio to be ready (with timeout)
-            await new Promise((resolve, reject) => {
-              const timeout = setTimeout(() => {
-                reject(new Error("Audio load timeout"));
-              }, 2000);
-              
-              const checkReady = () => {
-                if (audio.readyState >= 2) {
-                  clearTimeout(timeout);
-                  audio.removeEventListener("canplaythrough", checkReady);
-                  audio.removeEventListener("error", onError);
-                  resolve();
-                }
-              };
-              
-              const onError = () => {
-                clearTimeout(timeout);
-                audio.removeEventListener("canplaythrough", checkReady);
-                audio.removeEventListener("error", onError);
-                reject(new Error("Audio load error"));
-              };
-              
-              audio.addEventListener("canplaythrough", checkReady, { once: true });
-              audio.addEventListener("error", onError, { once: true });
-            });
-          } catch (loadErr) {
-            console.warn("[Audio] Load failed or timeout:", loadErr);
-            // Try to play anyway, might work
-          }
-        }
-
-        // Play audio
-        const playPromise = audio.play();
-        if (playPromise && typeof playPromise.then === "function") {
-          await playPromise;
-          console.debug("[Audio] Playing sound successfully");
-        } else {
-          console.debug("[Audio] Play called (no promise returned)");
-        }
-
-        // Set timer to stop audio after maxMs
-        if (timerRef?.current) clearTimeout(timerRef.current);
-        timerRef.current = setTimeout(() => {
-          stopAudio(audioRef, timerRef);
-        }, maxMs);
+        audioRef.current.currentTime = 0;
+        await audioRef.current.play();
       } catch (err) {
-        // Handle autoplay policy errors
-        if (err.name === "NotAllowedError" || err.name === "NotSupportedError") {
-          console.warn(
-            "[Audio] Playback blocked by browser. User interaction may be required.",
-            err
-          );
-        } else {
-          console.warn("[Audio] Play failed:", err);
-        }
+        if (process.env.NODE_ENV === "development")
+          console.warn("Play failed:", err);
       }
+      if (timerRef?.current) clearTimeout(timerRef.current);
+      timerRef.current = setTimeout(() => stopAudio(audioRef, timerRef), maxMs);
     };
 
     const show = (raw) => {
-      console.debug("[Notification] Received notification event:", raw);
       const payload = normalize(raw);
-      if (!payload) {
-        console.warn("[Notification] Failed to normalize payload:", raw);
-        return;
-      }
-      
-      // Check if already shown (with better ID matching)
-      if (shownRef.current.has(payload.id)) {
-        console.debug("[Notification] Duplicate notification ignored:", payload.id);
-        return;
-      }
+      if (!payload) return;
+      if (shownRef.current.has(payload.id)) return;
       shownRef.current.add(payload.id);
 
-      console.debug("[Notification] Showing notification:", payload);
       setToasts((prev) => [payload, ...prev].slice(0, max));
 
-      // Play sound based on notification type
+      // sounds limited to ~3s
       if (payload.notificationType === "APPOINTMENT_BOOKED") {
         playWithLimit(bookedAudioRef, bookedAudioTimerRef, 3000);
       } else if (payload.notificationType === "APPOINTMENT_CANCELLED") {
@@ -333,13 +188,7 @@ export default function FloatingNotifications({ max = 3, ttl = 8 }) {
       timersRef.current.set(payload.id, timer);
     };
 
-    const handler = (e) => {
-      if (!e || !e.detail) {
-        console.warn("[Notification] Invalid event:", e);
-        return;
-      }
-      show(e.detail);
-    };
+    const handler = (e) => show(e.detail);
 
     window.addEventListener("ws:notification", handler);
 
@@ -418,7 +267,7 @@ export default function FloatingNotifications({ max = 3, ttl = 8 }) {
               fontSize: 13,
             }}
           >
-            {soundEnabled ? "🔊On" : "🔈Off"}
+            {soundEnabled ? "🔊On" : "🔈Off "}
           </button>
         </div>
 

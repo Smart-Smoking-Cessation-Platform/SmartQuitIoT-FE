@@ -1,5 +1,5 @@
 // src/pages/coach/CoachAppointmentsPage.jsx
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Calendar,
@@ -14,10 +14,15 @@ import {
   ChevronRight,
   CalendarDays,
   Loader2,
+  Bell,
 } from "lucide-react";
 import styles from "../../styles/CoachAppointmentsPage.module.css";
 import api from "@/api/appointments";
 import AppointmentDetailsModal from "./AppointmentDetailsModal";
+import notificationService from "@/services/notificationService";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Button } from "@/components/ui/button";
 
 /**
  * CoachAppointmentsPage (API integrated + details modal)
@@ -106,6 +111,12 @@ export default function CoachAppointmentsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [modalAppointment, setModalAppointment] = useState(null);
   const [completingId, setCompletingId] = useState(null);
+
+  // notification state
+  const [notifications, setNotifications] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [notificationOpen, setNotificationOpen] = useState(false);
+  const [loadingNotifications, setLoadingNotifications] = useState(false);
 
   // ------------- 2) ADDED: helpers & handler for complete logic -------------
   // place these near handleJoin / handleStart (same scope)
@@ -257,6 +268,164 @@ export default function CoachAppointmentsPage() {
     };
   }, []);
 
+  // fetch notifications
+  const fetchNotifications = useCallback(async () => {
+    try {
+      setLoadingNotifications(true);
+      const data = await notificationService.getAppointmentNotifications({
+        page: 0,
+        size: 20,
+        isRead: false,
+      });
+      setNotifications(data?.content || []);
+      setUnreadCount(data?.page?.totalElements || 0);
+    } catch (err) {
+      console.error("fetch notifications error", err);
+    } finally {
+      setLoadingNotifications(false);
+    }
+  }, []);
+
+  // fetch unread count
+  const fetchUnreadCount = async () => {
+    try {
+      const count = await notificationService.getUnreadCount();
+      setUnreadCount(count);
+    } catch (err) {
+      console.error("fetch unread count error", err);
+    }
+  };
+
+  // initial load notifications
+  useEffect(() => {
+    fetchUnreadCount();
+    // Poll for unread count every 30 seconds
+    const interval = setInterval(fetchUnreadCount, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // listen for WebSocket notifications
+  useEffect(() => {
+    const handleNotification = () => {
+      fetchUnreadCount();
+      if (notificationOpen) {
+        fetchNotifications();
+      }
+    };
+
+    window.addEventListener("ws:notification", handleNotification);
+    return () => {
+      window.removeEventListener("ws:notification", handleNotification);
+    };
+  }, [notificationOpen, fetchNotifications]);
+
+  // fetch notifications when popover opens
+  useEffect(() => {
+    if (notificationOpen) {
+      fetchNotifications();
+    }
+  }, [notificationOpen, fetchNotifications]);
+
+  // handle notification click
+  const handleNotificationClick = async (notification) => {
+    try {
+      // Mark as read (support both 'read' and 'isRead' from backend)
+      const isUnread = !(notification.read ?? notification.isRead ?? false);
+      if (isUnread) {
+        await notificationService.markAsRead(notification.id);
+        setNotifications((prev) =>
+          prev.map((n) =>
+            n.id === notification.id
+              ? { ...n, read: true, isRead: true }
+              : n
+          )
+        );
+        setUnreadCount((prev) => Math.max(0, prev - 1));
+      }
+
+      // Extract appointment ID from URL (e.g., "appointments/10008")
+      const urlParts = notification.url?.split("/");
+      const appointmentId = urlParts?.[urlParts.length - 1];
+
+      if (appointmentId) {
+        // Find the appointment in our list
+        const appointment = appointments.find(
+          (a) => a.id === parseInt(appointmentId)
+        );
+        if (appointment) {
+          // Set the date to the appointment date
+          setSelectedDate(appointment.date);
+          // Open details modal
+          setModalAppointment(appointment);
+          setModalOpen(true);
+        } else {
+          // If appointment not found, try to fetch it
+          try {
+            const detail = await api.getAppointmentDetailForCoach(
+              parseInt(appointmentId)
+            );
+            const mapped = mapBackendToUI(detail);
+            setSelectedDate(mapped.date);
+            setModalAppointment(mapped);
+            setModalOpen(true);
+          } catch (err) {
+            console.error("Failed to load appointment detail", err);
+            alert("Failed to load appointment details");
+          }
+        }
+      }
+
+      setNotificationOpen(false);
+    } catch (err) {
+      console.error("handle notification click error", err);
+    }
+  };
+
+  // mark all as read
+  const handleMarkAllAsRead = async () => {
+    try {
+      const count = await notificationService.markAllAsRead();
+      setNotifications((prev) =>
+        prev.map((n) => ({ ...n, read: true, isRead: true }))
+      );
+      setUnreadCount(0);
+      console.log(`Marked ${count} notifications as read`);
+    } catch (err) {
+      console.error("mark all as read error", err);
+    }
+  };
+
+  // format notification time
+  const formatNotificationTime = (dateStr) => {
+    if (!dateStr) return "";
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return date.toLocaleDateString();
+  };
+
+  // get notification icon based on type
+  const getNotificationIcon = (type) => {
+    switch (type) {
+      case "APPOINTMENT_BOOKED":
+        return <CheckCircle className="w-4 h-4 text-emerald-600" />;
+      case "APPOINTMENT_CANCELLED":
+        return <XCircle className="w-4 h-4 text-red-600" />;
+      case "APPOINTMENT_REMINDER":
+        return <Clock className="w-4 h-4 text-amber-600" />;
+      default:
+        return <Bell className="w-4 h-4 text-gray-600" />;
+    }
+  };
+
   // grouped map + sortedDates
   const { appointmentsByDate, sortedDates } = useMemo(() => {
     const map = {};
@@ -350,11 +519,106 @@ export default function CoachAppointmentsPage() {
   return (
     <div className={styles.container}>
       {/* Header */}
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold text-gray-900 mb-1">Appointments</h1>
-        <p className="text-sm text-gray-600">
-          Track and manage your upcoming sessions
-        </p>
+      <div className="mb-6 flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold text-gray-900 mb-1">Appointments</h1>
+          <p className="text-sm text-gray-600">
+            Track and manage your upcoming sessions
+          </p>
+        </div>
+
+        {/* Notification Bell */}
+        <Popover open={notificationOpen} onOpenChange={setNotificationOpen}>
+          <PopoverTrigger asChild>
+            <button
+              className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors"
+              aria-label="Notifications"
+            >
+              <Bell className="w-5 h-5 text-gray-700" />
+              {unreadCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] flex items-center justify-center px-1 text-xs font-semibold text-white bg-red-500 rounded-full">
+                  {unreadCount > 99 ? "99+" : unreadCount}
+                </span>
+              )}
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="w-96 p-0" align="end">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="font-semibold text-gray-900">Notifications</h3>
+              {unreadCount > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleMarkAllAsRead}
+                  className="text-xs text-emerald-600 hover:text-emerald-700"
+                >
+                  Mark all as read
+                </Button>
+              )}
+            </div>
+            <ScrollArea className="h-[400px]">
+              {loadingNotifications ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="w-6 h-6 text-emerald-600 animate-spin" />
+                </div>
+              ) : notifications.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-12 px-4">
+                  <Bell className="w-12 h-12 text-gray-300 mb-3" />
+                  <p className="text-sm font-medium text-gray-900 mb-1">
+                    No notifications
+                  </p>
+                  <p className="text-xs text-gray-500 text-center">
+                    You're all caught up!
+                  </p>
+                </div>
+              ) : (
+                <div className="divide-y">
+                  {notifications.map((notification) => {
+                    // Support both 'read' and 'isRead' from backend
+                    const isUnread = !(
+                      notification.read ?? notification.isRead ?? false
+                    );
+                    return (
+                      <button
+                        key={notification.id}
+                        onClick={() => handleNotificationClick(notification)}
+                        className={`w-full text-left p-4 hover:bg-gray-50 transition-colors ${
+                          isUnread ? "bg-emerald-50/50" : ""
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className="mt-0.5 flex-shrink-0">
+                            {getNotificationIcon(notification.type)}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between gap-2 mb-1">
+                              <p
+                                className={`text-sm font-medium ${
+                                  isUnread ? "text-gray-900" : "text-gray-700"
+                                }`}
+                              >
+                                {notification.title}
+                              </p>
+                              {isUnread && (
+                                <div className="w-2 h-2 bg-emerald-500 rounded-full flex-shrink-0 mt-1.5" />
+                              )}
+                            </div>
+                            <p className="text-xs text-gray-600 mb-2 line-clamp-2">
+                              {notification.content}
+                            </p>
+                            <p className="text-xs text-gray-400">
+                              {formatNotificationTime(notification.createdAt)}
+                            </p>
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </ScrollArea>
+          </PopoverContent>
+        </Popover>
       </div>
 
       {/* Date Navigation & Calendar - Compact */}

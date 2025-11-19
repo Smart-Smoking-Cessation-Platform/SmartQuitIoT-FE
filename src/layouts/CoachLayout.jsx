@@ -13,7 +13,7 @@ const CoachLayout = () => {
 
   return (
     <SidebarProvider>
-      <FloatingNotifications />
+      {/* <FloatingNotifications /> */}
       <CoachSidebar />
 
       <div className="w-full min-h-screen flex flex-col">

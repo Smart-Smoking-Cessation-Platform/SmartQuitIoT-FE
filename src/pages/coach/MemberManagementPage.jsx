@@ -5,6 +5,7 @@ import MemberDetailsModal from "../../pages/coach/components/MemberDetailsModal"
 import { getMembersForCoach, getMemberById } from "@/services/memberService";
 import { postMessage } from "@/services/conversationService";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { AlertCircle, User } from "lucide-react";
 
 export default function MemberManagementPage() {
   const navigate = useNavigate();
@@ -20,7 +21,8 @@ export default function MemberManagementPage() {
   useEffect(() => {
     loadList();
     return () => {
-      if (abortRef.current && abortRef.current.abort) abortRef.current.abort();
+      const abortController = abortRef.current;
+      if (abortController && abortController.abort) abortController.abort();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -36,7 +38,9 @@ export default function MemberManagementPage() {
       setMembers(mapped);
     } catch (err) {
       console.error("Load members failed", err);
-      setError("Không tải được danh sách members. Kiểm tra server hoặc token.");
+      setError(
+        "Failed to load members list. Please check your connection or try again."
+      );
       setMembers([]); // clear
     } finally {
       setLoading(false);
@@ -82,7 +86,7 @@ export default function MemberManagementPage() {
       setSelectedMember(normalizeApiMemberToView(payload));
     } catch (err) {
       console.error("Load member detail failed", err);
-      setError("Không tải được thông tin chi tiết member.");
+      setError("Failed to load member details. Please try again.");
       // keep selectedMember null so modal won't open with bad data
     }
   }
@@ -108,7 +112,7 @@ export default function MemberManagementPage() {
 
       const payload = {
         targetMemberId: member.id,
-        content: "Xin chào! Mình muốn bắt đầu cuộc trò chuyện.", // backend requires non-blank
+        content: "Hello! I'd like to start a conversation.", // backend requires non-blank
         messageType: "TEXT",
         clientMessageId,
       };
@@ -124,31 +128,41 @@ export default function MemberManagementPage() {
           : message.conversation_id);
 
       if (!conversationId) {
-        console.warn("Không lấy được conversationId từ response", message);
+        console.warn("Could not get conversationId from response", message);
         // fallback: navigate inbox list page
         navigate("/coach/chat");
         return;
       }
 
-      // navigate to chat with query param (FE sẽ read và open/subcribe)
+      // navigate to chat with query param (FE will read and open/subscribe)
       navigate(`/coach/chat?conversationId=${conversationId}`);
     } catch (err) {
       console.error("Open inbox failed", err);
       // show toast or error UI
-      alert("Không thể mở inbox. Kiểm tra mạng hoặc thử lại.");
+      alert("Failed to open inbox. Please check your connection or try again.");
     } finally {
       // optional: hide spinner
     }
   }
   return (
-    <div className="px-10 min-h-screen  scrollbar-hidden">
+    <div className="px-10 min-h-screen scrollbar-hidden">
       <header className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Member management</h1>
+        <div>
+          <h1 className="text-2xl font-semibold text-gray-900">
+            Member Management
+          </h1>
+          <p className="text-sm text-gray-600 mt-1">
+            Manage and track your members' progress
+          </p>
+        </div>
       </header>
 
       {error && (
-        <div className="mb-4 p-3 rounded-md bg-amber-50 text-amber-700 border border-amber-100">
-          {error}
+        <div className="mb-4 p-4 rounded-lg bg-amber-50 text-amber-800 border border-amber-200 shadow-sm">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-5 h-5" />
+            <span>{error}</span>
+          </div>
         </div>
       )}
 
@@ -157,7 +171,7 @@ export default function MemberManagementPage() {
           Array.from({ length: 6 }).map((_, i) => (
             <div
               key={i}
-              className="animate-pulse bg-white p-6 rounded-2xl h-48 border border-gray-100"
+              className="animate-pulse bg-white p-6 rounded-2xl h-64 border border-gray-100"
             />
           ))
         ) : members.length ? (
@@ -170,8 +184,20 @@ export default function MemberManagementPage() {
             />
           ))
         ) : (
-          <div className="col-span-full text-center py-16 text-gray-500">
-            Không có member để hiển thị.
+          <div className="col-span-full text-center py-16">
+            <div className="inline-flex flex-col items-center gap-3">
+              <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center">
+                <User className="w-8 h-8 text-gray-400" />
+              </div>
+              <div>
+                <p className="text-lg font-semibold text-gray-900 mb-1">
+                  No members found
+                </p>
+                <p className="text-sm text-gray-500">
+                  Members will appear here once they join.
+                </p>
+              </div>
+            </div>
           </div>
         )}
       </div>

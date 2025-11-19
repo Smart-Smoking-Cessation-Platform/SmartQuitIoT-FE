@@ -47,7 +47,9 @@ export default function MemberDetailsModal({
     if (abortRef.current) {
       try {
         abortRef.current.abort();
-      } catch (e) {}
+      } catch {
+        // Ignore abort errors
+      }
     }
     const controller = new AbortController();
     abortRef.current = controller;
@@ -69,7 +71,7 @@ export default function MemberDetailsModal({
       } catch (err) {
         if (err.name !== "CanceledError" && err.name !== "AbortError") {
           console.error("Failed to load member metrics", err);
-          setMetricsError("Không tải được dữ liệu metric.");
+          setMetricsError("Failed to load metrics data.");
           setMetrics(null);
           setHealthRecoveries([]);
         }
@@ -101,7 +103,7 @@ export default function MemberDetailsModal({
       } catch (err) {
         if (err.name !== "CanceledError" && err.name !== "AbortError") {
           console.error("Failed to load quit plan", err);
-          setQuitPlansError("Không tải được dữ liệu quit plan.");
+          setQuitPlansError("Failed to load quit plan data.");
           setQuitPlans([]);
         }
       } finally {
@@ -116,7 +118,9 @@ export default function MemberDetailsModal({
     return () => {
       try {
         controller.abort();
-      } catch (e) {}
+      } catch {
+        // Ignore abort errors
+      }
     };
   }, [open, member]);
 
@@ -226,7 +230,7 @@ export default function MemberDetailsModal({
                 <QuitPlansView quitPlans={quitPlans} />
                 {loadingQuitPlans && (
                   <div className="mt-3 text-sm text-gray-500">
-                    Đang tải kế hoạch...
+                    Loading quit plans...
                   </div>
                 )}
               </>

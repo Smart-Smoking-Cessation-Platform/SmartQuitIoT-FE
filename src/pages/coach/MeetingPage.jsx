@@ -300,7 +300,7 @@ export default function MeetingPage() {
       // Fallback: tính từ lúc join (code cũ)
       console.warn("No appointment data, using join time as fallback");
       hasStartedSnapshotsRef.current = true;
-      const snapshotTimes = [5 * 60 * 1000, 10 * 60 * 1000, 15 * 60 * 1000];
+      const snapshotTimes = [2 * 60 * 1000, 4 * 60 * 1000, 6 * 60 * 1000];
       const checkRemoteVideo = setInterval(() => {
         const remoteContainer = document.getElementById(REMOTE_MOUNT_ID);
         const videoElement = remoteContainer?.querySelector("video");
@@ -422,18 +422,12 @@ export default function MeetingPage() {
   // ---------- cleanup (define before useEffect to allow calling inside) ----------
   const cleanupAndLeave = async () => {
     try {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-        timerRef.current = null;
-      }
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-
+      // QUAN TRỌNG: Stop và close tracks TRƯỚC khi cleanup DOM
+      // Điều này đảm bảo Agora SDK không còn manipulate DOM nữa
       const client = clientRef.current;
       const { audioTrack, videoTrack } = localTrackRefs.current || {};
 
+      // Stop và close tracks trước
       if (videoTrack) {
         try {
           await videoTrack.stop();
@@ -459,22 +453,38 @@ export default function MeetingPage() {
         }
       }
 
+      // Leave client - điều này sẽ cleanup remote tracks
       if (client) {
         try {
           await client.leave();
           console.debug("[Agora] client.leave() success");
+          // Đợi một chút để Agora SDK cleanup xong
+          await new Promise((r) => setTimeout(r, 100));
         } catch (e) {
           console.warn("[Agora] client.leave() failed", e);
         }
       }
+
+      // Cleanup timers
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
     } catch (e) {
       console.warn("cleanup error", e);
     } finally {
+      // Set refs về null sau khi đã cleanup tracks
       clientRef.current = null;
       localTrackRefs.current = { audioTrack: null, videoTrack: null };
-      if (localDivRef.current) localDivRef.current.innerHTML = "";
-      const ph = document.getElementById(REMOTE_MOUNT_ID);
-      if (ph) ph.innerHTML = "";
+
+      // KHÔNG cleanup DOM elements - để Agora SDK tự cleanup
+      // Khi tracks đã được stop và close, Agora SDK sẽ tự động cleanup DOM
+      // Nếu chúng ta cố cleanup DOM, sẽ gây conflict với React unmount
+
       setRemoteUsers({});
       stopClock();
       stopAutoSnapshots();
@@ -519,11 +529,20 @@ export default function MeetingPage() {
         joiningRef.current = true;
 
         // ensure we don't leave an old client hanging
+        // Đợi cleanup hoàn toàn trước khi tạo client mới
         if (clientRef.current) {
           try {
             await cleanupAndLeave();
+            // Đợi một chút để đảm bảo cleanup hoàn tất
+            await new Promise((r) => setTimeout(r, 200));
           } catch (e) {
             console.warn("[Meeting] cleanup before new join failed", e);
+            // Vẫn tiếp tục tạo client mới ngay cả khi cleanup fail
+          }
+          // Đảm bảo clientRef đã được clear
+          if (clientRef.current) {
+            console.warn("[Meeting] Force clearing old client ref");
+            clientRef.current = null;
           }
         }
 
@@ -550,6 +569,20 @@ export default function MeetingPage() {
             return;
           } catch (err) {
             const msg = String(err && err.message ? err.message : err);
+
+            // Nếu client đã bị leave (thường xảy ra khi reload)
+            // Return null để signal cần tạo client mới
+            if (
+              msg.includes("already left") ||
+              msg.includes("INVALID_OPERATION") ||
+              msg.includes("Client already left")
+            ) {
+              console.warn(
+                "[Meeting] Client already left, will create new client"
+              );
+              return null; // Signal để tạo client mới
+            }
+
             // transient: SDK cancelled previous join attempt -> retry
             if (
               attempts > 0 &&
@@ -575,6 +608,19 @@ export default function MeetingPage() {
         };
 
         // create client and register handlers
+        // Đảm bảo clientRef.current đã được clear trước khi tạo mới
+        if (clientRef.current) {
+          console.warn("[Meeting] Old client still exists, clearing it");
+          try {
+            clientRef.current.leave().catch(() => {
+              // Ignore
+            });
+          } catch {
+            // Ignore
+          }
+          clientRef.current = null;
+        }
+
         const client = AgoraRTC.createClient({ mode: "rtc", codec: "vp8" });
         clientRef.current = client;
 
@@ -610,7 +656,21 @@ export default function MeetingPage() {
             const remoteVideoTrack = user.videoTrack;
             if (container && remoteVideoTrack) {
               try {
-                container.innerHTML = "";
+                // Chỉ clear placeholders, không touch video elements của Agora
+                if (container.children.length > 0) {
+                  const placeholders = Array.from(container.children).filter(
+                    (el) => !el.tagName || el.tagName !== "VIDEO"
+                  );
+                  placeholders.forEach((el) => {
+                    try {
+                      if (el.parentNode === container) {
+                        container.removeChild(el);
+                      }
+                    } catch {
+                      // Ignore
+                    }
+                  });
+                }
                 remoteVideoTrack.play(container);
               } catch (playErr) {
                 console.warn("[Agora] remote play failed, fallback", playErr);
@@ -621,7 +681,21 @@ export default function MeetingPage() {
                   v.muted = false;
                   v.style.width = "100%";
                   v.style.height = "100%";
-                  container.innerHTML = "";
+                  // Clear placeholders only
+                  if (container.children.length > 0) {
+                    const placeholders = Array.from(container.children).filter(
+                      (el) => !el.tagName || el.tagName !== "VIDEO"
+                    );
+                    placeholders.forEach((el) => {
+                      try {
+                        if (el.parentNode === container) {
+                          container.removeChild(el);
+                        }
+                      } catch {
+                        // Ignore
+                      }
+                    });
+                  }
                   container.appendChild(v);
                   remoteVideoTrack.play(v);
                 } catch (err2) {
@@ -653,8 +727,8 @@ export default function MeetingPage() {
             }
             return copy;
           });
-          const el = document.getElementById(REMOTE_MOUNT_ID);
-          if (el) el.innerHTML = "";
+          // Không cleanup DOM - để Agora SDK tự xử lý khi track được stop
+          // Cleanup DOM sẽ gây conflict với React unmount
         });
 
         client.on("connection-state-change", (cur, rev) => {
@@ -668,7 +742,159 @@ export default function MeetingPage() {
         });
 
         // JOIN with retry helper
-        await tryJoinWithRetry(client, appId, channel, token, uid, 1);
+        let joinResult = await tryJoinWithRetry(
+          client,
+          appId,
+          channel,
+          token,
+          uid,
+          1
+        );
+
+        // Nếu client đã bị leave (thường xảy ra khi reload), tạo client mới
+        if (joinResult === null) {
+          console.log(
+            "[Meeting] Client was left, creating new client and retrying join"
+          );
+
+          // Cleanup client cũ hoàn toàn
+          try {
+            client.leave().catch(() => {});
+          } catch {
+            // Ignore
+          }
+          clientRef.current = null;
+
+          // Đợi một chút để đảm bảo cleanup
+          await new Promise((r) => setTimeout(r, 200));
+
+          // Tạo client mới
+          const newClient = AgoraRTC.createClient({
+            mode: "rtc",
+            codec: "vp8",
+          });
+          clientRef.current = newClient;
+
+          // Register lại tất cả handlers cho client mới
+          newClient.on("user-published", async (user, mediaType) => {
+            console.debug("[Agora] user-published", user.uid, mediaType);
+            try {
+              await newClient.subscribe(user, mediaType);
+            } catch (err) {
+              console.error("[Agora] subscribe error", err);
+              return;
+            }
+
+            setRemoteUsers((prev) => ({
+              ...prev,
+              [user.uid]: {
+                uid: user.uid,
+                hasVideo: !!user.videoTrack,
+                hasAudio: !!user.audioTrack,
+                name: user?.userInfo?.name || `User ${user.uid}`,
+                isLocal: false,
+              },
+            }));
+
+            let container = document.getElementById(REMOTE_MOUNT_ID);
+            if (!container) {
+              container = document.createElement("div");
+              container.id = REMOTE_MOUNT_ID;
+              document.body.appendChild(container);
+            }
+
+            if (mediaType === "video") {
+              const remoteVideoTrack = user.videoTrack;
+              if (container && remoteVideoTrack) {
+                try {
+                  if (container.children.length > 0) {
+                    const placeholders = Array.from(container.children).filter(
+                      (el) => !el.tagName || el.tagName !== "VIDEO"
+                    );
+                    placeholders.forEach((el) => {
+                      try {
+                        if (el.parentNode === container) {
+                          container.removeChild(el);
+                        }
+                      } catch {
+                        // Ignore
+                      }
+                    });
+                  }
+                  remoteVideoTrack.play(container);
+                } catch (playErr) {
+                  console.warn("[Agora] remote play failed, fallback", playErr);
+                  try {
+                    const v = document.createElement("video");
+                    v.autoplay = true;
+                    v.playsInline = true;
+                    v.muted = false;
+                    v.style.width = "100%";
+                    v.style.height = "100%";
+                    if (container.children.length > 0) {
+                      const placeholders = Array.from(
+                        container.children
+                      ).filter((el) => !el.tagName || el.tagName !== "VIDEO");
+                      placeholders.forEach((el) => {
+                        try {
+                          if (el.parentNode === container) {
+                            container.removeChild(el);
+                          }
+                        } catch {
+                          // Ignore
+                        }
+                      });
+                    }
+                    container.appendChild(v);
+                    remoteVideoTrack.play(v);
+                  } catch (err2) {
+                    console.error("[Agora] fallback also failed", err2);
+                  }
+                }
+              }
+            }
+
+            if (mediaType === "audio") {
+              const remoteAudioTrack = user.audioTrack;
+              if (remoteAudioTrack) {
+                try {
+                  remoteAudioTrack.play();
+                } catch (e) {
+                  console.warn("[Agora] remote audio play failed", e);
+                }
+              }
+            }
+          });
+
+          newClient.on("user-unpublished", (user, type) => {
+            console.debug("[Agora] user-unpublished", user.uid, type);
+            setRemoteUsers((prev) => {
+              const copy = { ...prev };
+              if (copy[user.uid]) {
+                if (type === "video") copy[user.uid].hasVideo = false;
+                if (type === "audio") copy[user.uid].hasAudio = false;
+              }
+              return copy;
+            });
+          });
+
+          newClient.on("connection-state-change", (cur, rev) => {
+            console.debug("[Agora] connection-state-change", cur, rev);
+          });
+
+          newClient.on("token-privilege-will-expire", () => {
+            console.warn(
+              "[Agora] token will expire soon - request new token from server."
+            );
+          });
+
+          // Join với client mới
+          await newClient.join(appId, channel, token || null, uid);
+
+          // Từ đây, dùng clientRef.current thay vì client variable
+          // Vì client là const, không thể reassign
+          // newClient đã được set vào clientRef.current ở trên
+        }
 
         // create local tracks
         const [microphoneTrack, cameraTrack] = await Promise.all([
@@ -683,26 +909,44 @@ export default function MeetingPage() {
         // preview local
         if (localDivRef.current && cameraTrack) {
           try {
-            localDivRef.current.innerHTML = "";
+            // Không cleanup - để Agora SDK tự xử lý
+            // Chỉ clear placeholders nếu có
+            if (localDivRef.current.children.length > 0) {
+              const placeholders = Array.from(
+                localDivRef.current.children
+              ).filter((el) => !el.tagName || el.tagName !== "VIDEO");
+              placeholders.forEach((el) => {
+                try {
+                  if (el.parentNode === localDivRef.current) {
+                    localDivRef.current.removeChild(el);
+                  }
+                } catch {
+                  // Ignore
+                }
+              });
+            }
             cameraTrack.play(localDivRef.current);
           } catch (err) {
             console.warn("[Agora] local preview play failed", err);
           }
         }
 
-        // publish local
+        // publish local - dùng clientRef.current để support cả client mới và cũ
+        const currentClient = clientRef.current || client;
         try {
-          await client.publish([microphoneTrack, cameraTrack]);
+          await currentClient.publish([microphoneTrack, cameraTrack]);
           console.debug("[Agora] published local tracks");
         } catch (pubErr) {
           console.warn("[Agora] publish failed", pubErr);
         }
 
         // register local user in map (so UI shows "You" tile)
+        // Dùng uid từ token data hoặc từ client
+        const currentUid = currentClient.uid || uid;
         setRemoteUsers((prev) => ({
           ...prev,
-          [uid]: {
-            uid,
+          [currentUid]: {
+            uid: currentUid,
             hasVideo: !!cameraTrack,
             hasAudio: !!microphoneTrack,
             name: "You",
@@ -754,31 +998,88 @@ export default function MeetingPage() {
       mounted = false;
       stopClock();
       stopAutoSnapshots();
-      // Don't await cleanup in unmount callback
-      cleanupAndLeave();
+      // Cleanup khi component unmount (reload, navigate away)
+      // QUAN TRỌNG: Phải cleanup tracks trước khi React unmount DOM
+      const cleanup = async () => {
+        try {
+          await cleanupAndLeave();
+        } catch (e) {
+          console.warn(
+            "[Meeting] Cleanup on unmount failed (safe to ignore):",
+            e
+          );
+        }
+      };
+      // Chạy cleanup nhưng không block unmount
+      cleanup();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Xử lý khi user đóng tab/refresh đột ngột
   useEffect(() => {
-    const handleBeforeUnload = () => {
+    const handleBeforeUnload = (e) => {
+      // QUAN TRỌNG: Cleanup Agora tracks SYNCHRONOUSLY trước khi reload
+      // Điều này ngăn React cố remove DOM nodes mà Agora đang dùng
+      try {
+        const client = clientRef.current;
+        const { audioTrack, videoTrack } = localTrackRefs.current || {};
+
+        // Stop và close tracks ngay lập tức (synchronous)
+        if (videoTrack) {
+          try {
+            videoTrack.stop();
+            videoTrack.close();
+          } catch {
+            // Ignore
+          }
+        }
+        if (audioTrack) {
+          try {
+            audioTrack.stop();
+            audioTrack.close();
+          } catch {
+            // Ignore
+          }
+        }
+
+        // Leave client (synchronous - không await)
+        if (client) {
+          try {
+            client.leave().catch(() => {
+              // Ignore async errors
+            });
+          } catch {
+            // Ignore
+          }
+        }
+
+        // Clear refs
+        clientRef.current = null;
+        localTrackRefs.current = { audioTrack: null, videoTrack: null };
+      } catch {
+        // Ignore cleanup errors
+      }
+
+      // Backup snapshots
       if (snapshots.length > 0 && paramId) {
-        // Lưu vào localStorage để retry sau
-        const key = `snapshots_${paramId}`;
-        const existing = JSON.parse(localStorage.getItem(key) || "[]");
-        const existingUrls = existing.map((s) => s.url);
+        try {
+          const key = `snapshots_${paramId}`;
+          const existing = JSON.parse(localStorage.getItem(key) || "[]");
+          const existingUrls = existing.map((s) => s.url);
 
-        // Chỉ thêm những URL chưa có trong localStorage
-        const newSnapshots = snapshots
-          .filter((url) => !existingUrls.includes(url))
-          .map((url) => ({ url, timestamp: Date.now() }));
+          const newSnapshots = snapshots
+            .filter((url) => !existingUrls.includes(url))
+            .map((url) => ({ url, timestamp: Date.now() }));
 
-        if (newSnapshots.length > 0) {
-          localStorage.setItem(
-            key,
-            JSON.stringify([...existing, ...newSnapshots])
-          );
+          if (newSnapshots.length > 0) {
+            localStorage.setItem(
+              key,
+              JSON.stringify([...existing, ...newSnapshots])
+            );
+          }
+        } catch {
+          // Ignore localStorage errors
         }
       }
     };
@@ -937,7 +1238,12 @@ export default function MeetingPage() {
               </div>
               <div className={styles.tileBadge}>Remote</div>
             </div>
-            <div id={REMOTE_MOUNT_ID} className={styles.tileInner}>
+            <div
+              id={REMOTE_MOUNT_ID}
+              className={styles.tileInner}
+              // Prevent React from unmounting this node khi có video tracks
+              data-agora-container="remote"
+            >
               {!anyRemote && (
                 <div className={styles.placeholder}>
                   <User size={48} />

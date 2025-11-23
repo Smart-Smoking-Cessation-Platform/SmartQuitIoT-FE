@@ -1,5 +1,6 @@
 import ActionMenu from "@/components/ui/action-menu";
 import { Badge } from "@/components/ui/badge";
+import { formatCurrency } from "@/utils/currencyFormat";
 
 export const membershipPackageColumns = (handlers) => [
   {
@@ -17,7 +18,9 @@ export const membershipPackageColumns = (handlers) => [
   {
     accessorKey: "price",
     header: "Price",
-    cell: ({ row }) => <Badge>{row.original.price} VND</Badge>,
+    cell: ({ row }) => {
+      return <Badge>{formatCurrency(row.original.price)}</Badge>;
+    },
   },
   {
     accessorKey: "type",
@@ -49,13 +52,7 @@ export const membershipPackageColumns = (handlers) => [
   {
     id: "actions",
     header: "",
-    cell: ({ row }) => (
-      <ActionMenu
-        row={row}
-        onEdit={handlers?.onEdit}
-        onDelete={handlers?.onDelete}
-      />
-    ),
+    cell: ({ row }) => <ActionMenu row={row} onEdit={handlers?.onEdit} />,
     size: 48, // optional
     enableHiding: false,
   },

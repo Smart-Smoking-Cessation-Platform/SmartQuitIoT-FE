@@ -9,7 +9,7 @@ export const getMembershipPackagesStatistics = async () => {
 };
 
 export const getPaymentStatistics = async () => {
-  return instance.get(`/payment/statistics`);
+  return instance.get(`/payments/statistics`);
 };
 
 export const getAllMembershipSubscriptions = async (
@@ -23,4 +23,15 @@ export const getAllMembershipSubscriptions = async (
   return instance.get(
     `/membership-subscriptions/all?page=${page}&size=${size}&sortBy=${sortBy}&sortDir=${sortDir}&orderCode=${orderCode}&status=${status}`
   );
+};
+
+export const getMembershipPackagesDetail = async (id) => {
+  return instance.get(`/membership-packages/detail/${id}`);
+};
+
+export const updateMembershipPackage = async (id, newPrice) => {
+  return instance.put(`/membership-packages/update`, {
+    membershipPackageId: id,
+    price: newPrice,
+  });
 };

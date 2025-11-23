@@ -30,7 +30,6 @@ const ManageSubscriptions = () => {
         inputSearchDebounce,
         filterBy
       );
-      console.log(response.data);
       setSubscriptions(response.data?.content);
       setTotalPages(response.data?.page?.totalPages);
       setTotalElements(response.data?.page?.totalElements);

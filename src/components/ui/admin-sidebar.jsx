@@ -23,16 +23,6 @@ const items = [
     icon: LayoutDashboard,
   },
   {
-    title: "Manage News",
-    url: "/admin/manage-news",
-    icon: List,
-  },
-  {
-    title: "Manage Posts",
-    url: "/admin/manage-posts",
-    icon: List,
-  },
-  {
     title: "Manage Missions",
     url: "/admin/manage-missions",
     icon: List,
@@ -72,11 +62,11 @@ const items = [
     url: "/admin/manage-pass-conditions",
     icon: List,
   },
-  {
-    title: "Manage Phases",
-    url: "/admin/manage-phases",
-    icon: List,
-  },
+  // {
+  //   title: "Manage Phases",
+  //   url: "/admin/manage-phases",
+  //   icon: List,
+  // },
 
   {
     title: "Manage Schedules",
@@ -88,6 +78,7 @@ const items = [
     url: "/admin/manage-slot-times",
     icon: List,
   },
+  //Feedbacks, Appointments
 ];
 
 const appItems = [

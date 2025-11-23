@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from "react";
 import AgoraRTC from "agora-rtc-sdk-ng";
 import { useLocation, useParams, useNavigate } from "react-router-dom";
 import api from "@/api/appointments"; // wrapper that returns unwrapped data
+import { uploadUnsigned } from "@/services/uploadService";
 import {
   Loader2,
   Video,
@@ -23,6 +24,9 @@ export default function MeetingPage() {
 
   const [loading, setLoading] = useState(true);
   const [tokenData, setTokenData] = useState(location.state?.tokenData || null);
+  const [appointmentData, setAppointmentData] = useState(
+    location.state?.appointment || null
+  );
   const [error, setError] = useState(null);
 
   const clientRef = useRef(null);
@@ -43,6 +47,11 @@ export default function MeetingPage() {
   const [camOn, setCamOn] = useState(true);
   const [elapsedMs, setElapsedMs] = useState(0);
   const [timeLeftMs, setTimeLeftMs] = useState(null);
+
+  // Snapshot states
+  const [snapshots, setSnapshots] = useState([]);
+  const snapshotTimersRef = useRef([]);
+  const hasStartedSnapshotsRef = useRef(false);
 
   const msUntilExpire = (expiresAt) => {
     if (!expiresAt) return null;
@@ -78,6 +87,338 @@ export default function MeetingPage() {
     setTimeLeftMs(null);
   };
 
+  // ---------- Snapshot helpers ----------
+
+  // Parse appointment start time
+  const parseLocalDateTime = (dateStr, timeStr) => {
+    try {
+      const [y, m, d] = (dateStr || "").split("-").map((n) => parseInt(n, 10));
+      const [hh, mm] = (timeStr || "00:00")
+        .split(":")
+        .map((n) => parseInt(n, 10));
+      if (!y || !m || !d || isNaN(hh) || isNaN(mm)) return null;
+      return new Date(y, m - 1, d, hh, mm, 0, 0);
+    } catch (e) {
+      return null;
+    }
+  };
+
+  // Backup snapshot vào localStorage
+  const saveSnapshotToLocalStorage = (appointmentId, url) => {
+    try {
+      const key = `snapshots_${appointmentId}`;
+      const existing = JSON.parse(localStorage.getItem(key) || "[]");
+      existing.push({ url, timestamp: Date.now() });
+      localStorage.setItem(key, JSON.stringify(existing));
+    } catch (e) {
+      console.error("Save to localStorage failed:", e);
+    }
+  };
+
+  // Retry snapshots từ localStorage
+  const retryFailedSnapshots = async (appointmentId) => {
+    try {
+      const key = `snapshots_${appointmentId}`;
+      const stored = JSON.parse(localStorage.getItem(key) || "[]");
+
+      if (stored.length > 0) {
+        const urls = stored.map((s) => s.url);
+        await api.saveAppointmentSnapshots(appointmentId, urls);
+        localStorage.removeItem(key);
+        console.log("Retried and saved snapshots from localStorage");
+      }
+    } catch (e) {
+      console.error("Retry snapshots failed:", e);
+    }
+  };
+
+  // Capture snapshot từ cả 2 video (local + remote) - toàn cảnh
+  const captureSnapshot = async () => {
+    try {
+      const localContainer = document.getElementById("local-mount");
+      const remoteContainer = document.getElementById(REMOTE_MOUNT_ID);
+      const localVideo = localContainer?.querySelector("video");
+      const remoteVideo = remoteContainer?.querySelector("video");
+
+      // Cần ít nhất 1 video để chụp
+      if (!localVideo && !remoteVideo) {
+        console.warn("No video available for snapshot");
+        return null;
+      }
+
+      // Tạo canvas với kích thước lớn để chứa cả 2 video
+      const canvas = document.createElement("canvas");
+      const ctx = canvas.getContext("2d");
+
+      // Kích thước mỗi video (giả sử 640x480 hoặc lấy từ video thực tế)
+      const videoWidth = 640;
+      const videoHeight = 480;
+      const padding = 10;
+
+      // Canvas layout: 2 video cạnh nhau hoặc chồng lên nhau
+      if (localVideo && remoteVideo) {
+        // Cả 2 video: đặt cạnh nhau
+        canvas.width = videoWidth * 2 + padding * 3;
+        canvas.height = videoHeight + padding * 2;
+
+        // Background
+        ctx.fillStyle = "#000000";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Vẽ local video (bên trái)
+        if (localVideo.videoWidth > 0 && localVideo.readyState >= 2) {
+          try {
+            ctx.drawImage(
+              localVideo,
+              padding,
+              padding,
+              videoWidth,
+              videoHeight
+            );
+            // Label
+            ctx.fillStyle = "#FFFFFF";
+            ctx.font = "16px Arial";
+            ctx.fillText("Coach", padding + 10, padding + 30);
+          } catch (e) {
+            console.warn("Failed to draw local video:", e);
+          }
+        }
+
+        // Vẽ remote video (bên phải)
+        if (remoteVideo.videoWidth > 0 && remoteVideo.readyState >= 2) {
+          try {
+            ctx.drawImage(
+              remoteVideo,
+              videoWidth + padding * 2,
+              padding,
+              videoWidth,
+              videoHeight
+            );
+            // Label
+            ctx.fillStyle = "#FFFFFF";
+            ctx.font = "16px Arial";
+            ctx.fillText("Member", videoWidth + padding * 2 + 10, padding + 30);
+          } catch (e) {
+            console.warn("Failed to draw remote video:", e);
+          }
+        }
+      } else if (localVideo) {
+        // Chỉ có local video
+        canvas.width = videoWidth + padding * 2;
+        canvas.height = videoHeight + padding * 2;
+        ctx.fillStyle = "#000000";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        if (localVideo.videoWidth > 0 && localVideo.readyState >= 2) {
+          ctx.drawImage(localVideo, padding, padding, videoWidth, videoHeight);
+          ctx.fillStyle = "#FFFFFF";
+          ctx.font = "16px Arial";
+          ctx.fillText("Coach", padding + 10, padding + 30);
+        }
+      } else if (remoteVideo) {
+        // Chỉ có remote video
+        canvas.width = videoWidth + padding * 2;
+        canvas.height = videoHeight + padding * 2;
+        ctx.fillStyle = "#000000";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        if (remoteVideo.videoWidth > 0 && remoteVideo.readyState >= 2) {
+          ctx.drawImage(remoteVideo, padding, padding, videoWidth, videoHeight);
+          ctx.fillStyle = "#FFFFFF";
+          ctx.font = "16px Arial";
+          ctx.fillText("Member", padding + 10, padding + 30);
+        }
+      }
+
+      return new Promise((resolve) => {
+        canvas.toBlob((blob) => resolve(blob), "image/jpeg", 0.9);
+      });
+    } catch (error) {
+      console.error("Capture snapshot error:", error);
+      return null;
+    }
+  };
+
+  // Upload snapshot lên Cloudinary
+  const uploadSnapshot = async (blob, appointmentId) => {
+    if (!blob) return null;
+
+    try {
+      const file = new File([blob], `snapshot-${Date.now()}.jpg`, {
+        type: "image/jpeg",
+      });
+
+      const result = await uploadUnsigned(file, {
+        folder: `appointments/${appointmentId}/snapshots`,
+      });
+
+      return result.secure_url;
+    } catch (error) {
+      console.error("Upload snapshot error:", error);
+      return null;
+    }
+  };
+
+  // Chụp và upload snapshot - gửi về backend ngay lập tức
+  const takeAndUploadSnapshot = async () => {
+    if (!paramId) return null;
+
+    const blob = await captureSnapshot();
+    if (!blob) return null;
+
+    try {
+      // Upload lên Cloudinary
+      const url = await uploadSnapshot(blob, paramId);
+      if (!url) return null;
+
+      // Gửi về backend ngay lập tức (real-time sync)
+      try {
+        await api.saveAppointmentSnapshots(paramId, [url]);
+        console.log("Snapshot saved to backend:", url);
+      } catch (error) {
+        console.error("Save snapshot to backend failed:", error);
+        // Backup vào localStorage nếu gửi thất bại
+        saveSnapshotToLocalStorage(paramId, url);
+      }
+
+      setSnapshots((prev) => [...prev, url]);
+      return url;
+    } catch (error) {
+      console.error("Upload snapshot error:", error);
+      return null;
+    }
+  };
+
+  // Bắt đầu auto snapshots: chụp 3 ảnh tại 5', 10', 15' tính từ START TIME của appointment slot
+  const startAutoSnapshots = () => {
+    if (hasStartedSnapshotsRef.current) return;
+    if (!paramId) return;
+
+    // Lấy appointment data từ location.state hoặc appointmentData state
+    const appointment = appointmentData || location.state?.appointment;
+
+    // Nếu không có appointment data, fetch từ API
+    if (!appointment) {
+      // Fallback: tính từ lúc join (code cũ)
+      console.warn("No appointment data, using join time as fallback");
+      hasStartedSnapshotsRef.current = true;
+      const snapshotTimes = [5 * 60 * 1000, 10 * 60 * 1000, 15 * 60 * 1000];
+      const checkRemoteVideo = setInterval(() => {
+        const remoteContainer = document.getElementById(REMOTE_MOUNT_ID);
+        const videoElement = remoteContainer?.querySelector("video");
+        if (
+          videoElement &&
+          videoElement.videoWidth > 0 &&
+          videoElement.readyState >= 2
+        ) {
+          clearInterval(checkRemoteVideo);
+          snapshotTimes.forEach((delay, index) => {
+            const timer = setTimeout(async () => {
+              console.log(
+                `Auto snapshot ${index + 1}/3 at ${
+                  delay / 60000
+                } minutes from join`
+              );
+              await takeAndUploadSnapshot();
+            }, delay);
+            snapshotTimersRef.current.push(timer);
+          });
+        }
+      }, 2000);
+      setTimeout(() => clearInterval(checkRemoteVideo), 30000);
+      return;
+    }
+
+    // Tính thời gian bắt đầu slot từ appointment
+    const dateStr = appointment.date || appointment.appointmentDate;
+    const timeStr = appointment.startTime || appointment.time;
+
+    if (!dateStr || !timeStr) {
+      console.warn(
+        "Missing appointment date/time, using join time as fallback"
+      );
+      // Fallback như trên
+      return;
+    }
+
+    const slotStartTime = parseLocalDateTime(dateStr, timeStr);
+    if (!slotStartTime) {
+      console.warn(
+        "Invalid appointment start time, using join time as fallback"
+      );
+      return;
+    }
+
+    hasStartedSnapshotsRef.current = true;
+
+    // Snapshot tại 2', 4', 6' tính từ START TIME của slot
+    const snapshotOffsets = [
+      2 * 60 * 1000, // 2 phút từ startTime
+      4 * 60 * 1000, // 4 phút từ startTime
+      6 * 60 * 1000, // 6 phút từ startTime
+    ];
+
+    // Đợi video ready (local hoặc remote)
+    const checkVideo = setInterval(() => {
+      const localContainer = document.getElementById("local-mount");
+      const remoteContainer = document.getElementById(REMOTE_MOUNT_ID);
+      const localVideo = localContainer?.querySelector("video");
+      const remoteVideo = remoteContainer?.querySelector("video");
+
+      // Cần ít nhất 1 video
+      const hasVideo =
+        (localVideo &&
+          localVideo.videoWidth > 0 &&
+          localVideo.readyState >= 2) ||
+        (remoteVideo &&
+          remoteVideo.videoWidth > 0 &&
+          remoteVideo.readyState >= 2);
+
+      if (hasVideo) {
+        clearInterval(checkVideo);
+
+        snapshotOffsets.forEach((offset, index) => {
+          const snapshotTime = slotStartTime.getTime() + offset;
+          const now = Date.now();
+          const delay = snapshotTime - now;
+
+          // Nếu thời gian đã qua rồi, skip
+          if (delay < 0) {
+            console.log(
+              `Snapshot ${index + 1} time already passed (${
+                Math.abs(delay) / 60000
+              } minutes ago), skipping`
+            );
+            return;
+          }
+
+          const timer = setTimeout(async () => {
+            console.log(
+              `Auto snapshot ${index + 1}/3 at ${
+                offset / 60000
+              } minutes from slot start (${new Date(
+                snapshotTime
+              ).toLocaleTimeString()})`
+            );
+            await takeAndUploadSnapshot();
+          }, delay);
+
+          snapshotTimersRef.current.push(timer);
+        });
+      }
+    }, 2000);
+
+    // Cleanup nếu không có video sau 30s
+    setTimeout(() => {
+      clearInterval(checkVideo);
+    }, 30000);
+  };
+
+  // Dừng auto snapshots
+  const stopAutoSnapshots = () => {
+    snapshotTimersRef.current.forEach((timer) => clearTimeout(timer));
+    snapshotTimersRef.current = [];
+    hasStartedSnapshotsRef.current = false;
+  };
+
   // ---------- cleanup (define before useEffect to allow calling inside) ----------
   const cleanupAndLeave = async () => {
     try {
@@ -96,18 +437,26 @@ export default function MeetingPage() {
       if (videoTrack) {
         try {
           await videoTrack.stop();
-        } catch (e) {}
+        } catch {
+          // Ignore stop errors
+        }
         try {
           videoTrack.close();
-        } catch (e) {}
+        } catch {
+          // Ignore close errors
+        }
       }
       if (audioTrack) {
         try {
           await audioTrack.stop();
-        } catch (e) {}
+        } catch {
+          // Ignore stop errors
+        }
         try {
           audioTrack.close();
-        } catch (e) {}
+        } catch {
+          // Ignore close errors
+        }
       }
 
       if (client) {
@@ -128,6 +477,7 @@ export default function MeetingPage() {
       if (ph) ph.innerHTML = "";
       setRemoteUsers({});
       stopClock();
+      stopAutoSnapshots();
     }
   };
 
@@ -155,10 +505,7 @@ export default function MeetingPage() {
         const channel = td.channel;
         const token = td.token;
         const uid = td.uid ?? 0;
-        const appId =
-          import.meta.env.VITE_AGORA_APPID ||
-          td.appId ||
-          process.env.REACT_APP_AGORA_APPID;
+        const appId = import.meta.env.VITE_AGORA_APPID || td.appId;
         if (!appId) throw new Error("Missing Agora appId.");
         if (!channel) throw new Error("Missing channel in token data.");
 
@@ -377,6 +724,21 @@ export default function MeetingPage() {
             }, ms + 500);
           }
         }
+
+        // Lưu appointment data nếu có
+        if (location.state?.appointment) {
+          setAppointmentData(location.state.appointment);
+        }
+
+        // Retry snapshots từ localStorage khi mount
+        if (paramId) {
+          retryFailedSnapshots(paramId);
+        }
+
+        // Bắt đầu auto snapshots sau 5s (đợi video ready)
+        setTimeout(() => {
+          startAutoSnapshots();
+        }, 5000);
       } catch (err) {
         console.error("Meeting init error", err);
         if (mounted) setError(err.message || String(err));
@@ -391,11 +753,42 @@ export default function MeetingPage() {
     return () => {
       mounted = false;
       stopClock();
+      stopAutoSnapshots();
       // Don't await cleanup in unmount callback
       cleanupAndLeave();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Xử lý khi user đóng tab/refresh đột ngột
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (snapshots.length > 0 && paramId) {
+        // Lưu vào localStorage để retry sau
+        const key = `snapshots_${paramId}`;
+        const existing = JSON.parse(localStorage.getItem(key) || "[]");
+        const existingUrls = existing.map((s) => s.url);
+
+        // Chỉ thêm những URL chưa có trong localStorage
+        const newSnapshots = snapshots
+          .filter((url) => !existingUrls.includes(url))
+          .map((url) => ({ url, timestamp: Date.now() }));
+
+        if (newSnapshots.length > 0) {
+          localStorage.setItem(
+            key,
+            JSON.stringify([...existing, ...newSnapshots])
+          );
+        }
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [snapshots, paramId]);
 
   // toggle mic
   const toggleMic = async () => {
@@ -428,6 +821,29 @@ export default function MeetingPage() {
   };
 
   const leaveAndBack = async () => {
+    stopAutoSnapshots();
+
+    // Gửi lại tất cả snapshots (đảm bảo không mất)
+    if (snapshots.length > 0 && paramId) {
+      try {
+        await api.saveAppointmentSnapshots(paramId, snapshots);
+        console.log(
+          `Final save: ${snapshots.length} snapshots sent to backend`
+        );
+      } catch (error) {
+        console.error("Final save snapshots error:", error);
+        // Backup vào localStorage nếu gửi thất bại
+        snapshots.forEach((url) => {
+          saveSnapshotToLocalStorage(paramId, url);
+        });
+      }
+    }
+
+    // Retry snapshots từ localStorage
+    if (paramId) {
+      await retryFailedSnapshots(paramId);
+    }
+
     await cleanupAndLeave();
     navigate(-1);
   };

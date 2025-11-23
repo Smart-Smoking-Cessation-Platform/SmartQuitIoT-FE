@@ -20,7 +20,11 @@ import styles from "../../styles/CoachAppointmentsPage.module.css";
 import api from "@/api/appointments";
 import AppointmentDetailsModal from "./AppointmentDetailsModal";
 import notificationService from "@/services/notificationService";
-import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverTrigger,
+  PopoverContent,
+} from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Button } from "@/components/ui/button";
 
@@ -194,7 +198,7 @@ export default function CoachAppointmentsPage() {
     }
     // Note: Don't set loading to false here as we're navigating away
   };
-  
+
   // Start handler — for coach to start the session (same flow as join)
   const handleStart = async (appointment) => {
     try {
@@ -204,7 +208,7 @@ export default function CoachAppointmentsPage() {
       // await api.startAppointment(appointment.id);
 
       const tokenResp = await api.requestJoinToken(appointment.id);
-      
+
       // locally update status so UI reflects In Progress (optimistic)
       setAppointments((prev) =>
         prev.map((a) =>
@@ -335,9 +339,7 @@ export default function CoachAppointmentsPage() {
         await notificationService.markAsRead(notification.id);
         setNotifications((prev) =>
           prev.map((n) =>
-            n.id === notification.id
-              ? { ...n, read: true, isRead: true }
-              : n
+            n.id === notification.id ? { ...n, read: true, isRead: true } : n
           )
         );
         setUnreadCount((prev) => Math.max(0, prev - 1));
@@ -457,7 +459,7 @@ export default function CoachAppointmentsPage() {
         page: 0,
         size: 200,
       });
-      
+
       const rawList = toArray(resp);
       const mapped = rawList.map(mapBackendToUI);
       setAppointments((prev) => {
@@ -521,7 +523,9 @@ export default function CoachAppointmentsPage() {
       {/* Header */}
       <div className="mb-6 flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900 mb-1">Appointments</h1>
+          <h1 className="text-2xl font-semibold text-gray-900 mb-1">
+            Appointments
+          </h1>
           <p className="text-sm text-gray-600">
             Track and manage your upcoming sessions
           </p>
@@ -576,7 +580,9 @@ export default function CoachAppointmentsPage() {
                   {notifications.map((notification) => {
                     // Support both 'read' and 'isRead' from backend
                     const isUnread = !(
-                      notification.read ?? notification.isRead ?? false
+                      notification.read ??
+                      notification.isRead ??
+                      false
                     );
                     return (
                       <button
@@ -697,8 +703,12 @@ export default function CoachAppointmentsPage() {
         <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs text-gray-600 font-medium mb-1">Total today</p>
-              <p className="text-2xl font-bold text-gray-900">{todayAppointments.length}</p>
+              <p className="text-xs text-gray-600 font-medium mb-1">
+                Total today
+              </p>
+              <p className="text-2xl font-bold text-gray-900">
+                {todayAppointments.length}
+              </p>
             </div>
             <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center">
               <Calendar className="w-6 h-6 text-gray-600" />
@@ -743,7 +753,9 @@ export default function CoachAppointmentsPage() {
         <div className="bg-white rounded-xl p-5 border-2 border-emerald-200 shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-xs text-emerald-700 font-medium mb-1">Completed</p>
+              <p className="text-xs text-emerald-700 font-medium mb-1">
+                Completed
+              </p>
               <p className="text-2xl font-bold text-emerald-700">
                 {
                   todayAppointments.filter((a) => a.status === "COMPLETED")
@@ -763,7 +775,9 @@ export default function CoachAppointmentsPage() {
         <div className="flex flex-col sm:flex-row sm:items-center gap-4">
           <div className="flex items-center gap-2">
             <Filter className="w-5 h-5 text-gray-600" />
-            <span className="text-sm font-medium text-gray-700">Filter by status:</span>
+            <span className="text-sm font-medium text-gray-700">
+              Filter by status:
+            </span>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {["ALL", "PENDING", "IN_PROGRESS", "COMPLETED", "CANCELLED"].map(
@@ -796,10 +810,12 @@ export default function CoachAppointmentsPage() {
           </div>
           <div>
             <h2 className="text-lg font-semibold text-gray-900">
-              Schedule {currentDateInfo.dayOfWeek}, {currentDateInfo.day}/{currentDateInfo.month}
+              Schedule {currentDateInfo.dayOfWeek}, {currentDateInfo.day}/
+              {currentDateInfo.month}
             </h2>
             <p className="text-xs text-gray-500 mt-0.5">
-              {todayAppointments.length} appointment{todayAppointments.length !== 1 ? 's' : ''} scheduled
+              {todayAppointments.length} appointment
+              {todayAppointments.length !== 1 ? "s" : ""} scheduled
             </p>
           </div>
         </div>
@@ -812,7 +828,9 @@ export default function CoachAppointmentsPage() {
         ) : error ? (
           <div className="flex flex-col items-center justify-center py-16">
             <AlertCircle className="w-12 h-12 text-red-500 mb-3" />
-            <p className="text-red-600 font-medium mb-2">Error loading appointments</p>
+            <p className="text-red-600 font-medium mb-2">
+              Error loading appointments
+            </p>
             <p className="text-sm text-gray-600">{String(error)}</p>
           </div>
         ) : todayAppointments.length === 0 ? (
@@ -820,7 +838,9 @@ export default function CoachAppointmentsPage() {
             <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
               <Calendar className="w-8 h-8 text-gray-400" />
             </div>
-            <p className="text-lg font-semibold text-gray-900 mb-1">No appointments</p>
+            <p className="text-lg font-semibold text-gray-900 mb-1">
+              No appointments
+            </p>
             <p className="text-sm text-gray-500 text-center">
               Pick another date or change filter to see appointments
             </p>
@@ -979,15 +999,25 @@ export default function CoachAppointmentsPage() {
                         )}
 
                         {appointment.status === "COMPLETED" && (
-                          <button 
-                            className="px-3 py-1.5 rounded-lg bg-gray-100 text-gray-500 text-sm font-medium cursor-not-allowed"
-                            disabled
-                          >
-                            Completed
-                          </button>
+                          <div className="flex gap-2 items-center">
+                            <button
+                              className="px-3 py-1.5 rounded-lg bg-gray-100 text-gray-500 text-sm font-medium cursor-not-allowed"
+                              disabled
+                            >
+                              Completed
+                            </button>
+                            <button
+                              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500 text-white text-sm font-medium hover:bg-blue-600 transition-colors shadow-sm hover:shadow"
+                              onClick={() => openDetails(appointment)}
+                              title="Xem bằng chứng (snapshots)"
+                            >
+                              <Video className="w-4 h-4" />
+                              <span>Bằng chứng</span>
+                            </button>
+                          </div>
                         )}
                         {appointment.status === "CANCELLED" && (
-                          <button 
+                          <button
                             className="px-3 py-1.5 rounded-lg bg-gray-100 text-gray-500 text-sm font-medium cursor-not-allowed"
                             disabled
                           >

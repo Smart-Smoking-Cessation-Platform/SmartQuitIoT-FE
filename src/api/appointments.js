@@ -50,6 +50,16 @@ export const completeAppointmentByCoach = async (id) => {
   return unwrap(resp);
 };
 
+export const saveAppointmentSnapshots = async (id, imageUrls) => {
+  const resp = await appointmentService.saveAppointmentSnapshots(id, imageUrls);
+  return unwrap(resp);
+};
+
+export const getAppointmentSnapshots = async (id) => {
+  const resp = await appointmentService.getAppointmentSnapshots(id);
+  return unwrap(resp);
+};
+
 export default {
   getUpcomingAppointments,
   listCoachAppointments,
@@ -57,4 +67,6 @@ export default {
   cancelAppointmentByCoach,
   requestJoinToken,
   completeAppointmentByCoach,
+  saveAppointmentSnapshots,
+  getAppointmentSnapshots,
 };

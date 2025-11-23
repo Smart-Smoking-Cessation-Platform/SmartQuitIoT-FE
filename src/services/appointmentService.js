@@ -58,6 +58,30 @@ export const getUpcomingAppointments = ({
 export const completeAppointmentByCoach = (appointmentId) => {
   return instance.put(`/appointments/${appointmentId}/complete`);
 };
+
+/**
+ * Lưu snapshots cho appointment
+ * POST /appointments/{appointmentId}/snapshots
+ * @param {number} appointmentId
+ * @param {string[]} imageUrls - Array of Cloudinary URLs
+ * @returns Promise<AxiosResponse>
+ */
+export const saveAppointmentSnapshots = (appointmentId, imageUrls) => {
+  return instance.post(`/appointments/${appointmentId}/snapshots`, {
+    imageUrls: imageUrls,
+  });
+};
+
+/**
+ * Lấy snapshots của appointment (bằng chứng)
+ * GET /appointments/{appointmentId}/snapshots
+ * @param {number} appointmentId
+ * @returns Promise<AxiosResponse> - Response có data là array of image URLs
+ */
+export const getAppointmentSnapshots = (appointmentId) => {
+  return instance.get(`/appointments/${appointmentId}/snapshots`);
+};
+
 export default {
   listCoachAppointments,
   getAppointmentDetailForCoach,
@@ -65,4 +89,6 @@ export default {
   requestJoinToken,
   getUpcomingAppointments,
   completeAppointmentByCoach,
+  saveAppointmentSnapshots,
+  getAppointmentSnapshots,
 };

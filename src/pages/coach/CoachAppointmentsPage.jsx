@@ -35,11 +35,25 @@ import { Button } from "@/components/ui/button";
  */
 
 // helpers
-const todayIso = () => new Date().toISOString().slice(0, 10);
+// Sử dụng local time thay vì UTC để tránh lệch ngày do timezone
+const todayIso = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
 const addDaysIso = (iso, days) => {
-  const dt = new Date(iso);
+  // Parse ISO string (yyyy-MM-dd) thành local date
+  const [year, month, day] = iso.split("-").map(Number);
+  const dt = new Date(year, month - 1, day);
   dt.setDate(dt.getDate() + days);
-  return dt.toISOString().slice(0, 10);
+  // Format lại thành ISO string với local time
+  const newYear = dt.getFullYear();
+  const newMonth = String(dt.getMonth() + 1).padStart(2, "0");
+  const newDay = String(dt.getDate()).padStart(2, "0");
+  return `${newYear}-${newMonth}-${newDay}`;
 };
 
 // normalize various response shapes into an array

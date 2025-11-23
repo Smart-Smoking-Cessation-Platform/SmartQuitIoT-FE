@@ -12,6 +12,7 @@ import {
   CheckCircle,
   AlertCircle,
   Radio,
+  Image as ImageIcon,
 } from "lucide-react";
 import api from "@/api/appointments";
 
@@ -33,6 +34,8 @@ export default function AppointmentDetailsModal({
   const [error, setError] = useState(null);
   const [doingStart, setDoingStart] = useState(false);
   const [doingCancel, setDoingCancel] = useState(false);
+  const [snapshots, setSnapshots] = useState([]);
+  const [loadingSnapshots, setLoadingSnapshots] = useState(false);
   const navigate = useNavigate();
 
   // Fetch appointment details
@@ -71,6 +74,49 @@ export default function AppointmentDetailsModal({
       mounted = false;
     };
   }, [open, appointmentBrief]);
+
+  // Fetch snapshots nếu appointment đã completed
+  useEffect(() => {
+    if (!open || !appointmentBrief?.id) return;
+    
+    // Chỉ fetch snapshots nếu appointment đã completed
+    const appointmentStatus = 
+      detail?.runtimeStatus || 
+      appointmentBrief?.status || 
+      appointmentBrief?.raw?.runtimeStatus;
+    
+    if (appointmentStatus !== "COMPLETED") {
+      setSnapshots([]);
+      return;
+    }
+
+    let mounted = true;
+    const fetchSnapshots = async () => {
+      setLoadingSnapshots(true);
+      try {
+        const resp = await api.getAppointmentSnapshots(appointmentBrief.id);
+        // Response có thể là array trực tiếp hoặc wrapped
+        const snapshotUrls = Array.isArray(resp) 
+          ? resp 
+          : resp?.data || resp?.imageUrls || [];
+        
+        if (!mounted) return;
+        setSnapshots(Array.isArray(snapshotUrls) ? snapshotUrls : []);
+      } catch (e) {
+        console.error("fetch snapshots error", e);
+        if (!mounted) return;
+        // Không set error vì snapshots là optional
+        setSnapshots([]);
+      } finally {
+        if (mounted) setLoadingSnapshots(false);
+      }
+    };
+
+    fetchSnapshots();
+    return () => {
+      mounted = false;
+    };
+  }, [open, appointmentBrief?.id, detail?.runtimeStatus]);
 
   // Handle ESC key to close modal
   useEffect(() => {
@@ -357,6 +403,59 @@ export default function AppointmentDetailsModal({
                         </span>
                       </div>
                     </div>
+                  </div>
+                )}
+
+                {/* Snapshots Section - Chỉ hiển thị cho COMPLETED */}
+                {detail.runtimeStatus === "COMPLETED" && (
+                  <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                    <div className="flex items-center gap-2 mb-3">
+                      <ImageIcon className="w-5 h-5 text-purple-600" />
+                      <p className="text-sm font-semibold text-purple-900">
+                        Bằng chứng (Snapshots)
+                      </p>
+                    </div>
+                    {loadingSnapshots ? (
+                      <div className="flex items-center justify-center py-8">
+                        <Loader2 className="w-6 h-6 text-purple-600 animate-spin" />
+                        <span className="ml-2 text-sm text-purple-700">
+                          Đang tải snapshots...
+                        </span>
+                      </div>
+                    ) : snapshots && Array.isArray(snapshots) && snapshots.length > 0 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {snapshots.map((url, index) => (
+                          <div
+                            key={index}
+                            className="relative group cursor-pointer rounded-lg overflow-hidden border-2 border-purple-200 hover:border-purple-400 transition-colors"
+                            onClick={() => window.open(url, "_blank")}
+                          >
+                            <img
+                              src={url}
+                              alt={`Snapshot ${index + 1}`}
+                              className="w-full h-48 object-cover"
+                              loading="lazy"
+                              onError={(e) => {
+                                e.target.src = "/images/placeholder.png";
+                                e.target.alt = "Failed to load image";
+                              }}
+                            />
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center">
+                              <div className="opacity-0 group-hover:opacity-100 transition-opacity text-white text-sm font-medium">
+                                Click to view full size
+                              </div>
+                            </div>
+                            <div className="absolute top-2 left-2 bg-purple-600 text-white text-xs font-semibold px-2 py-1 rounded">
+                              #{index + 1}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-purple-700 italic">
+                        Chưa có snapshot nào được lưu
+                      </p>
+                    )}
                   </div>
                 )}
               </div>

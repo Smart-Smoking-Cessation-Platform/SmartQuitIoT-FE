@@ -32,6 +32,9 @@ const HeroSection = () => {
               <button onClick={() => navigate("/login")} className="cursor-pointer bg-green-600 hover:bg-green-700 text-white font-semibold px-8 py-4 rounded-lg transition-colors shadow-lg hover:shadow-xl">
                 Start Your Journey
               </button>
+              <button onClick={() => navigate("/download")} className="cursor-pointer bg-blue-600 hover:bg-blue-700 text-white font-semibold px-8 py-4 rounded-lg transition-colors shadow-lg hover:shadow-xl">
+                Download App
+              </button>
               <button onClick={() => navigate("/resources")} className="cursor-pointer bg-white hover:bg-gray-50 text-gray-900 font-semibold px-8 py-4 rounded-lg border-2 border-gray-300 transition-colors">
                 How It Works
               </button>

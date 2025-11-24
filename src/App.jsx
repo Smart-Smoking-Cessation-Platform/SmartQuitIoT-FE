@@ -24,6 +24,7 @@ import CoachPage from "./pages/coach/CoachPage";
 import Community from "./pages/Community";
 import News from "./pages/News";
 import Resources from "./pages/Resources";
+import Download from "./pages/Download";
 import CoachSchedulePage from "@/pages/coach/CoachSchedulePage";
 import CoachAppointmentsPage from "@/pages/coach/CoachAppointmentsPage";
 import CoachChatPage from "@/pages/coach/CoachChatPage";
@@ -75,6 +76,7 @@ function App() {
         { path: "/community", element: <Community /> },
         { path: "/news", element: <News /> },
         { path: "/about", element: <About /> },
+        { path: "/download", element: <Download /> },
       ],
     },
     {

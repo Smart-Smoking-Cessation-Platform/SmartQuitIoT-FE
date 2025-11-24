@@ -25,6 +25,7 @@ const Header = () => {
               { to: "/community", label: "Community" },
               { to: "/news", label: "News" },
               { to: "/about", label: "About" },
+              { to: "/download", label: "Download" },
             ].map((item) => (
               <NavLink
                 key={item.to}

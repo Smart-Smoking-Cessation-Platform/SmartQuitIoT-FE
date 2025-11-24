@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { UserCheck, Users } from "lucide-react";
 import { getCoachStatistics } from "@/services/coachService";
 import { toast } from "sonner";
+import CardLoading from "@/components/loadings/CardLoading";
 
 const CoachDashboardCard = () => {
   const [data, setData] = useState(null);
@@ -25,20 +26,7 @@ const CoachDashboardCard = () => {
   }, []);
 
   if (loading) {
-    return (
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Total Coaches</CardTitle>
-          <UserCheck className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            <div className="h-8 w-24 bg-muted rounded animate-pulse" />
-            <div className="h-4 w-32 bg-muted rounded animate-pulse" />
-          </div>
-        </CardContent>
-      </Card>
-    );
+    return <CardLoading title={"Coach Statistics Loading..."} />;
   }
 
   return (

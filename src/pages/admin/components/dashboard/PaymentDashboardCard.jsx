@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign, Receipt, TrendingUp } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { getPaymentStatistics } from "@/services/membershipPackage";
+import CardLoading from "@/components/loadings/CardLoading";
 
 const PaymentDashboardCard = () => {
   const [data, setData] = useState(null);
@@ -34,20 +35,7 @@ const PaymentDashboardCard = () => {
       : 0;
 
   if (loading) {
-    return (
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-          <DollarSign className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            <div className="h-8 w-40 bg-muted rounded animate-pulse" />
-            <div className="h-16 bg-muted rounded animate-pulse" />
-          </div>
-        </CardContent>
-      </Card>
-    );
+    return <CardLoading title={"Payment Statistics Loading.."} />;
   }
 
   return (

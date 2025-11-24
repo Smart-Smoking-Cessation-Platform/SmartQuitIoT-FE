@@ -139,6 +139,12 @@ const getUnreadCount = async () => {
   }
 };
 
+export const getAllSystemNotifications = (page, size) => {
+  return instance.get(
+    `/notifications/system-activity?page=${page}&size=${size}`
+  );
+};
+
 export default {
   getAllNotifications,
   getAppointmentNotifications,

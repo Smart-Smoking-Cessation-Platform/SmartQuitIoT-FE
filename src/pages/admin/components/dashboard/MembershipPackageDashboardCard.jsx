@@ -1,3 +1,4 @@
+import CardLoading from "@/components/loadings/CardLoading";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -24,22 +25,7 @@ const MembershipPackageDashboardCard = () => {
   }, []);
 
   if (loading) {
-    return (
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">
-            Membership Packages
-          </CardTitle>
-          <Package className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            <div className="h-8 w-32 bg-muted rounded animate-pulse" />
-            <div className="h-16 bg-muted rounded animate-pulse" />
-          </div>
-        </CardContent>
-      </Card>
-    );
+    return <CardLoading title={"Membership Package Statistics Loading..."} />;
   }
 
   return (

@@ -73,10 +73,24 @@ const NewsFeedDetail = () => {
     }
   }, [id]);
 
-  const media =
-    Array.isArray(feed?.media) && feed.media.length > 0 ? feed.media[0] : null;
-  const thumbnail = feed?.thumbnailUrl || (media ? media.mediaUrl : null);
-  const mediaType = media?.mediaType || (thumbnail ? "IMAGE" : null);
+  // Helper to detect media type from URL
+  const detectMediaType = (url) => {
+    if (!url) return 'IMAGE';
+    const videoExtensions = ['.mp4', '.webm', '.ogg', '.mov', '.avi'];
+    const lowerUrl = url.toLowerCase();
+    return videoExtensions.some(ext => lowerUrl.includes(ext)) ? 'VIDEO' : 'IMAGE';
+  };
+
+  const mediaList = Array.isArray(feed?.media) && feed.media.length > 0 
+    ? feed.media.map(m => ({
+        mediaUrl: m.mediaUrl,
+        mediaType: m.mediaType || detectMediaType(m.mediaUrl)
+      }))
+    : [];
+  
+  const firstMedia = mediaList.length > 0 ? mediaList[0] : null;
+  const thumbnail = feed?.thumbnailUrl || (firstMedia ? firstMedia.mediaUrl : null);
+  const mediaType = firstMedia?.mediaType || (thumbnail ? detectMediaType(thumbnail) : 'IMAGE');
 
   if (loading) {
     return (
@@ -176,25 +190,37 @@ const NewsFeedDetail = () => {
           </div>
 
           {/* Thumbnail / Media */}
-          {thumbnail ? (
-            <div className="px-8 py-6">
-              <div className="rounded-lg overflow-hidden bg-gray-100">
-                {mediaType === "VIDEO" ? (
-                  <video
-                    src={thumbnail}
-                    controls
-                    className="w-full max-h-[500px] object-contain"
-                  />
-                ) : (
-                  <img
-                    src={thumbnail}
-                    alt={feed.title}
-                    className="w-full max-h-[500px] object-contain"
-                  />
-                )}
-              </div>
+          <div className="relative rounded-2xl overflow-hidden shadow-lg">
+            <div className="w-full flex items-center justify-center bg-gradient-to-br from-emerald-500 to-teal-500 h-64 md:h-80 lg:h-[420px]">
+              {firstMedia?.mediaType === "VIDEO" ? (
+                <video
+                  src={firstMedia.mediaUrl}
+                  controls
+                  preload="metadata"
+               //   poster={thumbnail}
+                  className="w-full h-full object-cover object-center bg-black relative z-10"
+                >
+                  Your browser does not support the video tag.
+                </video>
+              ) : thumbnail ? (
+                <img
+                  src={thumbnail}
+                  alt={feed.title}
+                  className="w-full h-full object-cover object-center"
+                />
+              ) : (
+                <div className="px-6 text-white">
+                  <ImgIcon className="w-16 h-16 text-white/90" />
+                </div>
+              )}
             </div>
-          ) : (
+            
+            {firstMedia?.mediaType !== "VIDEO" && (
+              <div className="absolute inset-0 bg-gradient-to-t from-black/35 to-transparent pointer-events-none" />
+            )}
+          </div>
+
+          {!thumbnail && (
             <div className="px-8 py-6">
               <div className="flex items-center justify-center gap-3 text-gray-400 bg-gray-50 rounded-lg py-12">
                 <ImgIcon size={24} />
@@ -216,23 +242,26 @@ const NewsFeedDetail = () => {
           </div>
 
           {/* Additional media if any */}
-          {feed?.media && feed.media.length > 1 && (
+          {mediaList.length > 1 && (
             <div className="px-8 py-6 border-t">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">
                 Additional Media
               </h2>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {feed.media.slice(1).map((m, idx) => (
+                {mediaList.slice(1).map((m, idx) => (
                   <div
                     key={idx}
-                    className="rounded-lg overflow-hidden bg-gray-100"
+                    className="rounded-lg overflow-hidden bg-gray-100 relative"
                   >
                     {m.mediaType === "VIDEO" ? (
                       <video
                         src={m.mediaUrl}
                         controls
-                        className="w-full h-48 object-cover"
-                      />
+                        preload="metadata"
+                        className="w-full h-48 object-cover bg-black relative z-10"
+                      >
+                        Your browser does not support the video tag.
+                      </video>
                     ) : (
                       <img
                         src={m.mediaUrl}

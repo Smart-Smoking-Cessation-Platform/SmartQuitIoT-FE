@@ -552,25 +552,45 @@ console.log('visiblePosts', visiblePosts);
   const blocks = parsePostContent(selectedPost.content);
   const mediaList = Array.isArray(selectedPost.media) ? selectedPost.media : [];
 
-  // helper to pick cover image (media -> thumbnail -> first image block)
-  const firstMedia = mediaList.length > 0 ? mediaList[0].mediaUrl : null;
+  // helper to pick cover image (only use IMAGE type media, not VIDEO)
+  const firstImageMedia = mediaList.find(m => m.mediaType === 'IMAGE')?.mediaUrl || null;
   const firstImgFromBlocks = blocks.find((b) => b.type === "img")?.content;
   const coverImage =
-    firstMedia || selectedPost.thumbnail || firstImgFromBlocks || null;
-
+    firstImageMedia || selectedPost.thumbnail || firstImgFromBlocks || null;
+  
+  // check if first media is a video
+  const firstMediaIsVideo = mediaList.length > 0 && mediaList[0].mediaType === 'VIDEO';
+  const videoUrl = firstMediaIsVideo ? mediaList[0].mediaUrl : null;
+  
+  console.log("coverImage", coverImage);
   return (
     <div className="min-h-[90vh] bg-white">
       <div className="max-w-8xl mx-auto px-12   gap-8">
         {/* main column */}
         <div className="lg:col-span-2">
-          {/* Back button */}
-          <button
-            onClick={handleBack}
-            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors mb-4"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            <span>Back</span>
-          </button>
+          {/* Back button and Delete button */}
+          <div className="flex items-center justify-between mb-4">
+            <button
+              onClick={handleBack}
+              className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Back</span>
+            </button>
+            
+            <button
+              type="button"
+              onClick={(e) => handleBanPost(e, selectedPost.id)}
+              disabled={deletingId === selectedPost.id}
+              className={`px-4 py-2 rounded-md shadow-sm text-white ${
+                deletingId === selectedPost.id
+                  ? "bg-gray-300 text-gray-700"
+                  : "bg-red-600 hover:bg-red-700"
+              }`}
+            >
+              {deletingId === selectedPost.id ? "Deleting..." : "Delete Post"}
+            </button>
+          </div>
 
           <div className="mt-6 bg-white rounded-lg p-6 shadow-sm">
             
@@ -612,7 +632,16 @@ console.log('visiblePosts', visiblePosts);
               className="w-full flex items-center justify-center bg-gradient-to-br from-emerald-500 to-teal-500
                h-64 md:h-80 lg:h-[420px] transition-all duration-200"
             >
-              {coverImage ? (
+              {videoUrl ? (
+                <video
+                  src={videoUrl}
+                  controls
+                  preload="metadata"
+                  className="w-full h-full object-cover object-center bg-black relative z-10"
+                >
+                  Your browser does not support the video tag.
+                </video>
+              ) : coverImage ? (
                 <img
                   src={coverImage}
                   alt="cover"
@@ -625,7 +654,7 @@ console.log('visiblePosts', visiblePosts);
               )}
             </div>
 
-            <div className="absolute inset-0 bg-gradient-to-t from-black/35 to-transparent" />
+            {!videoUrl && <div className="absolute inset-0 bg-gradient-to-t from-black/35 to-transparent" />}
 
    
 
@@ -644,20 +673,6 @@ console.log('visiblePosts', visiblePosts);
               <button className="bg-white/10 backdrop-blur rounded-full p-2 hover:bg-white/20">
                 <Heart className="w-5 h-5 text-white" />
               </button> */}
-
-              {/* nút xóa bài (detail) */}
-              <button
-                type="button"
-                onClick={(e) => handleBanPost(e, selectedPost.id)}
-                disabled={deletingId === selectedPost.id}
-                className={`ml-2 px-3 py-2 rounded-md shadow-sm text-white ${
-                  deletingId === selectedPost.id
-                    ? "bg-gray-300 text-gray-700"
-                    : "bg-red-600 hover:bg-red-700"
-                }`}
-              >
-                {deletingId === selectedPost.id ? "Deleting..." : "Delete Post"}
-              </button>
             </div>
           </div>
 

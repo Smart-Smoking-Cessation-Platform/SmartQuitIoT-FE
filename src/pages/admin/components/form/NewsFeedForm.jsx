@@ -1,10 +1,10 @@
 // src/pages/admin/components/form/NewsFeedForm.jsx
 import React, { useEffect, useState } from "react";
-import { X } from "lucide-react";
+import { X, Upload, Image as ImageIcon, Video } from "lucide-react";
 import uploadService from "@/services/uploadService";
 import newsService from "@/services/newsService";
 
-const MAX_UPLOAD_BYTES = 10 * 1024 * 1024; // 10 MB
+const MAX_UPLOAD_BYTES = 500 * 1024 * 1024; // 50 MB for videos
 
 const NewsFeedForm = ({
   initial = null,
@@ -21,6 +21,10 @@ const NewsFeedForm = ({
   const [thumbPreview, setThumbPreview] = useState("");
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
+  
+  // NEW: media array state
+  const [mediaList, setMediaList] = useState([]);
+  const [uploadingMedia, setUploadingMedia] = useState(false);
 
   useEffect(() => {
     if (initial) {
@@ -31,6 +35,15 @@ const NewsFeedForm = ({
         thumbnailUrl: initial.thumbnailUrl || "",
       });
       setThumbPreview(initial.thumbnailUrl || "");
+      // Load existing media
+      if (initial.media && Array.isArray(initial.media)) {
+        setMediaList(initial.media.map(m => ({
+          mediaUrl: m.mediaUrl,
+          mediaType: m.mediaType,
+        })));
+      } else {
+        setMediaList([]);
+      }
     } else {
       setForm({
         title: "",
@@ -39,6 +52,7 @@ const NewsFeedForm = ({
         thumbnailUrl: "",
       });
       setThumbPreview("");
+      setMediaList([]);
     }
   }, [initial]);
 
@@ -82,6 +96,64 @@ const NewsFeedForm = ({
     setThumbPreview("");
   };
 
+  // NEW: handle media upload (image or video)
+  const handleMediaUpload = async (e) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    console.log('Files selected:', files.length, files);
+    setUploadingMedia(true);
+    try {
+      const uploadPromises = Array.from(files).map(async (file, idx) => {
+        console.log(`Starting upload ${idx + 1}/${files.length}:`, file.name, file.type);
+        
+        if (file.size > MAX_UPLOAD_BYTES) {
+          alert(`File ${file.name} is too large (>500MB)`);
+          return null;
+        }
+
+        const isVideo = file.type.startsWith('video/');
+        console.log(`Uploading ${file.name} as ${isVideo ? 'VIDEO' : 'IMAGE'}`);
+        
+        const result = await uploadService.uploadUnsigned(file, {
+          folder: isVideo ? 'news/videos' : 'news/images',
+          resource_type: isVideo ? 'video' : 'image',
+        });
+        
+        console.log(`Upload complete ${idx + 1}:`, result.secure_url || result.url);
+        
+        return {
+          mediaUrl: result.secure_url || result.url,
+          mediaType: isVideo ? 'VIDEO' : 'IMAGE',
+        };
+      });
+
+      console.log('Waiting for all uploads...');
+      const results = await Promise.all(uploadPromises);
+      console.log('All uploads done:', results);
+      
+      const validResults = results.filter(r => r !== null);
+      console.log('Valid upload results:', validResults);
+      
+      setMediaList(prev => {
+        const updated = [...prev, ...validResults];
+        console.log('Updated mediaList:', updated);
+        return updated;
+      });
+    } catch (err) {
+      console.error('Media upload error', err);
+      alert('Upload failed: ' + (err.message || 'Unknown error'));
+    } finally {
+      setUploadingMedia(false);
+      // reset input
+      e.target.value = '';
+    }
+  };
+
+  const removeMedia = (index) => {
+    setMediaList(prev => prev.filter((_, i) => i !== index));
+  };
+
   const handleSubmit = async () => {
     if (!form.title?.trim() || !form.content?.trim()) {
       alert("Please enter a title and content.");
@@ -90,16 +162,22 @@ const NewsFeedForm = ({
 
     setSaving(true);
     try {
+      // Debug log
+      console.log('mediaList before submit:', mediaList);
+      const mediaUrls = mediaList.map(m => m.mediaUrl);
+      console.log('mediaUrls to send:', mediaUrls);
+      
       const payload = {
         id: initial?.id,
         title: form.title,
         content: form.content,
         thumbnailUrl: form.thumbnailUrl || null,
-        mediaUrls: [],
+        mediaUrls: mediaUrls, // Backend only needs URLs array
         status: form.status, // Keep as 'status' for parent component
         newsStatus: form.status, // Also send as newsStatus for API
       };
 
+      console.log('Full payload:', payload);
       onSubmit && onSubmit(payload);
     } catch (err) {
       console.error("Save news error", err);
@@ -112,7 +190,7 @@ const NewsFeedForm = ({
     }
   };
 
-  const disabled = uploading || saving || submitting;
+  const disabled = uploading || saving || submitting || uploadingMedia;
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-8">
@@ -256,6 +334,90 @@ const NewsFeedForm = ({
               <div className="text-sm text-gray-500">No thumbnail</div>
             )}
           </div>
+        </div>
+
+        {/* NEW: Media Upload Section */}
+        <div className="border-t pt-6">
+          <label className="block text-sm font-medium text-gray-700 mb-3">
+            Additional Media (Images & Videos)
+          </label>
+          
+          <div className="flex items-center gap-3 mb-4">
+            <label
+              htmlFor="media-files"
+              className={`inline-flex items-center gap-2 px-4 py-2 border rounded-lg cursor-pointer select-none
+                ${disabled ? 'opacity-50 cursor-not-allowed' : 'bg-white hover:bg-gray-50'}`}
+              aria-disabled={disabled}
+            >
+              <Upload className="w-4 h-4 text-gray-600" />
+              <span className="text-sm text-gray-700">Upload Media</span>
+            </label>
+            <input
+              id="media-files"
+              type="file"
+              accept="image/*,video/*"
+              multiple
+              onChange={handleMediaUpload}
+              disabled={disabled}
+              className="hidden"
+            />
+            
+            {uploadingMedia && (
+              <div className="text-sm text-gray-500 flex items-center gap-2">
+                <div className="w-4 h-4 border-2 border-gray-300 border-t-emerald-600 rounded-full animate-spin" />
+                <span>Uploading...</span>
+              </div>
+            )}
+          </div>
+
+          {/* Media Preview Grid */}
+          {mediaList.length > 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {mediaList.map((media, idx) => (
+                <div key={idx} className="relative group border rounded-lg overflow-hidden bg-gray-50">
+                  {media.mediaType === 'VIDEO' ? (
+                    <div className="relative">
+                      <video
+                        src={media.mediaUrl}
+                        className="w-full h-32 object-cover"
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+                        <Video className="w-8 h-8 text-white" />
+                      </div>
+                    </div>
+                  ) : (
+                    <img
+                      src={media.mediaUrl}
+                      alt={`media-${idx}`}
+                      className="w-full h-32 object-cover"
+                    />
+                  )}
+                  
+                  <button
+                    onClick={() => removeMedia(idx)}
+                    className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                    aria-label="Remove media"
+                  >
+                    <X size={14} />
+                  </button>
+                  
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-2">
+                    <span className="text-xs text-white font-medium">
+                      {media.mediaType}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+              <div className="flex flex-col items-center gap-2 text-gray-400">
+                <ImageIcon className="w-12 h-12" />
+                <p className="text-sm">No additional media uploaded</p>
+                <p className="text-xs">You can upload images and videos</p>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="flex justify-end gap-3 pt-4 border-t">

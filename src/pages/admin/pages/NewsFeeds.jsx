@@ -82,13 +82,15 @@ const NewsFeeds = () => {
   const handleCreateOrUpdate = async (payload) => {
     setSubmitting(true);
     try {
+      console.log('Received payload from form:', payload);
       const createPayload = {
         title: payload.title,
         content: payload.content,
         thumbnailUrl: payload.thumbnailUrl || null,
-        mediaUrls: payload.mediaUrl ? [payload.mediaUrl] : [],
-        newsStatus: payload.status || "DRAFT", // Add newsStatus
+        mediaUrls: payload.mediaUrls || [], // Use plural mediaUrls from form
+        newsStatus: payload.newsStatus || "DRAFT", // Use newsStatus from form
       };
+      console.log('Sending to API:', createPayload);
 
       if (payload.id) {
         const updated = await newsService.updateNews(payload.id, createPayload);

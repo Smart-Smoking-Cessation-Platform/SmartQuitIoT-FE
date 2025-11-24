@@ -17,6 +17,7 @@ const normalizePostSummary = (raw = {}) => {
     title: raw.title ?? "",
     description: raw.description ?? "",
     thumbnail: raw.thumbnail ?? "",
+    mediaUrls: raw.mediaUrls ?? "",
     createdAt: raw.createdAt ? new Date(raw.createdAt) : null,
     account: raw.account ?? null, // may be {id, username, ...}
   };

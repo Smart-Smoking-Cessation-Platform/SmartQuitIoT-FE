@@ -7,6 +7,8 @@ import {
   Share2,
   Heart,
 } from "lucide-react";
+import { toast } from "sonner";
+import useConfirm from "@/hooks/useConfirm";
 import postService from "@/services/postService";
 import commentService from "@/services/commentService";
 
@@ -34,18 +36,26 @@ const formatDateRelative = (input) => {
   const d = parseDateFlexible(input);
   if (!d) return "";
   const now = new Date();
-  const toMidnight = (x) =>
-    new Date(x.getFullYear(), x.getMonth(), x.getDate());
-  const diffDays = Math.round(
-    (toMidnight(now) - toMidnight(d)) / (1000 * 60 * 60 * 24)
-  );
-  if (diffDays === 0) return "Hôm nay";
-  if (diffDays === 1) return "Hôm qua";
-  if (diffDays > 1 && diffDays < 7) return `${diffDays} ngày trước`;
-  return d.toLocaleDateString("vi-VN", {
+  const diffMs = now - d;
+  const diffMinutes = Math.floor(diffMs / (1000 * 60));
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  // Less than 1 minute
+  if (diffMinutes < 1) return "Just now";
+  // Less than 1 hour
+  if (diffMinutes < 60) return `${diffMinutes} minute${diffMinutes > 1 ? 's' : ''} ago`;
+  // Less than 24 hours
+  if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+  // Less than 7 days
+  if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+  // More than 7 days: show full date
+  return d.toLocaleDateString("en-US", {
     day: "2-digit",
-    month: "2-digit",
+    month: "short",
     year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 };
 
@@ -141,7 +151,7 @@ const RenderBlocks = ({ blocks }) => {
    ---------------------- */
 const CommentForm = ({
   avatarUrl,
-  placeholder = "Viết bình luận...",
+  placeholder = "Write a comment...",
   onSubmit,
   submitting,
 }) => {
@@ -179,7 +189,7 @@ const CommentForm = ({
                 : "bg-emerald-600 text-white hover:bg-emerald-700"
             }`}
           >
-            {submitting ? "Đang gửi..." : "Gửi bình luận"}
+            {submitting ? "Sending..." : "Post Comment"}
           </button>
         </div>
       </div>
@@ -188,14 +198,15 @@ const CommentForm = ({
 };
 
 const CommentItem = ({ c, onReply }) => {
+  // Set hardcoded avatar for admin username
+  const avatarUrl = c.account?.username === "admin" 
+    ? "https://res.cloudinary.com/dmp8hzwup/image/upload/v1763904550/657b6b513ddcb182e8cd_ktrbwd.jpg"
+    : (c.account?.avatarUrl || c.avatarUrl || "https://ui-avatars.com/api/?background=00D09E&color=fff&name=U");
+  
   return (
     <div className="flex gap-3 py-4">
       <img
-        src={
-          c.account?.avatarUrl ||
-          c.avatarUrl ||
-          "https://ui-avatars.com/api/?background=00D09E&color=fff&name=U"
-        }
+        src={avatarUrl}
         alt="avatar"
         className="w-10 h-10 rounded-full"
       />
@@ -214,7 +225,7 @@ const CommentItem = ({ c, onReply }) => {
             className="hover:underline mr-3"
             onClick={() => onReply && onReply(c.id)}
           >
-            Trả lời
+            Reply
           </button>
         </div>
         {c.replies && c.replies.length > 0 && (
@@ -254,10 +265,18 @@ const CommunityPosts = () => {
   const commentsRef = useRef(null);
   // xóa / ban post
   const [deletingId, setDeletingId] = useState(null);
+  const confirm = useConfirm();
 
   const handleBanPost = async (e, postId) => {
     if (e && typeof e.stopPropagation === "function") e.stopPropagation();
-    const ok = window.confirm("Bạn có chắc muốn xóa bài này?");
+
+    const ok = await confirm({
+      title: "Delete Post",
+      message: "Are you sure you want to delete this post? This action cannot be undone.",
+      okText: "Delete",
+      cancelText: "Cancel",
+      destructive: true,
+    });
     if (!ok) return;
 
     try {
@@ -278,9 +297,11 @@ const CommunityPosts = () => {
         setSelectedPost(null);
         setShowComments(false);
       }
+
+      toast.success("Post deleted successfully");
     } catch (err) {
       console.error("deletePost error:", err);
-      alert("Delete failed.");
+      toast.error("Failed to delete post");
     } finally {
       setDeletingId(null);
     }
@@ -296,6 +317,7 @@ const CommunityPosts = () => {
     setLoadingPosts(true);
     try {
       const list = await postService.getPosts();
+      console.log('fetched posts', list);
       setPosts(Array.isArray(list) ? list : []);
       setTotalCount(Array.isArray(list) ? list.length : 0);
     } catch (e) {
@@ -350,15 +372,22 @@ const CommunityPosts = () => {
       const payload = { content };
       if (parentId) payload.parentId = parentId;
       const created = await commentService.createComment(postId, payload);
+      
+      // Ensure comment has account info from selectedPost
+      const commentWithAccount = {
+        ...created,
+        account: created.account || selectedPost?.account || {}
+      };
+      
       setSelectedPost((prev) => {
         if (!prev) return prev;
         const copy = { ...prev };
-        if (!parentId) copy.comments = [created, ...(copy.comments || [])];
+        if (!parentId) copy.comments = [commentWithAccount, ...(copy.comments || [])];
         else {
           const insertReply = (list = []) =>
             list.map((c) => {
               if (c.id === parentId) {
-                const replies = c.replies ? [...c.replies, created] : [created];
+                const replies = c.replies ? [...c.replies, commentWithAccount] : [commentWithAccount];
                 return { ...c, replies };
               }
               if (c.replies && c.replies.length)
@@ -369,7 +398,7 @@ const CommunityPosts = () => {
         }
         return copy;
       });
-      return created;
+      return commentWithAccount;
     } catch (e) {
       console.error(e);
       return null;
@@ -401,7 +430,7 @@ const CommunityPosts = () => {
       });
     }
   }, [showComments]);
-
+console.log('visiblePosts', visiblePosts);
   /* ----------------------
      RENDER
      ---------------------- */
@@ -418,7 +447,7 @@ const CommunityPosts = () => {
             Share and learn experiences from others on their journey to quit
             smoking.
           </p>
-
+        
           <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 items-stretch">
             {visiblePosts.map((p) => (
               <article
@@ -439,11 +468,11 @@ const CommunityPosts = () => {
                 >
                   {deletingId === p.id ? "Đang..." : "Xóa"}
                 </button> */}
-
-                <div className="h-40 overflow-hidden rounded-t-2xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center">
-                  {p.thumbnail ? (
+        
+                  <div className="h-40 overflow-hidden rounded-t-2xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center">
+                  {p.mediaUrls ? (
                     <img
-                      src={p.thumbnail}
+                      src={p.mediaUrls}
                       alt={p.title}
                       className="w-full h-full object-cover"
                     />
@@ -490,7 +519,7 @@ const CommunityPosts = () => {
               disabled={page <= 1}
               className="px-4 py-2 rounded border disabled:opacity-40"
             >
-              Trước
+              Previous
             </button>
             {Array.from({ length: totalPages }).map((_, i) => {
               const idx = i + 1;
@@ -511,7 +540,7 @@ const CommunityPosts = () => {
               disabled={page >= totalPages}
               className="px-4 py-2 rounded border disabled:opacity-40"
             >
-              Sau
+              Next
             </button>
           </div>
         </div>
@@ -531,10 +560,53 @@ const CommunityPosts = () => {
 
   return (
     <div className="min-h-[90vh] bg-white">
-      <div className="max-w-8xl mx-auto px-12  grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div className="max-w-8xl mx-auto px-12   gap-8">
         {/* main column */}
         <div className="lg:col-span-2">
-          {/* cover */}
+          {/* Back button */}
+          <button
+            onClick={handleBack}
+            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors mb-4"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Back</span>
+          </button>
+
+          <div className="mt-6 bg-white rounded-lg p-6 shadow-sm">
+            
+            <h1 className="text-3xl font-bold text-gray-900 mb-4">{selectedPost.title}</h1>
+          
+            {selectedPost.description && (
+              <p className="text-gray-600 text-base mb-4 leading-relaxed">
+                {selectedPost.description}
+              </p>
+            )}
+
+            {/* Author and metadata */}
+            <div className="flex items-center justify-between text-sm text-gray-600 pb-4 border-b">
+              <div className="flex items-center gap-3">
+                <img
+                  src={selectedPost.account?.avatarUrl || "https://ui-avatars.com/api/?background=00D09E&color=fff&name=U"}
+                  alt={selectedPost.account?.username}
+                  className="w-10 h-10 rounded-full"
+                />
+                <div>
+                  <div className="font-medium text-gray-900">@{selectedPost.account?.username}</div>
+                  <div className="text-xs text-gray-500">{formatDateRelative(selectedPost.createdAt)}</div>
+                </div>
+              </div>
+              <div className="flex items-center gap-4 text-sm">
+                <div className="flex items-center gap-2">
+                  <Calendar className="w-4 h-4" />
+                  <span>{new Date(parseDateFlexible(selectedPost.createdAt)).toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "numeric" })}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <MessageSquare className="w-4 h-4" />
+                  <span>{selectedPost.comments?.length || 0} Comments</span>
+                </div>
+              </div>
+            </div>
+          </div>
           <div className="relative rounded-2xl overflow-hidden shadow-lg">
             <div
               className="w-full flex items-center justify-center bg-gradient-to-br from-emerald-500 to-teal-500
@@ -555,41 +627,23 @@ const CommunityPosts = () => {
 
             <div className="absolute inset-0 bg-gradient-to-t from-black/35 to-transparent" />
 
-            {/* Back button top-left (always visible on cover) */}
-            <button
-              onClick={handleBack}
-              aria-label="Quay lại"
-              className="absolute left-4 top-4 z-40 bg-white/90 hover:bg-white rounded-md p-2 shadow-sm flex items-center gap-2 text-sm"
-              style={{ backdropFilter: "saturate(120%) blur(4px)" }}
-            >
-              <ArrowLeft className="w-4 h-4" />
-              <span className="hidden sm:inline">Quay lại</span>
-            </button>
-
-            {/* title + meta bottom-left */}
-            <div className="absolute left-6 bottom-6 text-white">
-              <h1 className="text-3xl font-bold">{selectedPost.title}</h1>
-              <div className="mt-1 text-sm opacity-90">
-                @{selectedPost.account?.username} ·{" "}
-                {formatDateRelative(selectedPost.createdAt)}
-              </div>
-            </div>
+   
 
             {/* action buttons bottom-right + comment toggle */}
             <div className="absolute right-6 bottom-6 flex gap-3 z-30 items-center">
-              <button
+              {/* <button
                 onClick={() => setShowComments((s) => !s)}
                 className="hidden sm:inline-flex items-center gap-2 bg-white/90 text-gray-800 px-3 py-2 rounded-md shadow-sm hover:bg-white"
               >
-                {showComments ? "Ẩn bình luận" : "Xem bình luận"}
-              </button>
+                {showComments ? "Hide Comments" : "View Comments"}
+              </button> */}
 
-              <button className="bg-white/10 backdrop-blur rounded-full p-2 hover:bg-white/20">
+              {/* <button className="bg-white/10 backdrop-blur rounded-full p-2 hover:bg-white/20">
                 <Share2 className="w-5 h-5 text-white" />
               </button>
               <button className="bg-white/10 backdrop-blur rounded-full p-2 hover:bg-white/20">
                 <Heart className="w-5 h-5 text-white" />
-              </button>
+              </button> */}
 
               {/* nút xóa bài (detail) */}
               <button
@@ -602,10 +656,12 @@ const CommunityPosts = () => {
                     : "bg-red-600 hover:bg-red-700"
                 }`}
               >
-                {deletingId === selectedPost.id ? "Đang xóa..." : "Xóa bài"}
+                {deletingId === selectedPost.id ? "Deleting..." : "Delete Post"}
               </button>
             </div>
           </div>
+
+  
 
           {/* media gallery small: if more images beyond cover collage, present them nicely */}
           {mediaList.length > 1 && (
@@ -621,19 +677,14 @@ const CommunityPosts = () => {
             </div>
           )}
 
-          {/* content: show article full */}
-          <article className="mt-8 bg-white rounded-lg p-6 shadow-sm">
-            <div className="prose max-w-none">
-              <RenderBlocks blocks={blocks} />
-            </div>
-          </article>
+  
 
           {/* COMMENTS: only render when user toggles */}
           <section ref={commentsRef} className="mt-8">
             {showComments ? (
               <>
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl font-semibold">Bình luận</h3>
+                  <h3 className="text-xl font-semibold">Comments</h3>
                   <div className="text-sm text-gray-500">
                     {/* intentionally left count out */}
                     {selectedPost.comments && selectedPost.comments.length > 0
@@ -670,7 +721,7 @@ const CommunityPosts = () => {
                       ))
                     ) : (
                       <p className="text-gray-500">
-                        Chưa có bình luận nào. Hãy là người đầu tiên!
+                        No comments yet. Be the first to comment!
                       </p>
                     )}
                   </div>
@@ -682,36 +733,17 @@ const CommunityPosts = () => {
                   onClick={() => setShowComments(true)}
                   className="px-4 py-2 rounded-md bg-emerald-600 text-white hover:bg-emerald-700"
                 >
-                  Xem bình luận
+                  View Comments
                 </button>
               </div>
             )}
           </section>
         </div>
 
-        {/* right sidebar: related removed, keep meta only */}
+        {/* right sidebar: removed, content is now full width */}
         <aside className="lg:col-span-1">
           <div className="sticky top-24 space-y-4">
-            {/* meta */}
-            <div className="bg-white rounded-xl shadow-sm p-4">
-              <div className="text-sm text-gray-500">Thông tin</div>
-              <div className="mt-3 text-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-700">Ngày đăng</span>
-                  <span className="text-gray-500">
-                    {new Date(
-                      parseDateFlexible(selectedPost.createdAt)
-                    ).toLocaleString()}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between mt-2">
-                  <span className="text-gray-700">Bình luận</span>
-                  <span className="text-gray-500">
-                    {/* intentionally empty */}
-                  </span>
-                </div>
-              </div>
-            </div>
+            {/* Sidebar can be used for other content later */}
           </div>
         </aside>
       </div>

@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { ArrowLeft, Calendar, Video, Image as ImgIcon } from "lucide-react";
 import { useParams, useNavigate } from "react-router-dom";
 import newsService from "@/services/newsService";
+import MediaModal from "@/components/ui/media-modal";
 
 const formatDate = (iso) =>
   iso
@@ -51,6 +52,10 @@ const NewsFeedDetail = () => {
   const [feed, setFeed] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // Modal state
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalIndex, setModalIndex] = useState(0);
 
   useEffect(() => {
     const fetchFeed = async () => {
@@ -91,6 +96,24 @@ const NewsFeedDetail = () => {
   const firstMedia = mediaList.length > 0 ? mediaList[0] : null;
   const thumbnail = feed?.thumbnailUrl || (firstMedia ? firstMedia.mediaUrl : null);
   const mediaType = firstMedia?.mediaType || (thumbnail ? detectMediaType(thumbnail) : 'IMAGE');
+
+  // Create full media list including thumbnail for modal
+  const allMedia = thumbnail && thumbnail !== firstMedia?.mediaUrl
+    ? [{ mediaUrl: thumbnail, mediaType: detectMediaType(thumbnail) }, ...mediaList]
+    : mediaList;
+
+  const openModal = (index) => {
+    setModalIndex(index);
+    setIsModalOpen(true);
+  };
+
+  const handleModalNavigate = (direction) => {
+    if (direction === "prev" && modalIndex > 0) {
+      setModalIndex(modalIndex - 1);
+    } else if (direction === "next" && modalIndex < allMedia.length - 1) {
+      setModalIndex(modalIndex + 1);
+    }
+  };
 
   if (loading) {
     return (
@@ -190,7 +213,7 @@ const NewsFeedDetail = () => {
           </div>
 
           {/* Thumbnail / Media */}
-          <div className="relative rounded-2xl overflow-hidden shadow-lg">
+          <div className="relative rounded-2xl overflow-hidden shadow-lg cursor-pointer group" onClick={() => openModal(0)}>
             <div className="w-full flex items-center justify-center bg-gradient-to-br from-emerald-500 to-teal-500 h-64 md:h-80 lg:h-[420px]">
               {firstMedia?.mediaType === "VIDEO" ? (
                 <video
@@ -199,6 +222,7 @@ const NewsFeedDetail = () => {
                   preload="metadata"
                //   poster={thumbnail}
                   className="w-full h-full object-cover object-center bg-black relative z-10"
+                  onClick={(e) => e.stopPropagation()}
                 >
                   Your browser does not support the video tag.
                 </video>
@@ -206,7 +230,7 @@ const NewsFeedDetail = () => {
                 <img
                   src={thumbnail}
                   alt={feed.title}
-                  className="w-full h-full object-cover object-center"
+                  className="w-full h-full object-cover object-center transition-transform group-hover:scale-105"
                 />
               ) : (
                 <div className="px-6 text-white">
@@ -248,34 +272,52 @@ const NewsFeedDetail = () => {
                 Additional Media
               </h2>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {mediaList.slice(1).map((m, idx) => (
-                  <div
-                    key={idx}
-                    className="rounded-lg overflow-hidden bg-gray-100 relative"
-                  >
-                    {m.mediaType === "VIDEO" ? (
-                      <video
-                        src={m.mediaUrl}
-                        controls
-                        preload="metadata"
-                        className="w-full h-48 object-cover bg-black relative z-10"
-                      >
-                        Your browser does not support the video tag.
-                      </video>
-                    ) : (
-                      <img
-                        src={m.mediaUrl}
-                        alt={`Media ${idx + 2}`}
-                        className="w-full h-48 object-cover"
-                      />
-                    )}
-                  </div>
-                ))}
+                {mediaList.slice(1).map((m, idx) => {
+                  const actualIndex = idx + 1; // Skip first media (already shown above)
+                  return (
+                    <div
+                      key={idx}
+                      className="rounded-lg overflow-hidden bg-gray-100 relative cursor-pointer group hover:shadow-lg transition-all"
+                      onClick={() => openModal(actualIndex)}
+                    >
+                      {m.mediaType === "VIDEO" ? (
+                        <div className="relative">
+                          <video
+                            src={m.mediaUrl}
+                            preload="metadata"
+                            className="w-full h-48 object-cover bg-black"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            Your browser does not support the video tag.
+                          </video>
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none">
+                            <Video className="w-12 h-12 text-white" />
+                          </div>
+                        </div>
+                      ) : (
+                        <img
+                          src={m.mediaUrl}
+                          alt={`Media ${idx + 2}`}
+                          className="w-full h-48 object-cover transition-transform group-hover:scale-105"
+                        />
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
         </div>
       </div>
+
+      {/* Media Modal */}
+      <MediaModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        mediaList={allMedia}
+        currentIndex={modalIndex}
+        onNavigate={handleModalNavigate}
+      />
     </div>
   );
 };

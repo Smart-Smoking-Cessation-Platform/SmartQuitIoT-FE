@@ -28,10 +28,6 @@ const Download = () => {
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             {/* Left Content */}
             <div>
-              <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-4 py-2 rounded-full mb-6">
-                <Star className="w-4 h-4 fill-yellow-300 text-yellow-300" />
-                <span className="text-sm font-medium">4.8/5 Rating • 50K+ Downloads</span>
-              </div>
               
               <h1 className="text-5xl md:text-6xl font-bold mb-6">
                 Download SmartQuit IoT

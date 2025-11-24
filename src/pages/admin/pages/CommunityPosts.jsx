@@ -470,9 +470,9 @@ console.log('visiblePosts', visiblePosts);
                 </button> */}
         
                   <div className="h-40 overflow-hidden rounded-t-2xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center">
-                  {p.mediaUrls ? (
+                  {p.mediaUrls || p.thumbnail ? (
                     <img
-                      src={p.mediaUrls}
+                      src={p.mediaUrls || p.thumbnail}
                       alt={p.title}
                       className="w-full h-full object-cover"
                     />

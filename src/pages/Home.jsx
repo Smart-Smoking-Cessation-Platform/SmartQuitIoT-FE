@@ -4,6 +4,7 @@ import Footer from "@/components/Footer";
 import Header from "@/components/Header";
 import HeroSection from "@/components/HeroSection";
 import StatsSection from "@/components/StatsSections";
+import NewsSection from "@/components/NewsSection";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -21,6 +22,7 @@ const Home = () => {
       <HeroSection />
       <StatsSection />
       <FeaturesSection />
+      <NewsSection />
       <CTASection />
     </div>
   );

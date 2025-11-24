@@ -187,7 +187,7 @@ const News = () => {
                 </p>
                 
                 <button 
-                  onClick={() => navigate('/login')}
+                  onClick={() => navigate(`/news/${featuredNews.id}`)}
                   className="inline-flex items-center gap-2 text-emerald-600 font-semibold hover:gap-3 transition-all"
                 >
                   <span>Read Full Article</span>
@@ -208,7 +208,7 @@ const News = () => {
               {regularNews.map((item) => (
                 <article
                   key={item.id}
-                  onClick={() => navigate('/login')}
+                  onClick={() => navigate(`/news/${item.id}`)}
                   className="bg-white rounded-2xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer group"
                 >
                   {/* Image */}

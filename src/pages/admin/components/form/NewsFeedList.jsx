@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { Calendar, MessageSquare, Video } from "lucide-react";
 import { Edit2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import useConfirm from "@/hooks/useConfirm";
 
 const formatDate = (dateString) =>
   dateString
@@ -16,12 +17,14 @@ const formatDate = (dateString) =>
     : "-";
 
 const getStatusColor = (status) => {
-  switch (status) {
-    case "published":
+  const normalized = (status || "").toUpperCase();
+  switch (normalized) {
+    case "PUBLISH":
+    case "PUBLISHED":
       return "bg-green-50 text-green-700 ring-green-100";
-    case "draft":
+    case "DRAFT":
       return "bg-yellow-50 text-yellow-700";
-    case "deleted":
+    case "DELETED":
       return "bg-red-50 text-red-700";
     default:
       return "bg-gray-50 text-gray-700";
@@ -29,13 +32,15 @@ const getStatusColor = (status) => {
 };
 
 const getStatusText = (status) => {
-  switch (status) {
-    case "published":
-      return "Đã xuất bản";
-    case "draft":
-      return "Bản nháp";
-    case "deleted":
-      return "Đã xóa";
+  const normalized = (status || "").toUpperCase();
+  switch (normalized) {
+    case "PUBLISH":
+    case "PUBLISHED":
+      return "Published";
+    case "DRAFT":
+      return "Draft";
+    case "DELETED":
+      return "Deleted";
     default:
       return status;
   }
@@ -49,15 +54,16 @@ const NewsFeedList = ({
   onOpen,
 }) => {
   const [processingId, setProcessingId] = useState(null);
+  const confirm = useConfirm();
 
   if (loading) {
-    return <div className="py-12 text-center text-gray-500">Đang tải...</div>;
+    return <div className="py-12 text-center text-gray-500">Loading...</div>;
   }
 
   if (!feeds || feeds.length === 0) {
     return (
       <div className="text-center py-12">
-        <div className="text-gray-400 mb-4">Chưa có news feed nào</div>
+        <div className="text-gray-400 mb-4">No news feeds yet</div>
       </div>
     );
   }
@@ -65,42 +71,29 @@ const NewsFeedList = ({
   // helper để detect Promise
   const isPromise = (p) => !!p && typeof p.then === "function";
 
-  const handleEditClick = async (e, feed) => {
+  const handleEditClick = (e, feed) => {
     e.stopPropagation();
-    if (!onEdit) {
-      toast("Chưa có action sửa", { id: "no-edit-action" });
-      return;
-    }
-
-    try {
-      const result = onEdit(feed);
-      if (isPromise(result)) {
-        setProcessingId(feed.id);
-        await toast.promise(result, {
-          loading: "Mở form chỉnh sửa...",
-          success: "Form chỉnh sửa sẵn sàng ✨",
-          error: (err) => `Không thể mở form: ${err?.message || "Lỗi"}`,
-        });
-      } else {
-        // non-promise: quick feedback
-        toast("Mở form chỉnh sửa…");
-      }
-    } catch (err) {
-      toast.error(`Lỗi khi mở form: ${err?.message || "Unknown"}`);
-    } finally {
-      setProcessingId(null);
+    if (onEdit) {
+      onEdit(feed);
+     // toast.success("Opened for editing");
     }
   };
 
   const handleDeleteClick = async (e, feed) => {
     e.stopPropagation();
     if (!onDelete) {
-      toast("Chưa có action xóa", { id: "no-delete-action" });
+      toast("No delete action available", { id: "no-delete-action" });
       return;
     }
 
-    // optional confirm
-    const ok = window.confirm("Bạn có chắc muốn xóa feed này?");
+    // Use custom confirm modal
+    const ok = await confirm({
+      title: "Confirm Delete",
+      message: `Are you sure you want to delete "${feed.title}"? This action cannot be undone.`,
+      okText: "Delete",
+      cancelText: "Cancel",
+      destructive: true,
+    });
     if (!ok) return;
 
     try {
@@ -108,16 +101,16 @@ const NewsFeedList = ({
       if (isPromise(result)) {
         setProcessingId(feed.id);
         await toast.promise(result, {
-          loading: "Đang xóa…",
-          success: "Xóa thành công ✅",
-          error: (err) => `Xóa thất bại: ${err?.message || "Lỗi"}`,
+          loading: "Deleting...",
+          success: "Deleted successfully",
+          error: (err) => `Delete failed: ${err?.message || "Error"}`,
         });
       } else {
         // sync delete: show success immediately
-        toast.success("Xóa thành công ✅");
+        toast.success("Deleted successfully");
       }
     } catch (err) {
-      toast.error(`Xóa thất bại: ${err?.message || "Unknown"}`);
+      toast.error(`Delete failed: ${err?.message || "Unknown"}`);
     } finally {
       setProcessingId(null);
     }
@@ -197,33 +190,35 @@ const NewsFeedList = ({
                 </div>
               </div>
 
-              <div className="flex gap-3 mt-4">
-                {/* Edit button - subtle outlined green */}
-                <button
-                  onClick={(e) => handleEditClick(e, feed)}
-                  aria-label={`Sửa ${feed.title}`}
-                  disabled={disabled}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-white border border-[#00bd7e] text-[#00bd7e] rounded-lg hover:bg-[#00bd7e] hover:text-white transition focus:outline-none focus:ring-2 focus:ring-[#00bd7e]/30 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <Edit2 size={16} />
-                  <span className="text-sm font-medium">
-                    {disabled ? "Đang..." : "Sửa"}
-                  </span>
-                </button>
+              {(feed.status || "").toUpperCase() !== "DELETED" && (
+                <div className="flex gap-3 mt-4">
+                  {/* Edit button - subtle outlined green */}
+                  <button
+                    onClick={(e) => handleEditClick(e, feed)}
+                    aria-label={`Edit ${feed.title}`}
+                    disabled={disabled}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-white border border-[#00bd7e] text-[#00bd7e] rounded-lg hover:bg-[#00bd7e] hover:text-white transition focus:outline-none focus:ring-2 focus:ring-[#00bd7e]/30 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Edit2 size={16} />
+                    <span className="text-sm font-medium">
+                      {disabled ? "Processing..." : "Edit"}
+                    </span>
+                  </button>
 
-                {/* Delete button - subtle outlined red */}
-                <button
-                  onClick={(e) => handleDeleteClick(e, feed)}
-                  aria-label={`Xóa ${feed.title}`}
-                  disabled={disabled}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-white border border-red-200 text-red-600 rounded-lg hover:bg-red-50 transition focus:outline-none focus:ring-2 focus:ring-red-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <Trash2 size={16} />
-                  <span className="text-sm font-medium">
-                    {disabled ? "Đang..." : "Xóa"}
-                  </span>
-                </button>
-              </div>
+                  {/* Delete button - subtle outlined red */}
+                  <button
+                    onClick={(e) => handleDeleteClick(e, feed)}
+                    aria-label={`Delete ${feed.title}`}
+                    disabled={disabled}
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-white border border-red-200 text-red-600 rounded-lg hover:bg-red-50 transition focus:outline-none focus:ring-2 focus:ring-red-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Trash2 size={16} />
+                    <span className="text-sm font-medium">
+                      {disabled ? "Processing..." : "Delete"}
+                    </span>
+                  </button>
+                </div>
+              )}
             </div>
           </article>
         );

@@ -14,7 +14,7 @@ import { Trash2, Plus, X } from "lucide-react";
 
 const FIELD_OPTIONS = [
   { value: "progress", label: "Progress" },
-  { value: "craving_level_avg", label: "Craving Level Average" },
+  { value: "craving_level_avg", label: "Average Craving Level" },
   { value: "avg_cigarettes", label: "Average Cigarettes Per Day" },
   { value: "avg_mood", label: "Average Mood" },
   { value: "avg_anxiety", label: "Average Anxiety" },

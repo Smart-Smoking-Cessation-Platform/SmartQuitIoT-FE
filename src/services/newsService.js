@@ -84,6 +84,20 @@ const deleteNews = async (id) => {
   }
 };
 
+const getAllWithFilters = async ({ status, title, page = 0, size = 6, sort = "createdAt,desc" } = {}) => {
+  try {
+    const params = { page, size, sort };
+    if (status) params.status = status;
+    if (title && title.trim()) params.title = title.trim();
+    
+    const res = await instance.get("/news/admin", { params });
+    return unwrap(res);
+  } catch (err) {
+    console.error("newsService.getAllWithFilters error:", err);
+    throw err;
+  }
+};
+
 export default {
   getLatest,
   getAll,
@@ -91,4 +105,5 @@ export default {
   createNews,
   updateNews,
   deleteNews,
+  getAllWithFilters,
 };

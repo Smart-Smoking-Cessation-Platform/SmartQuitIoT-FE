@@ -28,7 +28,7 @@ const CreateNewsPage = () => {
     defaultValues: {
       title: "",
       content: "",
-      status: "draft",
+      status: "DRAFT",
     },
   });
 

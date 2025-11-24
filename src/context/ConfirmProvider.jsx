@@ -14,9 +14,13 @@ const css = `
 .__confirm_title { font-size:16px; font-weight:700; margin:0 0 6px 0; color:#0f172a; }
 .__confirm_msg { font-size:14px; color:#374151; margin-bottom: 16px; }
 .__confirm_actions { display:flex; gap:8px; justify-content:flex-end; }
-.__confirm_btn { padding:8px 12px; border-radius:10px; border:none; cursor:pointer; font-weight:700; }
+.__confirm_btn { padding:8px 12px; border-radius:10px; border:none; cursor:pointer; font-weight:700; transition: all 0.2s; }
 .__confirm_btn.secondary { background:#f3f4f6; color:#0f172a; }
+.__confirm_btn.secondary:hover { background:#e5e7eb; }
 .__confirm_btn.primary { background: linear-gradient(90deg,#00d09e,#00b88a); color:white; box-shadow:0 8px 20px rgba(2,112,89,0.08); }
+.__confirm_btn.primary:hover { box-shadow:0 10px 25px rgba(2,112,89,0.12); transform: translateY(-1px); }
+.__confirm_btn.destructive { background: linear-gradient(90deg,#ef4444,#dc2626); color:white; box-shadow:0 8px 20px rgba(239,68,68,0.08); }
+.__confirm_btn.destructive:hover { box-shadow:0 10px 25px rgba(239,68,68,0.15); transform: translateY(-1px); }
 `;
 
 /**
@@ -72,7 +76,7 @@ export default function ConfirmProvider({ children }) {
                 {modal.cancelText}
               </button>
               <button
-                className={`__confirm_btn primary`}
+                className={`__confirm_btn ${modal.destructive ? 'destructive' : 'primary'}`}
                 onClick={() => handleClose(true)}
                 autoFocus
               >

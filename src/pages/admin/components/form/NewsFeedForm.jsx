@@ -15,7 +15,7 @@ const NewsFeedForm = ({
   const [form, setForm] = useState({
     title: "",
     content: "",
-    status: "draft",
+    status: "DRAFT",
     thumbnailUrl: "",
   });
   const [thumbPreview, setThumbPreview] = useState("");
@@ -27,7 +27,7 @@ const NewsFeedForm = ({
       setForm({
         title: initial.title || "",
         content: initial.content || "",
-        status: initial.status || "draft",
+        status: initial.status || "DRAFT",
         thumbnailUrl: initial.thumbnailUrl || "",
       });
       setThumbPreview(initial.thumbnailUrl || "");
@@ -35,7 +35,7 @@ const NewsFeedForm = ({
       setForm({
         title: "",
         content: "",
-        status: "draft",
+        status: "DRAFT",
         thumbnailUrl: "",
       });
       setThumbPreview("");
@@ -91,20 +91,16 @@ const NewsFeedForm = ({
     setSaving(true);
     try {
       const payload = {
+        id: initial?.id,
         title: form.title,
         content: form.content,
         thumbnailUrl: form.thumbnailUrl || null,
         mediaUrls: [],
+        status: form.status, // Keep as 'status' for parent component
+        newsStatus: form.status, // Also send as newsStatus for API
       };
 
-      let saved;
-      if (initial?.id) {
-        saved = await newsService.updateNews(initial.id, payload);
-      } else {
-        saved = await newsService.createNews(payload);
-      }
-
-      onSubmit && onSubmit(saved);
+      onSubmit && onSubmit(payload);
     } catch (err) {
       console.error("Save news error", err);
       const msg = err?.response?.data || err?.message || "Save failed";
@@ -173,8 +169,8 @@ const NewsFeedForm = ({
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg"
                 disabled={disabled}
               >
-                <option value="draft">Draft</option>
-                <option value="published">Published</option>
+                <option value="DRAFT">Draft</option>
+                <option value="PUBLISH">Publish</option>
               </select>
             </div>
           </div>

@@ -43,6 +43,7 @@ import CommunityPosts from "./pages/admin/pages/CommunityPosts";
 import WebsocketProvider from "./context/WebsocketProvider";
 import FeedbackPage from "./pages/coach/FeedbackPage";
 import NewsFeeds from "./pages/admin/pages/NewsFeeds";
+import NewsFeedDetail from "./pages/admin/pages/NewsFeedDetail";
 function App() {
   const [isLoading, setIsLoading] = useState(true);
 
@@ -94,6 +95,10 @@ function App() {
         {
           path: "/admin/news-feeds",
           element: <NewsFeeds />,
+        },
+        {
+          path: "/admin/news-feeds/:id",
+          element: <NewsFeedDetail />,
         },
         {
           path: "/admin/community-posts",

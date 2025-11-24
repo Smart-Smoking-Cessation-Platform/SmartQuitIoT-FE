@@ -1,10 +1,10 @@
 // src/pages/admin/pages/NewsFeeds.jsx
-import React, { useEffect, useState, useContext } from "react";
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import newsService from "@/services/newsService";
 import NewsFeedList from "../components/form/NewsFeedList";
 import NewsFeedForm from "../components/form/NewsFeedForm";
-import NewsFeedDetailModal from "../components/modals/NewsFeedDetailModal";
-import ToastContext from "@/context/toastContext";
 
 /**
  * Map backend DTO -> UI model
@@ -18,18 +18,19 @@ const mapNewsDTOtoUI = (n = {}) => {
     id: n.id,
     title: n.title,
     content: n.content,
-    status: (n.status || "").toLowerCase(),
+    status: n.status || "DRAFT", // Keep uppercase for enum
     createdAt: n.createdAt,
     updatedAt: n.updatedAt || n.createdAt,
     thumbnailUrl: n.thumbnailUrl || null,
     mediaUrl: firstMedia ? firstMedia.mediaUrl : null,
     mediaType: firstMedia ? firstMedia.mediaType || "IMAGE" : "IMAGE",
+    account: n.account || null,
     raw: n,
   };
 };
 
 const NewsFeeds = () => {
-  const toast = useContext(ToastContext); // expects toast.success / toast.error etc.
+  const navigate = useNavigate();
   const [feeds, setFeeds] = useState([]);
   const [loading, setLoading] = useState(false);
 
@@ -37,37 +38,37 @@ const NewsFeeds = () => {
   const [editing, setEditing] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // detail modal state
-  const [detailId, setDetailId] = useState(null);
-  const [detailOpen, setDetailOpen] = useState(false);
-
-  const showSuccess = (msg) => {
-    if (toast && typeof toast.success === "function") toast.success(msg);
-    else window.alert(msg);
-  };
-  const showError = (msg) => {
-    if (toast && typeof toast.error === "function") toast.error(msg);
-    else window.alert(msg);
-  };
-  const showInfo = (msg) => {
-    if (toast && typeof toast.info === "function") toast.info(msg);
-    else window.alert(msg);
-  };
+  // Pagination and filters
+  const [page, setPage] = useState(0);
+  const [size, setSize] = useState(6);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
+  const [statusFilter, setStatusFilter] = useState("");
+  const [searchTitle, setSearchTitle] = useState("");
+  const [searchInput, setSearchInput] = useState("");
 
   const fetchFeeds = async () => {
     setLoading(true);
     try {
-      const list = await newsService.getAll();
-      // newsService.getAll() should return array or wrapped object; handle both
-      const arrRaw = Array.isArray(list)
-        ? list
-        : list?.data || list?.result || [];
-      const arr = Array.isArray(arrRaw) ? arrRaw.map(mapNewsDTOtoUI) : [];
+      const result = await newsService.getAllWithFilters({
+        status: statusFilter || undefined,
+        title: searchTitle || undefined,
+        page,
+        size,
+        sort: "createdAt,desc"
+      });
+      
+      // Handle paginated response
+      const content = result?.content || [];
+      const arr = Array.isArray(content) ? content.map(mapNewsDTOtoUI) : [];
+      console.log("result:", result);
       setFeeds(arr);
+      setTotalPages(result?.page?.totalPages || 0);
+      setTotalElements(result?.page?.totalElements || 0);
     } catch (e) {
       console.error("fetchFeeds error", e);
       setFeeds([]);
-      showError("Failed to load news list. Check console for details.");
+      toast.error("Failed to load news list. Check console for details.");
     } finally {
       setLoading(false);
     }
@@ -76,7 +77,7 @@ const NewsFeeds = () => {
   useEffect(() => {
     fetchFeeds();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [page, size, statusFilter, searchTitle]);
 
   const handleCreateOrUpdate = async (payload) => {
     setSubmitting(true);
@@ -86,24 +87,25 @@ const NewsFeeds = () => {
         content: payload.content,
         thumbnailUrl: payload.thumbnailUrl || null,
         mediaUrls: payload.mediaUrl ? [payload.mediaUrl] : [],
+        newsStatus: payload.status || "DRAFT", // Add newsStatus
       };
 
       if (payload.id) {
         const updated = await newsService.updateNews(payload.id, createPayload);
         const ui = mapNewsDTOtoUI(updated);
         setFeeds((prev) => prev.map((f) => (f.id === ui.id ? ui : f)));
-        showSuccess("Update successful");
+        toast.success("Update successful");
       } else {
         const created = await newsService.createNews(createPayload);
         const ui = mapNewsDTOtoUI(created);
         setFeeds((prev) => [ui, ...(prev || [])]);
-        showSuccess("Create successful");
+        toast.success("Create successful");
       }
       setShowForm(false);
       setEditing(null);
     } catch (err) {
       console.error("create/update error", err);
-      showError("Error saving news. See console.");
+      toast.error("Error saving news. See console.");
     } finally {
       setSubmitting(false);
     }
@@ -115,18 +117,30 @@ const NewsFeeds = () => {
   };
 
   const handleDelete = async (id) => {
-    const confirmed = window.confirm(
-      "Are you sure you want to delete this feed?"
-    );
-    if (!confirmed) return;
-
     try {
       await newsService.deleteNews(id);
-      setFeeds((prev) => prev.filter((f) => f.id !== id));
-      showSuccess("Deleted");
+     // showSuccess("Deleted");
+      // Refresh list
+      fetchFeeds();
     } catch (err) {
       console.error("delete error", err);
-      showError("Delete failed. See console.");
+      toast.error("Delete failed. See console.");
+    }
+  };
+
+  const handleSearch = () => {
+    setSearchTitle(searchInput);
+    setPage(0); // Reset to first page
+  };
+
+  const handleStatusChange = (newStatus) => {
+    setStatusFilter(newStatus);
+    setPage(0); // Reset to first page
+  };
+
+  const handlePageChange = (newPage) => {
+    if (newPage >= 0 && newPage < totalPages) {
+      setPage(newPage);
     }
   };
 
@@ -139,7 +153,7 @@ const NewsFeeds = () => {
               Manage News Feeds
             </h1>
             <p className="text-gray-600 mt-1">
-              Create, edit, delete and upload media (Cloudinary)
+              {totalElements} News Feeds Total
             </p>
           </div>
 
@@ -156,6 +170,59 @@ const NewsFeeds = () => {
           )}
         </div>
 
+        {/* Search and Filter Bar */}
+        {!showForm && (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 mb-6">
+            <div className="flex flex-col md:flex-row gap-4">
+              {/* Search by title */}
+              <div className="flex-1">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={searchInput}
+                    onChange={(e) => setSearchInput(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                    placeholder="Search by title..."
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00bd7e]"
+                  />
+                  <button
+                    onClick={handleSearch}
+                    className="px-6 py-2 bg-[#00bd7e] text-white rounded-lg hover:bg-[#00a56f] transition"
+                  >
+                    Search
+                  </button>
+                  {searchTitle && (
+                    <button
+                      onClick={() => {
+                        setSearchInput("");
+                        setSearchTitle("");
+                        setPage(0);
+                      }}
+                      className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Filter by status */}
+              <div className="flex gap-2">
+                <select
+                  value={statusFilter}
+                  onChange={(e) => handleStatusChange(e.target.value)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#00bd7e]"
+                >
+                  <option value="">All Status</option>
+                  <option value="DRAFT">Draft</option>
+                  <option value="PUBLISH">Published</option>
+                  <option value="DELETED">Deleted</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        )}
+
         {showForm && (
           <NewsFeedForm
             key={editing?.id || "new"}
@@ -170,30 +237,71 @@ const NewsFeeds = () => {
         )}
 
         {!showForm && (
-          <NewsFeedList
-            feeds={feeds}
-            loading={loading}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-            onOpen={(id) => {
-              setDetailId(id);
-              setDetailOpen(true);
-            }}
-          />
+          <>
+            <NewsFeedList
+              feeds={feeds}
+              loading={loading}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onOpen={(id) => navigate(`/admin/news-feeds/${id}`)}
+            />
+
+            {/* Pagination */}
+            {!loading && totalPages > 1 && (
+              <div className="mt-6 flex justify-center items-center gap-2">
+                <button
+                  onClick={() => handlePageChange(page - 1)}
+                  disabled={page === 0}
+                  className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                >
+                  Previous
+                </button>
+
+                <div className="flex gap-1">
+                  {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                    let pageNum;
+                    if (totalPages <= 5) {
+                      pageNum = i;
+                    } else if (page < 3) {
+                      pageNum = i;
+                    } else if (page > totalPages - 3) {
+                      pageNum = totalPages - 5 + i;
+                    } else {
+                      pageNum = page - 2 + i;
+                    }
+
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => handlePageChange(pageNum)}
+                        className={`px-4 py-2 rounded-lg ${
+                          page === pageNum
+                            ? "bg-[#00bd7e] text-white"
+                            : "border border-gray-300 hover:bg-gray-50"
+                        }`}
+                      >
+                        {pageNum + 1}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <button
+                  onClick={() => handlePageChange(page + 1)}
+                  disabled={page >= totalPages - 1}
+                  className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+                >
+                  Next
+                </button>
+
+                <span className="ml-4 text-sm text-gray-600">
+                  Page {page + 1} of {totalPages}
+                </span>
+              </div>
+            )}
+          </>
         )}
       </div>
-
-      {/* Detail modal */}
-      {detailOpen && (
-        <NewsFeedDetailModal
-          feedId={detailId}
-          initialFeed={feeds.find((f) => f.id === detailId) || null}
-          onClose={() => {
-            setDetailOpen(false);
-            setDetailId(null);
-          }}
-        />
-      )}
     </div>
   );
 };

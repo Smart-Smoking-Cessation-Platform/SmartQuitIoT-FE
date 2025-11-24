@@ -6,11 +6,13 @@ import {
   MessageSquare,
   Share2,
   Heart,
+  Video,
 } from "lucide-react";
 import { toast } from "sonner";
 import useConfirm from "@/hooks/useConfirm";
 import postService from "@/services/postService";
 import commentService from "@/services/commentService";
+import MediaModal from "@/components/ui/media-modal";
 
 /* ----------------------
    Helpers (date parsing + relative)
@@ -266,6 +268,10 @@ const CommunityPosts = () => {
   // xóa / ban post
   const [deletingId, setDeletingId] = useState(null);
   const confirm = useConfirm();
+  
+  // Modal state
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalIndex, setModalIndex] = useState(0);
 
   const handleBanPost = async (e, postId) => {
     if (e && typeof e.stopPropagation === "function") e.stopPropagation();
@@ -562,6 +568,25 @@ console.log('visiblePosts', visiblePosts);
   const firstMediaIsVideo = mediaList.length > 0 && mediaList[0].mediaType === 'VIDEO';
   const videoUrl = firstMediaIsVideo ? mediaList[0].mediaUrl : null;
   
+  // Create media list for modal
+  const allMediaForModal = mediaList.map(m => ({
+    mediaUrl: m.mediaUrl,
+    mediaType: m.mediaType
+  }));
+
+  const openModal = (index) => {
+    setModalIndex(index);
+    setIsModalOpen(true);
+  };
+
+  const handleModalNavigate = (direction) => {
+    if (direction === "prev" && modalIndex > 0) {
+      setModalIndex(modalIndex - 1);
+    } else if (direction === "next" && modalIndex < allMediaForModal.length - 1) {
+      setModalIndex(modalIndex + 1);
+    }
+  };
+  
   console.log("coverImage", coverImage);
   return (
     <div className="min-h-[90vh] bg-white">
@@ -627,7 +652,7 @@ console.log('visiblePosts', visiblePosts);
               </div>
             </div>
           </div>
-          <div className="relative rounded-2xl overflow-hidden shadow-lg">
+          <div className="relative rounded-2xl overflow-hidden shadow-lg cursor-pointer group" onClick={() => allMediaForModal.length > 0 && openModal(0)}>
             <div
               className="w-full flex items-center justify-center bg-gradient-to-br from-emerald-500 to-teal-500
                h-64 md:h-80 lg:h-[420px] transition-all duration-200"
@@ -638,6 +663,7 @@ console.log('visiblePosts', visiblePosts);
                   controls
                   preload="metadata"
                   className="w-full h-full object-cover object-center bg-black relative z-10"
+                  onClick={(e) => e.stopPropagation()}
                 >
                   Your browser does not support the video tag.
                 </video>
@@ -645,7 +671,7 @@ console.log('visiblePosts', visiblePosts);
                 <img
                   src={coverImage}
                   alt="cover"
-                  className="w-full h-full object-cover object-center"
+                  className="w-full h-full object-cover object-center transition-transform group-hover:scale-105"
                 />
               ) : (
                 <div className="px-6 text-white">
@@ -654,7 +680,7 @@ console.log('visiblePosts', visiblePosts);
               )}
             </div>
 
-            {!videoUrl && <div className="absolute inset-0 bg-gradient-to-t from-black/35 to-transparent" />}
+            {!videoUrl && <div className="absolute inset-0 bg-gradient-to-t from-black/35 to-transparent pointer-events-none" />}
 
    
 
@@ -681,14 +707,35 @@ console.log('visiblePosts', visiblePosts);
           {/* media gallery small: if more images beyond cover collage, present them nicely */}
           {mediaList.length > 1 && (
             <div className="mt-4 grid grid-cols-3 gap-3">
-              {mediaList.slice(1, 7).map((m, idx) => (
-                <img
-                  key={idx}
-                  src={m.mediaUrl}
-                  alt={`m${idx}`}
-                  className="w-full h-28 object-cover rounded-lg shadow-sm"
-                />
-              ))}
+              {mediaList.slice(1, 7).map((m, idx) => {
+                const actualIndex = idx + 1;
+                return (
+                  <div
+                    key={idx}
+                    className="relative cursor-pointer group hover:shadow-lg transition-all rounded-lg overflow-hidden"
+                    onClick={() => openModal(actualIndex)}
+                  >
+                    {m.mediaType === 'VIDEO' ? (
+                      <div className="relative">
+                        <video
+                          src={m.mediaUrl}
+                          className="w-full h-28 object-cover"
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center bg-black/30 pointer-events-none">
+                          <Video className="w-8 h-8 text-white" />
+                        </div>
+                      </div>
+                    ) : (
+                      <img
+                        src={m.mediaUrl}
+                        alt={`m${idx}`}
+                        className="w-full h-28 object-cover transition-transform group-hover:scale-105"
+                      />
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
 
@@ -743,7 +790,7 @@ console.log('visiblePosts', visiblePosts);
                 </div>
               </>
             ) : (
-              <div className="mt-6 flex items-center justify-center">
+              <div className="mb-3 flex items-center justify-center">
                 <button
                   onClick={() => setShowComments(true)}
                   className="px-4 py-2 rounded-md bg-emerald-600 text-white hover:bg-emerald-700"
@@ -762,6 +809,15 @@ console.log('visiblePosts', visiblePosts);
           </div>
         </aside>
       </div>
+
+      {/* Media Modal */}
+      <MediaModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        mediaList={allMediaForModal}
+        currentIndex={modalIndex}
+        onNavigate={handleModalNavigate}
+      />
 
       {/* bottom fixed back removed (we keep top-left button) */}
     </div>

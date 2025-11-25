@@ -6,6 +6,7 @@ import { getMembersForCoach, getMemberById } from "@/services/memberService";
 import { postMessage } from "@/services/conversationService";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { AlertCircle, User } from "lucide-react";
+import Paginator from "@/components/ui/paginator";
 
 export default function MemberManagementPage() {
   const navigate = useNavigate();
@@ -13,6 +14,12 @@ export default function MemberManagementPage() {
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Pagination state
+  const [page, setPage] = useState(0);
+  const [size, setSize] = useState(12); // 12 items per page
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
 
   const [selectedMember, setSelectedMember] = useState(null);
   const [detailsTab, setDetailsTab] = useState("metric"); // default tab
@@ -25,23 +32,58 @@ export default function MemberManagementPage() {
       if (abortController && abortController.abort) abortController.abort();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [page, size]);
 
   async function loadList() {
     setLoading(true);
     setError(null);
     try {
-      const resp = await getMembersForCoach(); // axios response or raw array / Page
+      const resp = await getMembersForCoach({
+        page,
+        size,
+      }); // axios response or raw array / Page
       const payload = resp && resp.data ? resp.data : resp;
-      const list = Array.isArray(payload) ? payload : payload.content || [];
+
+      // Handle paginated response (Page object) or simple array
+      let list = [];
+      let pages = 0;
+      let total = 0;
+
+      if (Array.isArray(payload)) {
+        // Simple array response
+        list = payload;
+        pages = 1;
+        total = payload.length;
+      } else if (payload?.content) {
+        // Page object response (Spring Page format)
+        list = payload.content || [];
+        pages = payload.totalPages || 0;
+        total = payload.totalElements || list.length;
+      } else if (payload?.data?.content) {
+        // Nested Page object in data
+        list = payload.data.content || [];
+        pages = payload.data.totalPages || 0;
+        total = payload.data.totalElements || list.length;
+      } else {
+        // Fallback: try to extract list from various possible structures
+        list = payload?.list || payload?.items || [];
+      }
+
       const mapped = list.map(normalizeApiMemberToView);
       setMembers(mapped);
+      setTotalPages(pages);
+      setTotalElements(total);
     } catch (err) {
       console.error("Load members failed", err);
-      setError(
-        "Failed to load members list. Please check your connection or try again."
-      );
+      // Extract error message from response if available
+      const errorMessage =
+        err?.response?.data?.message ||
+        err?.message ||
+        "Failed to load members list. Please check your connection or try again.";
+      setError(errorMessage);
       setMembers([]); // clear
+      setTotalPages(0);
+      setTotalElements(0);
     } finally {
       setLoading(false);
     }
@@ -51,6 +93,7 @@ export default function MemberManagementPage() {
   function normalizeApiMemberToView(api) {
     const isUsedFreeTrial = api.isUsedFreeTrial ?? api.usedFreeTrial ?? false;
 
+    // Handle metric - can be null from backend
     const metric =
       api.metric ||
       (api.streaks !== undefined ||
@@ -86,7 +129,12 @@ export default function MemberManagementPage() {
       setSelectedMember(normalizeApiMemberToView(payload));
     } catch (err) {
       console.error("Load member detail failed", err);
-      setError("Failed to load member details. Please try again.");
+      // Extract error message from response if available
+      const errorMessage =
+        err?.response?.data?.message ||
+        err?.message ||
+        "Failed to load member details. Please try again.";
+      setError(errorMessage);
       // keep selectedMember null so modal won't open with bad data
     }
   }
@@ -168,7 +216,7 @@ export default function MemberManagementPage() {
 
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
         {loading ? (
-          Array.from({ length: 6 }).map((_, i) => (
+          Array.from({ length: size }).map((_, i) => (
             <div
               key={i}
               className="animate-pulse bg-white p-6 rounded-2xl h-64 border border-gray-100"
@@ -201,6 +249,29 @@ export default function MemberManagementPage() {
           </div>
         )}
       </div>
+
+      {/* Pagination */}
+      {!loading && totalPages > 1 && (
+        <div className="mt-6">
+          <Paginator
+            currentPage={page}
+            totalPages={totalPages}
+            onPageChange={(newPage) => {
+              setPage(newPage);
+              // Scroll to top when page changes
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+          />
+        </div>
+      )}
+
+      {/* Show total count if available */}
+      {!loading && totalElements > 0 && (
+        <div className="mt-4 text-center text-sm text-gray-600">
+          Showing {members.length} of {totalElements} member
+          {totalElements !== 1 ? "s" : ""}
+        </div>
+      )}
 
       <MemberDetailsModal
         member={selectedMember}

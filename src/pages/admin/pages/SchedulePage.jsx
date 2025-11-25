@@ -56,9 +56,13 @@ export default function SchedulePage() {
                 )}&background=random`,
             }))
           );
-        } else toast.error("Không load được danh sách coach.");
-      } catch {
-        toast.error("Không thể kết nối server để lấy danh sách coach.");
+        } else toast.error("Failed to load coaches list.");
+      } catch (err) {
+        const errorMessage =
+          err?.response?.data?.message ||
+          err?.message ||
+          "Failed to connect to server to fetch coaches list.";
+        toast.error(errorMessage);
       } finally {
         setLoadingCoaches(false);
       }
@@ -77,9 +81,13 @@ export default function SchedulePage() {
           coachIds: d.coachIds || d.coaches?.map((c) => c.id) || [],
         }));
         setMasterSchedule(data);
-      } else toast.error("Không thể lấy lịch làm việc tháng này.");
-    } catch {
-      toast.error("Lỗi khi lấy lịch từ server.");
+      } else toast.error("Failed to fetch schedule for this month.");
+    } catch (err) {
+      const errorMessage =
+        err?.response?.data?.message ||
+        err?.message ||
+        "Error fetching schedule from server.";
+      toast.error(errorMessage);
     } finally {
       setLoadingSchedule(false);
     }
@@ -110,12 +118,12 @@ export default function SchedulePage() {
 
   const handleAssign = async () => {
     if (!selectedDates.length || !selectedCoachIds.length)
-      return toast.error("Chọn ngày và coach trước khi gán.");
+      return toast.error("Please select dates and coaches before assigning.");
 
     const ok = await confirm({
-      title: "Xác nhận gán lịch",
-      message: `Gán ${selectedCoachIds.length} coach cho ${selectedDates.length} ngày?`,
-      okText: "Gán",
+      title: "Confirm Schedule Assignment",
+      message: `Assign ${selectedCoachIds.length} coach${selectedCoachIds.length > 1 ? "es" : ""} to ${selectedDates.length} day${selectedDates.length > 1 ? "s" : ""}?`,
+      okText: "Assign",
     });
     if (!ok) return;
 
@@ -126,13 +134,22 @@ export default function SchedulePage() {
         coachIds: selectedCoachIds,
       });
       if (res?.data?.success) {
-        toast.success("Gán lịch thành công!");
+        toast.success("Schedule assigned successfully!");
         await fetchSchedules();
         setSelectedDates([]);
         setSelectedCoachIds([]);
-      } else toast.error("Gán lịch thất bại.");
-    } catch {
-      toast.error("Lỗi khi gửi yêu cầu gán lịch.");
+      } else {
+        const errorMsg = res?.data?.message || "Failed to assign schedule.";
+        toast.error(errorMsg);
+      }
+    } catch (err) {
+      const errorMessage =
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        err?.message ||
+        "Error sending schedule assignment request.";
+      toast.error(errorMessage);
+      console.error("Assign schedule error:", err);
     } finally {
       setAssigning(false);
     }
@@ -143,10 +160,11 @@ export default function SchedulePage() {
     addCoachIds = [],
     removeCoachIds = []
   ) => {
+    const action = removeCoachIds.length > 0 ? "remove" : "add";
     const ok = await confirm({
-      title: "Cập nhật lịch",
-      message: `Cập nhật lịch ngày ${formatDisplay(date)}?`,
-      okText: "Cập nhật",
+      title: "Update Schedule",
+      message: `${action === "remove" ? "Remove" : "Add"} coach${removeCoachIds.length > 1 || addCoachIds.length > 1 ? "es" : ""} from schedule on ${formatDisplay(date)}?`,
+      okText: "Update",
     });
     if (!ok) return;
 
@@ -156,11 +174,21 @@ export default function SchedulePage() {
         removeCoachIds,
       });
       if (res?.data?.success) {
-        toast.success("Đã cập nhật lịch!");
+        toast.success("Schedule updated successfully!");
         await fetchSchedules();
-      } else toast.error("Cập nhật thất bại.");
-    } catch {
-      toast.error("Lỗi kết nối server khi cập nhật.");
+      } else {
+        const errorMsg = res?.data?.message || "Failed to update schedule.";
+        toast.error(errorMsg);
+      }
+    } catch (err) {
+      // Extract detailed error message from backend response
+      const errorMessage =
+        err?.response?.data?.message ||
+        err?.response?.data?.error ||
+        err?.message ||
+        "Failed to update schedule. Please check your connection and try again.";
+      toast.error(errorMessage);
+      console.error("Update schedule error:", err);
     }
   };
 

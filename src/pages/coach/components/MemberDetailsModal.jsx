@@ -214,32 +214,26 @@ export default function MemberDetailsModal({
             style={{ maxHeight: "74vh" }}
           >
             {tab === "metric" && (
-              <>
-                {metricsError && (
-                  <div className="mb-3 text-red-600">{metricsError}</div>
-                )}
-                <MetricView metric={metrics} loading={loadingMetrics} />
-              </>
+              <MetricView 
+                metric={metrics} 
+                loading={loadingMetrics}
+                error={metricsError}
+              />
             )}
 
             {tab === "quitPlans" && (
-              <>
-                {quitPlansError && (
-                  <div className="mb-3 text-red-600">{quitPlansError}</div>
-                )}
-                <QuitPlansView quitPlans={quitPlans} />
-                {loadingQuitPlans && (
-                  <div className="mt-3 text-sm text-gray-500">
-                    Loading quit plans...
-                  </div>
-                )}
-              </>
+              <QuitPlansView 
+                quitPlans={quitPlans} 
+                loading={loadingQuitPlans}
+                error={quitPlansError}
+              />
             )}
 
             {tab === "healthRecoveries" && (
               <HealthRecoveriesView
                 healthRecoveries={healthRecoveries || []}
                 loading={loadingMetrics}
+                error={metricsError}
               />
             )}
           </main>

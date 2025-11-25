@@ -155,9 +155,38 @@ function SkeletonGrid() {
   );
 }
 
-export default function MetricView({ metric, loading = false }) {
+export default function MetricView({ metric, loading = false, error = null }) {
   if (loading) return <SkeletonGrid />;
-  if (!metric) return <div className="text-gray-500">No metrics available</div>;
+  
+  // Error state
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 px-4">
+        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-red-100 to-rose-100 flex items-center justify-center mb-4">
+          <Target size={32} className="text-red-400" />
+        </div>
+        <p className="text-gray-700 font-semibold mb-1">Failed to load metrics</p>
+        <p className="text-gray-500 text-sm text-center max-w-md">
+          {typeof error === "string" ? error : "Unable to fetch metrics data. Please try again later."}
+        </p>
+      </div>
+    );
+  }
+  
+  // Empty/null state
+  if (!metric || (typeof metric === "object" && Object.keys(metric).length === 0)) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 px-4">
+        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center mb-4">
+          <Target size={32} className="text-gray-400" />
+        </div>
+        <p className="text-gray-700 font-semibold mb-1">No metrics available</p>
+        <p className="text-gray-500 text-sm text-center max-w-md">
+          Metrics data will appear here once the member starts tracking their progress.
+        </p>
+      </div>
+    );
+  }
 
   // safe access & formatting
   const fmtNum = (v) =>
@@ -169,11 +198,35 @@ export default function MetricView({ metric, loading = false }) {
     return `${amount.toLocaleString("vi-VN")} ₫`;
   };
 
-  // Extract key metrics
+  // Extract key metrics with safe defaults
   const streaks = metric.streaks ?? 0;
   const smokeFreePct = metric.smokeFreeDayPercentage ?? 0;
   const reductionPct = metric.reductionPercentage ?? 0;
   const moneySaved = metric.moneySaved ?? 0;
+  
+  // Check if metric has meaningful data (not all zeros/null)
+  const hasData = 
+    streaks > 0 || 
+    smokeFreePct > 0 || 
+    reductionPct > 0 || 
+    moneySaved > 0 ||
+    (metric.steps ?? 0) > 0 ||
+    (metric.heartRate ?? null) !== null ||
+    (metric.avgCravingLevel ?? null) !== null;
+  
+  if (!hasData) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 px-4">
+        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-amber-100 to-orange-100 flex items-center justify-center mb-4">
+          <Target size={32} className="text-amber-500" />
+        </div>
+        <p className="text-gray-700 font-semibold mb-1">Metrics not yet recorded</p>
+        <p className="text-gray-500 text-sm text-center max-w-md">
+          The member hasn't started tracking metrics yet. Data will appear here once they begin their quit journey.
+        </p>
+      </div>
+    );
+  }
 
   const iotChartData = [
     {

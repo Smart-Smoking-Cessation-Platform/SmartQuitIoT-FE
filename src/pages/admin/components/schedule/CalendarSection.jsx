@@ -14,7 +14,7 @@ export default function CalendarSection({
   masterSchedule,
 }) {
   const weeks = getMonthGrid(year, month);
-  const monthLabel = new Date(year, month - 1).toLocaleString("vi-VN", {
+  const monthLabel = new Date(year, month - 1).toLocaleString("en-US", {
     month: "long",
     year: "numeric",
   });
@@ -32,7 +32,7 @@ export default function CalendarSection({
     const currentD = today.getDate();
 
     if (year < currentY || (year === currentY && month < currentM)) {
-      alert("Không thể chọn tháng trong quá khứ.");
+      alert("Cannot select dates in the past.");
       return;
     }
 
@@ -66,13 +66,13 @@ export default function CalendarSection({
           <button
             className={styles.btnGhost}
             onClick={quickSelectRestOfMonth}
-            title="Chọn từ hôm nay đến hết tháng"
+            title="Select from today to end of month"
           >
-            Chọn nhanh
+            Quick Select
           </button>
 
           <button className={styles.btnGhostLight} onClick={clearSelectedDates}>
-            Xóa chọn
+            Clear Selection
           </button>
         </div>
       </div>
@@ -80,7 +80,7 @@ export default function CalendarSection({
       {/* Calendar body */}
       <div className={styles.calendarBody}>
         <div className={styles.weekHeader}>
-          {["CN", "T2", "T3", "T4", "T5", "T6", "T7"].map((day) => (
+          {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
             <div key={day} className={styles.weekDay}>
               {day}
             </div>

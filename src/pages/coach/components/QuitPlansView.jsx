@@ -169,10 +169,12 @@ function DayDetail({ detail }) {
         <div className="p-3 bg-gray-50">
           <div className="space-y-2">
             {detail.missions && detail.missions.length ? (
-              detail.missions.map((m) => <MissionRow key={m.id} mission={m} />)
+              detail.missions
+                .filter(m => m != null) // Filter null missions
+                .map((m) => <MissionRow key={m.id || Math.random()} mission={m} />)
             ) : (
-              <div className="text-sm text-gray-500 p-3">
-                No missions for this day.
+              <div className="text-sm text-gray-500 p-3 bg-white rounded border border-gray-100">
+                No missions scheduled for this day.
               </div>
             )}
           </div>
@@ -213,16 +215,16 @@ function PhaseCard({ phase }) {
 
           <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="text-sm">
-              <div className="text-xs text-gray-500">Time</div>
+              <div className="text-xs text-gray-500">Time Period</div>
               <div className="font-medium">
-                {formatDate(phase.startDate)} → {formatDate(phase.endDate)}
+                {formatDate(phase.startDate) || "-"} → {formatDate(phase.endDate) || "-"}
               </div>
             </div>
 
             <div className="text-sm">
-              <div className="text-xs text-gray-500">Mission</div>
+              <div className="text-xs text-gray-500">Missions</div>
               <div className="font-medium">
-                {completed}/{totalMissions} Completed
+                {completed || 0}/{totalMissions || 0} Completed
               </div>
             </div>
 
@@ -280,10 +282,25 @@ function PhaseCard({ phase }) {
 }
 
 /* ---------- Main QuitPlansView ---------- */
-export default function QuitPlansView({ quitPlans = [], loading = false }) {
+export default function QuitPlansView({ quitPlans = [], loading = false, error = null }) {
+  // Error state
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 px-4">
+        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-red-100 to-rose-100 flex items-center justify-center mb-4">
+          <Calendar size={32} className="text-red-400" />
+        </div>
+        <p className="text-gray-700 font-semibold mb-1">Failed to load quit plans</p>
+        <p className="text-gray-500 text-sm text-center max-w-md">
+          {typeof error === "string" ? error : "Unable to fetch quit plans. Please try again later."}
+        </p>
+      </div>
+    );
+  }
+  
   const plans = Array.isArray(quitPlans)
-    ? quitPlans
-    : quitPlans
+    ? quitPlans.filter(p => p != null) // Filter out null/undefined
+    : quitPlans && typeof quitPlans === "object"
     ? [quitPlans]
     : [];
 
@@ -313,9 +330,9 @@ export default function QuitPlansView({ quitPlans = [], loading = false }) {
         <div className="w-20 h-20 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center mb-4">
           <Calendar size={32} className="text-gray-400" />
         </div>
-        <p className="text-gray-500 font-medium">Chưa có kế hoạch cai nghiện</p>
-        <p className="text-gray-400 text-sm mt-1">
-          Tạo kế hoạch mới để bắt đầu hành trình
+        <p className="text-gray-700 font-semibold mb-1">No quit plans yet</p>
+        <p className="text-gray-500 text-sm text-center max-w-md mt-1">
+          The member hasn't created any quit plans. Plans will appear here once they start their journey.
         </p>
       </div>
     );
@@ -397,7 +414,7 @@ export default function QuitPlansView({ quitPlans = [], loading = false }) {
               {plan.reason && (
                 <div className="p-4 rounded-xl bg-gray-50 border border-gray-100 text-sm text-gray-700">
                   <div className="font-medium text-gray-800 mb-1">
-                    Lý do / Tóm tắt
+                    Reason / Summary
                   </div>
                   <div className="text-sm text-gray-600 break-words">
                     {plan.reason}
@@ -408,19 +425,19 @@ export default function QuitPlansView({ quitPlans = [], loading = false }) {
               {/* timeline + progress */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
                 <div>
-                  <div className="text-xs text-gray-500">Time</div>
+                  <div className="text-xs text-gray-500">Time Period</div>
                   <div className="font-medium">
-                    {formatDate(plan.startDate)} → {formatDate(plan.endDate)}
+                    {formatDate(plan.startDate) || "-"} → {formatDate(plan.endDate) || "-"}
                   </div>
                   <div className="text-sm text-gray-500 mt-1">
-                    {elapsed}/{totalDays} days
+                    {elapsed || 0}/{totalDays || 0} days
                   </div>
                 </div>
 
                 <div className="md:col-span-2">
                   <div className="flex items-center justify-between mb-2">
                     <div className="text-xs text-gray-500">
-                      Tiến độ tổng thể
+                      Overall Progress
                     </div>
                     <div className="text-sm font-semibold text-emerald-600">
                       {overallProgress}%
@@ -466,8 +483,8 @@ export default function QuitPlansView({ quitPlans = [], loading = false }) {
                       />
                     ))
                   ) : (
-                    <div className="text-sm text-gray-500 p-3 bg-white rounded">
-                      Không có giai đoạn
+                    <div className="text-sm text-gray-500 p-3 bg-white rounded border border-gray-100">
+                      No phases available for this plan
                     </div>
                   )}
                 </div>

@@ -21,7 +21,7 @@ export default function CoachSelector({
         <div className={styles.coachTitle}>
           <Users className={styles.iconMuted} />
           <div className={styles.coachTitleTextWrap}>
-            <h3 className={styles.coachTitleText}>Chọn Coaches</h3>
+            <h3 className={styles.coachTitleText}>Select Coaches</h3>
             <p className={styles.coachSubtitle}>Multi-select</p>
           </div>
         </div>
@@ -29,22 +29,22 @@ export default function CoachSelector({
           <span className={styles.coachCountBig}>
             {selectedCoachIds.length}
           </span>
-          <span className={styles.coachCountLabel}>đã chọn</span>
+          <span className={styles.coachCountLabel}>selected</span>
         </div>
       </div>
 
       <div className={styles.cardBody}>
         <input
-          placeholder="🔍 Tìm kiếm coach..."
+          placeholder="🔍 Search coaches..."
           value={coachSearch}
           onChange={(e) => setCoachSearch(e.target.value)}
           className={styles.searchInput}
         />
         <div className={styles.coachList}>
           {loadingCoaches ? (
-            <div style={{ padding: 12 }}>Đang tải coaches...</div>
+            <div style={{ padding: 12 }}>Loading coaches...</div>
           ) : visibleCoaches.length === 0 ? (
-            <div style={{ padding: 12 }}>Không có coach phù hợp.</div>
+            <div style={{ padding: 12 }}>No matching coaches found.</div>
           ) : (
             visibleCoaches.map((c) => {
               const checked = selectedCoachIds.includes(c.id);
@@ -75,10 +75,10 @@ export default function CoachSelector({
 
         <div className={styles.coachActions}>
           <button onClick={selectAllVisible} className={styles.btnOutline}>
-            Chọn tất cả
+            Select All
           </button>
           <button onClick={clearCoaches} className={styles.btnGhostOutline}>
-            Xóa chọn
+            Clear Selection
           </button>
         </div>
 
@@ -90,8 +90,8 @@ export default function CoachSelector({
           className={styles.assignButton}
         >
           {assigning
-            ? "Đang gán..."
-            : `Gán ${selectedCoachIds.length} coach cho ${selectedDates.length} ngày`}
+            ? "Assigning..."
+            : `Assign ${selectedCoachIds.length} coach${selectedCoachIds.length > 1 ? "es" : ""} to ${selectedDates.length} day${selectedDates.length > 1 ? "s" : ""}`}
         </button>
       </div>
     </div>

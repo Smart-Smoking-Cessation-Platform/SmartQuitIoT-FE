@@ -18,23 +18,23 @@ export default function MasterScheduleTable({
     return (
       <div className={styles.emptyMaster}>
         <Calendar className={styles.iconHuge} />
-        <p className={styles.emptyTitle}>Đang tải lịch...</p>
+        <p className={styles.emptyTitle}>Loading schedule...</p>
       </div>
     );
 
   const months = [
-    "Tháng 1",
-    "Tháng 2",
-    "Tháng 3",
-    "Tháng 4",
-    "Tháng 5",
-    "Tháng 6",
-    "Tháng 7",
-    "Tháng 8",
-    "Tháng 9",
-    "Tháng 10",
-    "Tháng 11",
-    "Tháng 12",
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
   ];
 
   const years = Array.from(
@@ -61,9 +61,9 @@ export default function MasterScheduleTable({
         <div className={styles.masterLeft}>
           <Calendar className={styles.iconWhite} />
           <div>
-            <h3 className={styles.masterTitle}>Lịch Làm Việc</h3>
+            <h3 className={styles.masterTitle}>Work Schedule</h3>
             <p className={styles.masterSubtitle}>
-              Tháng {selectedMonth} / {selectedYear}
+              {months[selectedMonth - 1]} {selectedYear}
             </p>
           </div>
         </div>
@@ -101,10 +101,10 @@ export default function MasterScheduleTable({
         <div className={styles.emptyMaster}>
           <CalendarX className={styles.iconHuge} />
           <p className={styles.emptyTitle}>
-            Không có coach làm việc trong tháng này
+            No coaches scheduled for this month
           </p>
           <p className={styles.emptySub}>
-            Thử chọn tháng khác hoặc thêm lịch mới cho coach.
+            Try selecting a different month or add new schedules for coaches.
           </p>
         </div>
       ) : (
@@ -113,9 +113,9 @@ export default function MasterScheduleTable({
           <table className={styles.table}>
             <thead>
               <tr>
-                <th>Ngày</th>
+                <th>Date</th>
                 <th>Coaches</th>
-                {/* <th>Thao tác</th> */}
+                {/* <th>Actions</th> */}
               </tr>
             </thead>
             <tbody>
@@ -146,7 +146,7 @@ export default function MasterScheduleTable({
                                 handleUpdateDay(row.date, [], [cid])
                               }
                               className={styles.removeCoachBtn}
-                              title="Xóa coach khỏi ngày"
+                              title="Remove coach from this date"
                             >
                               <X className={styles.iconTinyRed} />
                             </button>

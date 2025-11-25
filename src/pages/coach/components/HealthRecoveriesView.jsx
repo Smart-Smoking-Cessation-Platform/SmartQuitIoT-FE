@@ -170,6 +170,11 @@ function getTimeLeftText(recovery) {
 
 /* ---------- Recovery card component ---------- */
 function RecoveryCard({ recovery }) {
+  // Safety check
+  if (!recovery || !recovery.name) {
+    return null; // Don't render invalid recovery cards
+  }
+  
   const { label, Icon } = mapRecoveryType(recovery.name);
   const pct = computePctToTarget(recovery);
   const isDone = pct >= 100;
@@ -296,6 +301,7 @@ function RecoveryCard({ recovery }) {
 export default function HealthRecoveriesView({
   healthRecoveries = [],
   loading = false,
+  error = null,
 }) {
   if (loading) {
     return (
@@ -310,29 +316,49 @@ export default function HealthRecoveriesView({
     );
   }
 
-  if (!healthRecoveries || healthRecoveries.length === 0) {
+  // Error state
+  if (error) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 px-4">
+      <div className="flex flex-col items-center justify-center py-16 px-4">
+        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-red-100 to-rose-100 flex items-center justify-center mb-4">
+          <Heart size={32} className="text-red-400" />
+        </div>
+        <p className="text-gray-700 font-semibold mb-1">Failed to load health recoveries</p>
+        <p className="text-gray-500 text-sm text-center max-w-md">
+          {typeof error === "string" ? error : "Unable to fetch recovery data. Please try again later."}
+        </p>
+      </div>
+    );
+  }
+
+  // Filter out null/undefined recoveries
+  const validRecoveries = Array.isArray(healthRecoveries)
+    ? healthRecoveries.filter(r => r != null && r.id != null)
+    : [];
+
+  if (!validRecoveries || validRecoveries.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 px-4">
         <div className="w-20 h-20 rounded-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center mb-4">
           <Heart size={32} className="text-gray-400" />
         </div>
-        <p className="text-gray-500 font-medium">No recovery events yet</p>
-        <p className="text-gray-400 text-sm mt-1">
-          Data will appear after the quit plan starts
+        <p className="text-gray-700 font-semibold mb-1">No recovery events yet</p>
+        <p className="text-gray-500 text-sm text-center max-w-md mt-1">
+          Health recovery data will appear here once the member starts their quit plan and begins tracking progress.
         </p>
       </div>
     );
   }
 
   // Sort by unfinished first (lower pct first)
-  const sorted = [...healthRecoveries].sort(
+  const sorted = [...validRecoveries].sort(
     (a, b) => computePctToTarget(a) - computePctToTarget(b)
   );
 
   return (
     <div className="space-y-4">
       {sorted.map((r) => (
-        <RecoveryCard key={r.id} recovery={r} />
+        <RecoveryCard key={r.id || Math.random()} recovery={r} />
       ))}
     </div>
   );

@@ -31,6 +31,9 @@ import CoachAppointmentsPage from "@/pages/coach/CoachAppointmentsPage";
 import CoachChatPage from "@/pages/coach/CoachChatPage";
 import MeetingPage from "@/pages/coach/MeetingPage";
 import ManageAchievements from "@/pages/admin/pages/ManageAchievements";
+import AchievementDetail from "@/pages/admin/pages/AchievementDetail";
+import CreateAchievement from "@/pages/admin/pages/CreateAchievement";
+import EditAchievement from "@/pages/admin/pages/EditAchievement";
 import ManagePhases from "@/pages/admin/pages/ManagePhases";
 import ManagePassCondition from "@/pages/admin/pages/ManagePassCondition";
 import ManagePayment from "@/pages/admin/pages/ManagePayment";
@@ -147,6 +150,18 @@ function App() {
         {
           path: "/admin/manage-achievements",
           element: <ManageAchievements />,
+        },
+        {
+          path: "/admin/manage-achievements/create",
+          element: <CreateAchievement />,
+        },
+        {
+          path: "/admin/manage-achievements/edit/:id",
+          element: <EditAchievement />,
+        },
+        {
+          path: "/admin/manage-achievements/:id",
+          element: <AchievementDetail />,
         },
         {
           path: "/admin/manage-phases",

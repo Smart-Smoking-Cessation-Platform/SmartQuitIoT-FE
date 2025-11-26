@@ -26,11 +26,19 @@ export const achievementColumns = (handlers) => [
     header: "Type",
     accessorFn: (row) => row.type ?? "",
     cell: ({ getValue }) => {
+      const type = getValue();
+      const typeColors = {
+        STREAK: "bg-purple-100 text-purple-700",
+        ACTIVITY: "bg-blue-100 text-blue-700",
+        FINANCE: "bg-green-100 text-green-700",
+        SOCIAL: "bg-pink-100 text-pink-700",
+        PROGRESS: "bg-orange-100 text-orange-700",
+      };
       return (
         <Badge
-          className={`px-2 py-0.5 text-xs font-medium bg-green-100 text-green-700`}
+          className={`px-2 py-0.5 text-xs font-medium ${typeColors[type] || "bg-gray-100 text-gray-700"}`}
         >
-          {getValue() || "—"}
+          {type || "—"}
         </Badge>
       );
     },
@@ -58,6 +66,26 @@ export const achievementColumns = (handlers) => [
       <img src={getValue()} alt="Achievement Icon" className="h-8 w-8" />
     ),
   },
+  {
+    id: "updatedAt",
+    header: "Updated At",
+    accessorFn: (row) => row.updatedAt ?? "",
+    cell: ({ getValue }) => {
+      const updatedAt = getValue();
+      if (!updatedAt) return <span className="text-muted-foreground">—</span>;
+      
+      const date = new Date(updatedAt);
+      const formatted = date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      
+      return <span className="text-gray-600 text-sm">{formatted}</span>;
+    },
+  },
 
   {
     id: "actions",
@@ -67,6 +95,7 @@ export const achievementColumns = (handlers) => [
         row={row}
         onEdit={handlers?.onEdit}
         onDelete={handlers?.onDelete}
+        onViewDetails={handlers?.onViewDetails}
       />
     ),
     size: 48, // optional

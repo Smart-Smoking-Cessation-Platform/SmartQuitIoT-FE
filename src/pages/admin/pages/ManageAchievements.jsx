@@ -5,10 +5,13 @@ import { achievementColumns as buildAchievementColumns } from "@/pages/admin/com
 import useDebounce from "@/hooks/useDebounce";
 import SearchBar from "@/components/ui/search-bar";
 import { toast } from "sonner";
-import { getAllAchievements } from "@/services/achievementService";
+import { getAllAchievements, deleteAchievement } from "@/services/achievementService";
 import TableLoadingSkeleton from "@/components/loadings/TableLoadingSkeleton";
+import { useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 
 const ManageAchievements = () => {
+  const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(0);
   const [pageSize, setPageSize] = useState(10);
   const [totalPages, setTotalPages] = useState(0);
@@ -17,25 +20,38 @@ const ManageAchievements = () => {
   const [achievements, setAchievements] = useState([]);
   const inputSearchDebounce = useDebounce(searchString, 300);
   const [isLoading, setIsLoading] = useState(false);
+  
   const handlePageChange = (newPage) => {
     setCurrentPage(newPage);
   };
 
   const handleEdit = (row) => {
-    const values = row.original; // your row data
-    // open edit modal, navigate, etc.
-    console.log("Edit:", values);
+    const { id } = row.original;
+    navigate(`/admin/manage-achievements/edit/${id}`);
   };
 
-  const handleDelete = (row) => {
+  const handleDelete = async (row) => {
+    const { id, name } = row.original;
+    
+    try {
+      await deleteAchievement(id);
+      toast.success("Achievement deleted successfully");
+      fetchAchievements();
+    } catch (error) {
+      console.error("Error deleting achievement:", error);
+      toast.error("Failed to delete achievement");
+    }
+  };
+
+  const handleViewDetails = (row) => {
     const { id } = row.original;
-    // call API then refresh table
-    console.log("Delete id:", id);
+    navigate(`/admin/manage-achievements/${id}`);
   };
 
   const cols = buildAchievementColumns({
     onEdit: handleEdit,
     onDelete: handleDelete,
+    onViewDetails: handleViewDetails,
   });
 
   const fetchAchievements = async () => {
@@ -51,7 +67,6 @@ const ManageAchievements = () => {
       setAchievements(response.data?.content);
       setIsLoading(false);
     } catch (error) {
-      console.log(error);
       toast.error("Failed to fetch achievements. Please try again.");
     } finally {
       setIsLoading(false);
@@ -76,6 +91,9 @@ const ManageAchievements = () => {
             Manage and review achievements ({totalElements} achievements)
           </p>
         </div>
+        <Button onClick={() => navigate("/admin/manage-achievements/create")}>
+          Create Achievement
+        </Button>
       </div>
       <SearchBar
         placeholderText={"Search achievements by name or description"}

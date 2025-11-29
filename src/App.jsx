@@ -6,6 +6,9 @@ import CreateNewsPage from "@/pages/admin/pages/CreateNewsPage";
 import ManageCoaches from "@/pages/admin/pages/ManageCoaches";
 import ManageMembershipPackage from "@/pages/admin/pages/ManageMembershipPackage";
 import ManageMissions from "@/pages/admin/pages/ManageMissions";
+import MissionDetail from "@/pages/admin/pages/MissionDetail";
+import CreateMission from "@/pages/admin/pages/CreateMission";
+import EditMission from "@/pages/admin/pages/EditMission";
 import ManageNews from "@/pages/admin/pages/ManageNews";
 import ManageSlots from "@/pages/admin/pages/ManageSlots";
 import SchedulePage from "@/pages/admin/pages/SchedulePage";
@@ -146,6 +149,18 @@ function App() {
         {
           path: "/admin/manage-missions",
           element: <ManageMissions />,
+        },
+        {
+          path: "/admin/manage-missions/create",
+          element: <CreateMission />,
+        },
+        {
+          path: "/admin/manage-missions/edit/:id",
+          element: <EditMission />,
+        },
+        {
+          path: "/admin/manage-missions/:id",
+          element: <MissionDetail />,
         },
         {
           path: "/admin/manage-achievements",

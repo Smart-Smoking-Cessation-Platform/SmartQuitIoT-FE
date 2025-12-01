@@ -93,87 +93,39 @@ export default function MeetingPage() {
   // Helper để mount remote video vào container của React (không tạo container thủ công)
   const mountRemoteVideo = async (remoteVideoTrack) => {
     if (!remoteVideoTrack) return;
-
-    // Đợi container của React sẵn sàng (tối đa 2 giây)
-    const waitForContainer = (maxAttempts = 20) => {
-      return new Promise((resolve, reject) => {
-        let attempts = 0;
-        const check = () => {
-          const container =
-            remoteDivRef.current || document.getElementById(REMOTE_MOUNT_ID);
-          if (container) {
-            resolve(container);
-          } else if (attempts < maxAttempts) {
-            attempts++;
-            setTimeout(check, 100);
-          } else {
-            reject(new Error("Remote container not found"));
-          }
-        };
-        check();
-      });
-    };
-
     try {
-      const container = await waitForContainer();
+      const container =
+        remoteDivRef.current || document.getElementById(REMOTE_MOUNT_ID);
+      if (!container) throw new Error("Remote container not found");
 
-      // Clear placeholders (chỉ clear React children, không touch video của Agora)
-      const placeholders = Array.from(container.children).filter(
-        (el) => el.tagName !== "VIDEO" && !el.hasAttribute("data-agora-video")
-      );
-      placeholders.forEach((el) => {
-        try {
-          if (el.parentNode === container) {
-            container.removeChild(el);
-          }
-        } catch {
-          // Ignore
-        }
-      });
-
-      // Play video vào container của React
-      await remoteVideoTrack.play(container);
-      console.debug("[Agora] Remote video play success");
-    } catch (playErr) {
-      console.warn("[Agora] remote play failed, trying fallback", playErr);
-
-      // Fallback: tạo video element nhưng vẫn append vào React container
-      try {
-        const container =
-          remoteDivRef.current || document.getElementById(REMOTE_MOUNT_ID);
-        if (!container) {
-          console.error("[Agora] Container still not available for fallback");
-          return;
-        }
-
-        const v = document.createElement("video");
-        v.autoplay = true;
-        v.playsInline = true;
-        v.muted = false;
-        v.style.width = "100%";
-        v.style.height = "100%";
-        v.setAttribute("data-agora-video", "true"); // Mark để không bị clear
-
-        // Clear placeholders
-        const placeholders = Array.from(container.children).filter(
-          (el) => el.tagName !== "VIDEO" && !el.hasAttribute("data-agora-video")
-        );
-        placeholders.forEach((el) => {
-          try {
-            if (el.parentNode === container) {
-              container.removeChild(el);
-            }
-          } catch {
-            // Ignore
-          }
+      // create/reuse video element
+      let videoEl = container.querySelector("video[data-agora-remote]");
+      if (!videoEl) {
+        videoEl = document.createElement("video");
+        videoEl.setAttribute("data-agora-remote", "1");
+        videoEl.autoplay = true;
+        videoEl.playsInline = true;
+        videoEl.muted = false;
+        videoEl.style.position = "absolute";
+        videoEl.style.top = "0";
+        videoEl.style.left = "0";
+        videoEl.style.width = "100%";
+        videoEl.style.height = "100%";
+        videoEl.style.objectFit = "cover";
+        const cs = getComputedStyle(container);
+        if (cs.position === "static") container.style.position = "relative";
+        // remove placeholders (keep if you want)
+        Array.from(container.children).forEach((ch) => {
+          if (ch.tagName !== "VIDEO") ch.remove();
         });
-
-        container.appendChild(v);
-        await remoteVideoTrack.play(v);
-        console.debug("[Agora] Remote video fallback play success");
-      } catch (err2) {
-        console.error("[Agora] fallback also failed", err2);
+        container.appendChild(videoEl);
       }
+
+      await remoteVideoTrack.play(videoEl);
+      console.debug("[Agora] Remote play into explicit video element");
+    } catch (err) {
+      console.warn("[Agora] mountRemoteVideo failed", err);
+      // keep existing fallback you already had
     }
   };
 
@@ -960,70 +912,56 @@ export default function MeetingPage() {
         };
 
         // preview local - với fallback mechanism
+        // robust local preview: always use a controlled video element
         if (localDivRef.current && cameraTrack) {
-          try {
-            // Đợi một chút để đảm bảo DOM đã sẵn sàng
-            await new Promise((r) => setTimeout(r, 100));
-
-            // Clear placeholders
-            if (localDivRef.current.children.length > 0) {
-              const placeholders = Array.from(
-                localDivRef.current.children
-              ).filter((el) => !el.tagName || el.tagName !== "VIDEO");
-              placeholders.forEach((el) => {
-                try {
-                  if (el.parentNode === localDivRef.current) {
-                    localDivRef.current.removeChild(el);
-                  }
-                } catch {
-                  // Ignore
-                }
-              });
-            }
-
-            // Thử play trực tiếp
-            await cameraTrack.play(localDivRef.current);
-            console.debug("[Agora] Local video play success");
-          } catch (err) {
-            console.warn(
-              "[Agora] local preview play failed, trying fallback",
-              err
+          const createOrGetLocalVideo = () => {
+            // try reuse
+            let videoEl = localDivRef.current.querySelector(
+              "video[data-agora-local]"
             );
+            if (videoEl) return videoEl;
+            // create
+            videoEl = document.createElement("video");
+            videoEl.setAttribute("data-agora-local", "1");
+            videoEl.autoplay = true;
+            videoEl.playsInline = true;
+            videoEl.muted = true; // necessary for autoplay
+            videoEl.style.position = "absolute";
+            videoEl.style.top = "0";
+            videoEl.style.left = "0";
+            videoEl.style.width = "100%";
+            videoEl.style.height = "100%";
+            videoEl.style.objectFit = "cover";
+            // ensure container positioned
+            const cs = getComputedStyle(localDivRef.current);
+            if (cs.position === "static")
+              localDivRef.current.style.position = "relative";
+            // remove non-video placeholders (keep aria/labels if needed)
+            Array.from(localDivRef.current.children).forEach((ch) => {
+              if (ch.tagName !== "VIDEO") ch.remove();
+            });
+            localDivRef.current.appendChild(videoEl);
+            return videoEl;
+          };
 
-            // Fallback: Tạo video element thủ công (giống remote video)
-            try {
-              const videoElement = document.createElement("video");
-              videoElement.autoplay = true;
-              videoElement.playsInline = true;
-              videoElement.muted = true; // Local video nên muted để tránh feedback
-              videoElement.style.width = "100%";
-              videoElement.style.height = "100%";
-              videoElement.style.objectFit = "cover";
-
-              // Clear placeholders
-              if (localDivRef.current.children.length > 0) {
-                const placeholders = Array.from(
-                  localDivRef.current.children
-                ).filter((el) => !el.tagName || el.tagName !== "VIDEO");
-                placeholders.forEach((el) => {
-                  try {
-                    if (el.parentNode === localDivRef.current) {
-                      localDivRef.current.removeChild(el);
-                    }
-                  } catch {
-                    // Ignore
-                  }
-                });
+          try {
+            const videoEl = createOrGetLocalVideo();
+            await cameraTrack.play(videoEl); // pass explicit element
+            console.debug("[Agora] Local video play -> using explicit element");
+            // small safety toggle if dims stuck
+            setTimeout(() => {
+              const v = localDivRef.current.querySelector(
+                "video[data-agora-local]"
+              );
+              if (v && v.videoWidth === 0) {
+                cameraTrack
+                  .setEnabled(false)
+                  .then(() => cameraTrack.setEnabled(true))
+                  .catch(() => {});
               }
-
-              localDivRef.current.appendChild(videoElement);
-              await cameraTrack.play(videoElement);
-              console.debug("[Agora] Local video fallback play success");
-            } catch (err2) {
-              console.error("[Agora] Local video fallback also failed", err2);
-              // Không set error ngay, vì có thể vẫn publish được
-              // Chỉ log để debug
-            }
+            }, 1500);
+          } catch (err) {
+            console.error("[Agora] local play explicit-element failed", err);
           }
         }
 

@@ -32,6 +32,7 @@ export default function MeetingPage() {
   const clientRef = useRef(null);
   const localTrackRefs = useRef({ videoTrack: null, audioTrack: null });
   const localDivRef = useRef(null);
+  const remoteDivRef = useRef(null); // ✅ Ref cho remote container
   const REMOTE_MOUNT_ID = "remote-mount";
 
   // state of remote users: map uid -> { uid, hasVideo, hasAudio, name, isLocal }
@@ -85,6 +86,95 @@ export default function MeetingPage() {
     }
     setElapsedMs(0);
     setTimeLeftMs(null);
+  };
+
+  // ---------- Remote video mounting helper ----------
+
+  // Helper để mount remote video vào container của React (không tạo container thủ công)
+  const mountRemoteVideo = async (remoteVideoTrack) => {
+    if (!remoteVideoTrack) return;
+
+    // Đợi container của React sẵn sàng (tối đa 2 giây)
+    const waitForContainer = (maxAttempts = 20) => {
+      return new Promise((resolve, reject) => {
+        let attempts = 0;
+        const check = () => {
+          const container =
+            remoteDivRef.current || document.getElementById(REMOTE_MOUNT_ID);
+          if (container) {
+            resolve(container);
+          } else if (attempts < maxAttempts) {
+            attempts++;
+            setTimeout(check, 100);
+          } else {
+            reject(new Error("Remote container not found"));
+          }
+        };
+        check();
+      });
+    };
+
+    try {
+      const container = await waitForContainer();
+
+      // Clear placeholders (chỉ clear React children, không touch video của Agora)
+      const placeholders = Array.from(container.children).filter(
+        (el) => el.tagName !== "VIDEO" && !el.hasAttribute("data-agora-video")
+      );
+      placeholders.forEach((el) => {
+        try {
+          if (el.parentNode === container) {
+            container.removeChild(el);
+          }
+        } catch {
+          // Ignore
+        }
+      });
+
+      // Play video vào container của React
+      await remoteVideoTrack.play(container);
+      console.debug("[Agora] Remote video play success");
+    } catch (playErr) {
+      console.warn("[Agora] remote play failed, trying fallback", playErr);
+
+      // Fallback: tạo video element nhưng vẫn append vào React container
+      try {
+        const container =
+          remoteDivRef.current || document.getElementById(REMOTE_MOUNT_ID);
+        if (!container) {
+          console.error("[Agora] Container still not available for fallback");
+          return;
+        }
+
+        const v = document.createElement("video");
+        v.autoplay = true;
+        v.playsInline = true;
+        v.muted = false;
+        v.style.width = "100%";
+        v.style.height = "100%";
+        v.setAttribute("data-agora-video", "true"); // Mark để không bị clear
+
+        // Clear placeholders
+        const placeholders = Array.from(container.children).filter(
+          (el) => el.tagName !== "VIDEO" && !el.hasAttribute("data-agora-video")
+        );
+        placeholders.forEach((el) => {
+          try {
+            if (el.parentNode === container) {
+              container.removeChild(el);
+            }
+          } catch {
+            // Ignore
+          }
+        });
+
+        container.appendChild(v);
+        await remoteVideoTrack.play(v);
+        console.debug("[Agora] Remote video fallback play success");
+      } catch (err2) {
+        console.error("[Agora] fallback also failed", err2);
+      }
+    }
   };
 
   // ---------- Snapshot helpers ----------
@@ -674,64 +764,11 @@ export default function MeetingPage() {
             },
           }));
 
-          // mount remote into fixed REMOTE_MOUNT_ID
-          let container = document.getElementById(REMOTE_MOUNT_ID);
-          if (!container) {
-            container = document.createElement("div");
-            container.id = REMOTE_MOUNT_ID;
-            document.body.appendChild(container);
-          }
-
+          // ✅ FIX: Dùng helper function thay vì manual DOM creation
           if (mediaType === "video") {
             const remoteVideoTrack = user.videoTrack;
-            if (container && remoteVideoTrack) {
-              try {
-                // Chỉ clear placeholders, không touch video elements của Agora
-                if (container.children.length > 0) {
-                  const placeholders = Array.from(container.children).filter(
-                    (el) => !el.tagName || el.tagName !== "VIDEO"
-                  );
-                  placeholders.forEach((el) => {
-                    try {
-                      if (el.parentNode === container) {
-                        container.removeChild(el);
-                      }
-                    } catch {
-                      // Ignore
-                    }
-                  });
-                }
-                remoteVideoTrack.play(container);
-              } catch (playErr) {
-                console.warn("[Agora] remote play failed, fallback", playErr);
-                try {
-                  const v = document.createElement("video");
-                  v.autoplay = true;
-                  v.playsInline = true;
-                  v.muted = false;
-                  v.style.width = "100%";
-                  v.style.height = "100%";
-                  // Clear placeholders only
-                  if (container.children.length > 0) {
-                    const placeholders = Array.from(container.children).filter(
-                      (el) => !el.tagName || el.tagName !== "VIDEO"
-                    );
-                    placeholders.forEach((el) => {
-                      try {
-                        if (el.parentNode === container) {
-                          container.removeChild(el);
-                        }
-                      } catch {
-                        // Ignore
-                      }
-                    });
-                  }
-                  container.appendChild(v);
-                  remoteVideoTrack.play(v);
-                } catch (err2) {
-                  console.error("[Agora] fallback also failed", err2);
-                }
-              }
+            if (remoteVideoTrack) {
+              await mountRemoteVideo(remoteVideoTrack);
             }
           }
 
@@ -826,61 +863,11 @@ export default function MeetingPage() {
               },
             }));
 
-            let container = document.getElementById(REMOTE_MOUNT_ID);
-            if (!container) {
-              container = document.createElement("div");
-              container.id = REMOTE_MOUNT_ID;
-              document.body.appendChild(container);
-            }
-
+            // ✅ FIX: Dùng helper function thay vì manual DOM creation
             if (mediaType === "video") {
               const remoteVideoTrack = user.videoTrack;
-              if (container && remoteVideoTrack) {
-                try {
-                  if (container.children.length > 0) {
-                    const placeholders = Array.from(container.children).filter(
-                      (el) => !el.tagName || el.tagName !== "VIDEO"
-                    );
-                    placeholders.forEach((el) => {
-                      try {
-                        if (el.parentNode === container) {
-                          container.removeChild(el);
-                        }
-                      } catch {
-                        // Ignore
-                      }
-                    });
-                  }
-                  remoteVideoTrack.play(container);
-                } catch (playErr) {
-                  console.warn("[Agora] remote play failed, fallback", playErr);
-                  try {
-                    const v = document.createElement("video");
-                    v.autoplay = true;
-                    v.playsInline = true;
-                    v.muted = false;
-                    v.style.width = "100%";
-                    v.style.height = "100%";
-                    if (container.children.length > 0) {
-                      const placeholders = Array.from(
-                        container.children
-                      ).filter((el) => !el.tagName || el.tagName !== "VIDEO");
-                      placeholders.forEach((el) => {
-                        try {
-                          if (el.parentNode === container) {
-                            container.removeChild(el);
-                          }
-                        } catch {
-                          // Ignore
-                        }
-                      });
-                    }
-                    container.appendChild(v);
-                    remoteVideoTrack.play(v);
-                  } catch (err2) {
-                    console.error("[Agora] fallback also failed", err2);
-                  }
-                }
+              if (remoteVideoTrack) {
+                await mountRemoteVideo(remoteVideoTrack);
               }
             }
 
@@ -1348,6 +1335,7 @@ export default function MeetingPage() {
             </div>
             <div
               id={REMOTE_MOUNT_ID}
+              ref={remoteDivRef}
               className={styles.tileInner}
               // Prevent React from unmounting this node khi có video tracks
               data-agora-container="remote"

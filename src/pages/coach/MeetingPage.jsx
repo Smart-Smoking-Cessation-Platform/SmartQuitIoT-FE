@@ -98,7 +98,7 @@ export default function MeetingPage() {
         .map((n) => parseInt(n, 10));
       if (!y || !m || !d || isNaN(hh) || isNaN(mm)) return null;
       return new Date(y, m - 1, d, hh, mm, 0, 0);
-    } catch (e) {
+    } catch {
       return null;
     }
   };
@@ -497,6 +497,36 @@ export default function MeetingPage() {
     const loadAndStart = async () => {
       setLoading(true);
       try {
+        // Check HTTPS requirement for production
+        if (
+          location.protocol !== "https:" &&
+          location.hostname !== "localhost" &&
+          location.hostname !== "127.0.0.1"
+        ) {
+          console.warn("[Meeting] Camera access requires HTTPS in production!");
+          // Không throw error ngay, vì có thể user vẫn muốn thử
+          // Nhưng sẽ log warning
+        }
+
+        // Check camera permission before creating tracks
+        try {
+          const testStream = await navigator.mediaDevices.getUserMedia({
+            video: true,
+            audio: true,
+          });
+          testStream.getTracks().forEach((track) => track.stop()); // Stop test stream
+          console.log("[Meeting] Camera permission granted");
+        } catch (permErr) {
+          console.error("[Meeting] Camera permission denied:", permErr);
+          if (mounted) {
+            setError(
+              "Camera permission denied. Please allow camera access in browser settings."
+            );
+            setLoading(false);
+            return;
+          }
+        }
+
         // 1) get token data if missing
         let td = tokenData;
         if (!td) {
@@ -897,20 +927,58 @@ export default function MeetingPage() {
         }
 
         // create local tracks
-        const [microphoneTrack, cameraTrack] = await Promise.all([
-          AgoraRTC.createMicrophoneAudioTrack(),
-          AgoraRTC.createCameraVideoTrack({ encoderConfig: "720p" }),
-        ]);
+        let microphoneTrack, cameraTrack;
+        try {
+          [microphoneTrack, cameraTrack] = await Promise.all([
+            AgoraRTC.createMicrophoneAudioTrack(),
+            AgoraRTC.createCameraVideoTrack({
+              encoderConfig: "720p",
+              facingMode: "user", // Front camera
+            }),
+          ]);
+
+          // Log track info for debugging
+          if (cameraTrack) {
+            console.log("[Agora] Camera track created:", {
+              trackId: cameraTrack.getTrackId(),
+              enabled: cameraTrack.isPlaying,
+              muted: cameraTrack.isMuted,
+            });
+          }
+        } catch (trackErr) {
+          console.error("[Agora] Failed to create tracks:", trackErr);
+          console.error("Error details:", {
+            name: trackErr.name,
+            message: trackErr.message,
+            stack: trackErr.stack,
+          });
+          throw new Error(
+            `Failed to access camera/microphone: ${trackErr.message}`
+          );
+        }
+
+        // QUAN TRỌNG: Enable track ngay sau khi tạo
+        if (cameraTrack) {
+          try {
+            await cameraTrack.setEnabled(true);
+            console.debug("[Agora] Camera track enabled");
+          } catch (e) {
+            console.warn("[Agora] Failed to enable camera track:", e);
+          }
+        }
+
         localTrackRefs.current = {
           audioTrack: microphoneTrack,
           videoTrack: cameraTrack,
         };
 
-        // preview local
+        // preview local - với fallback mechanism
         if (localDivRef.current && cameraTrack) {
           try {
-            // Không cleanup - để Agora SDK tự xử lý
-            // Chỉ clear placeholders nếu có
+            // Đợi một chút để đảm bảo DOM đã sẵn sàng
+            await new Promise((r) => setTimeout(r, 100));
+
+            // Clear placeholders
             if (localDivRef.current.children.length > 0) {
               const placeholders = Array.from(
                 localDivRef.current.children
@@ -925,9 +993,50 @@ export default function MeetingPage() {
                 }
               });
             }
-            cameraTrack.play(localDivRef.current);
+
+            // Thử play trực tiếp
+            await cameraTrack.play(localDivRef.current);
+            console.debug("[Agora] Local video play success");
           } catch (err) {
-            console.warn("[Agora] local preview play failed", err);
+            console.warn(
+              "[Agora] local preview play failed, trying fallback",
+              err
+            );
+
+            // Fallback: Tạo video element thủ công (giống remote video)
+            try {
+              const videoElement = document.createElement("video");
+              videoElement.autoplay = true;
+              videoElement.playsInline = true;
+              videoElement.muted = true; // Local video nên muted để tránh feedback
+              videoElement.style.width = "100%";
+              videoElement.style.height = "100%";
+              videoElement.style.objectFit = "cover";
+
+              // Clear placeholders
+              if (localDivRef.current.children.length > 0) {
+                const placeholders = Array.from(
+                  localDivRef.current.children
+                ).filter((el) => !el.tagName || el.tagName !== "VIDEO");
+                placeholders.forEach((el) => {
+                  try {
+                    if (el.parentNode === localDivRef.current) {
+                      localDivRef.current.removeChild(el);
+                    }
+                  } catch {
+                    // Ignore
+                  }
+                });
+              }
+
+              localDivRef.current.appendChild(videoElement);
+              await cameraTrack.play(videoElement);
+              console.debug("[Agora] Local video fallback play success");
+            } catch (err2) {
+              console.error("[Agora] Local video fallback also failed", err2);
+              // Không set error ngay, vì có thể vẫn publish được
+              // Chỉ log để debug
+            }
           }
         }
 
@@ -1018,7 +1127,7 @@ export default function MeetingPage() {
 
   // Xử lý khi user đóng tab/refresh đột ngột
   useEffect(() => {
-    const handleBeforeUnload = (e) => {
+    const handleBeforeUnload = () => {
       // QUAN TRỌNG: Cleanup Agora tracks SYNCHRONOUSLY trước khi reload
       // Điều này ngăn React cố remove DOM nodes mà Agora đang dùng
       try {
@@ -1109,8 +1218,8 @@ export default function MeetingPage() {
     if (!t) return;
     try {
       await t.setEnabled(!camOn);
-    } catch (e) {
-      console.warn("toggleCam failed", e);
+    } catch (err) {
+      console.warn("toggleCam failed", err);
     }
     setCamOn((s) => !s);
     setRemoteUsers((prev) => {
@@ -1173,7 +1282,6 @@ export default function MeetingPage() {
     return <div className={styles.error}>No token available</div>;
   }
 
-  const localUid = tokenData.uid ?? 0;
   const remoteList = Object.values(remoteUsers).filter((u) => !u.isLocal);
   const anyRemote = remoteList.length > 0;
 

@@ -17,19 +17,40 @@ export default function MemberManagementPage() {
 
   // Pagination state
   const [page, setPage] = useState(0);
-  const [size, setSize] = useState(12); // 12 items per page
+  const size = 6; // 6 items per page
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
 
   const [selectedMember, setSelectedMember] = useState(null);
   const [detailsTab, setDetailsTab] = useState("metric"); // default tab
   const abortRef = useRef(null);
+  const allMembersCacheRef = useRef(null); // Cache toàn bộ members nếu API trả về array
 
   useEffect(() => {
-    loadList();
+    // Nếu đã có cache và API không hỗ trợ pagination, chỉ cần paginate từ cache
+    if (
+      allMembersCacheRef.current &&
+      Array.isArray(allMembersCacheRef.current)
+    ) {
+      const allMembers = allMembersCacheRef.current;
+      const total = allMembers.length;
+      const pages = Math.ceil(total / size);
+      const startIndex = page * size;
+      const endIndex = startIndex + size;
+      const paginatedList = allMembers.slice(startIndex, endIndex);
+
+      setMembers(paginatedList);
+      setTotalPages(pages);
+      setTotalElements(total);
+      setLoading(false);
+    } else {
+      // Chưa có cache hoặc API hỗ trợ pagination, cần fetch từ server
+      loadList();
+    }
+
+    const currentAbortRef = abortRef.current;
     return () => {
-      const abortController = abortRef.current;
-      if (abortController && abortController.abort) abortController.abort();
+      if (currentAbortRef && currentAbortRef.abort) currentAbortRef.abort();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [page, size]);
@@ -48,33 +69,66 @@ export default function MemberManagementPage() {
       let list = [];
       let pages = 0;
       let total = 0;
+      let isServerSidePagination = false;
 
       if (Array.isArray(payload)) {
-        // Simple array response
-        list = payload;
-        pages = 1;
-        total = payload.length;
+        // Simple array response - API không hỗ trợ pagination, cần client-side pagination
+        // Cache toàn bộ members để tránh fetch lại mỗi lần đổi trang
+        const allMembers = payload.map(normalizeApiMemberToView);
+        allMembersCacheRef.current = allMembers;
+
+        total = allMembers.length;
+        pages = Math.ceil(total / size);
+
+        // Client-side pagination: chỉ lấy 6 items cho trang hiện tại
+        const startIndex = page * size;
+        const endIndex = startIndex + size;
+        list = allMembers.slice(startIndex, endIndex);
+        isServerSidePagination = false;
       } else if (payload?.content) {
-        // Page object response (Spring Page format)
+        // Page object response (Spring Page format) - Server-side pagination
+        // Clear cache vì server đã handle pagination
+        allMembersCacheRef.current = null;
         list = payload.content || [];
         pages = payload.totalPages || 0;
         total = payload.totalElements || list.length;
+        isServerSidePagination = true;
       } else if (payload?.data?.content) {
-        // Nested Page object in data
+        // Nested Page object in data - Server-side pagination
+        // Clear cache vì server đã handle pagination
+        allMembersCacheRef.current = null;
         list = payload.data.content || [];
         pages = payload.data.totalPages || 0;
         total = payload.data.totalElements || list.length;
+        isServerSidePagination = true;
       } else {
         // Fallback: try to extract list from various possible structures
-        list = payload?.list || payload?.items || [];
+        const fallbackList = payload?.list || payload?.items || [];
+        if (Array.isArray(fallbackList)) {
+          // Client-side pagination cho fallback
+          const allMembers = fallbackList.map(normalizeApiMemberToView);
+          total = allMembers.length;
+          pages = Math.ceil(total / size);
+          const startIndex = page * size;
+          const endIndex = startIndex + size;
+          list = allMembers.slice(startIndex, endIndex);
+          isServerSidePagination = false;
+        } else {
+          list = [];
+        }
       }
 
-      const mapped = list.map(normalizeApiMemberToView);
+      const mapped = isServerSidePagination
+        ? list.map(normalizeApiMemberToView) // Server đã paginate, chỉ cần normalize
+        : list; // Client đã paginate và normalize ở trên
+
       setMembers(mapped);
       setTotalPages(pages);
       setTotalElements(total);
     } catch (err) {
       console.error("Load members failed", err);
+      // Clear cache khi có lỗi
+      allMembersCacheRef.current = null;
       // Extract error message from response if available
       const errorMessage =
         err?.response?.data?.message ||

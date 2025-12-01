@@ -27,6 +27,11 @@ const items = [
   { title: "Chat", url: "/coach/chat", icon: MessageSquare },
   { title: "Members", url: "/coach/members", icon: Users },
   { title: "Feedback", url: "/coach/feedback", icon: ClipboardList },
+  {
+    title: "Community Posts",
+    url: "/coach/community-posts",
+    icon: ClipboardList,
+  },
 ];
 
 const CoachSidebar = () => {

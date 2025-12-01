@@ -52,6 +52,7 @@ import WebsocketProvider from "./context/WebsocketProvider";
 import FeedbackPage from "./pages/coach/FeedbackPage";
 import NewsFeeds from "./pages/admin/pages/NewsFeeds";
 import NewsFeedDetail from "./pages/admin/pages/NewsFeedDetail";
+import CommunityPostsPage from "./pages/coach/CommunityPosts";
 function App() {
   const [isLoading, setIsLoading] = useState(true);
 
@@ -97,6 +98,7 @@ function App() {
         { path: "/meeting/:appointmentId", element: <MeetingPage /> },
         { path: "/coach/members", element: <MemberManagementPage /> },
         { path: "/coach/feedback", element: <FeedbackPage /> },
+        { path: "/coach/community-posts", element: <CommunityPostsPage /> },
       ],
     },
     {

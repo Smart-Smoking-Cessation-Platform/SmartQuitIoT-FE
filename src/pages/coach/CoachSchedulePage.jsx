@@ -10,11 +10,11 @@ import { getMyWorkdays } from "@/services/scheduleService";
  * - server is single source-of-truth: user CANNOT toggle days locally
  */
 
-/** CONFIG: thay 2 biến này để đổi giờ mặc định hiển thị trên toàn bộ calendar */
+/** CONFIG: change these 2 variables to modify default time displayed on the entire calendar */
 const DEFAULT_START_TIME = "07:00";
 const DEFAULT_END_TIME = "19:00";
 
-/** ISO (local) - trả về "YYYY-MM-DD" theo local date (KHÔNG dùng toISOString()) */
+/** ISO (local) - returns "YYYY-MM-DD" in local date (DO NOT use toISOString()) */
 const ISO = (d) => {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0"); // getMonth() trả 0..11
@@ -84,7 +84,6 @@ const CoachSchedulePage = () => {
       return copy;
     });
     return grid;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viewDate]);
 
   // fetch workdays for the visible month and apply to schedule (server-only truth)
@@ -147,7 +146,7 @@ const CoachSchedulePage = () => {
   // NOTE: user cannot toggle days — UI is read-only (server-controlled)
   const isCurrentMonth = (d) => d.getMonth() === viewDate.getMonth();
 
-  const monthLabel = `${viewDate.toLocaleString("vi-VN", {
+  const monthLabel = `${viewDate.toLocaleString("en-US", {
     month: "long",
   })} ${viewDate.getFullYear()}`;
 
@@ -155,13 +154,14 @@ const CoachSchedulePage = () => {
     <div className={styles.container}>
       <div className={styles.header}>
         <div>
-          <h1 className={styles.title}>Lịch làm việc (Calendar)</h1>
+          <h1 className={styles.title}>Work Schedule (Calendar)</h1>
           <p className={styles.subtitle}>
-            Lịch chỉ để xem — trạng thái ngày do hệ thống quyết định (server).{" "}
+            Read-only calendar — day status is determined by the system
+            (server).{" "}
             <strong>
               {DEFAULT_START_TIME} - {DEFAULT_END_TIME}
             </strong>{" "}
-            là giờ mặc định khi là ngày làm.
+            is the default time for working days.
           </p>
         </div>
 
@@ -181,20 +181,20 @@ const CoachSchedulePage = () => {
           >
             <ChevronRight />
           </button>
-          {/* Disabled save: không dùng vì BE mới là source-of-truth */}
+          {/* Disabled save: not used because BE is the source-of-truth */}
           <button
             className={styles.saveBtn}
             disabled
-            title="Không khả dụng - read only từ server"
+            title="Not available - read only from server"
           >
-            Lưu
+            Save
           </button>
         </div>
       </div>
 
       <div className={styles.calendar}>
         <div className={styles.weekHead}>
-          {["CN", "T2", "T3", "T4", "T5", "T6", "T7"].map((w) => (
+          {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((w) => (
             <div key={w} className={styles.weekHeadItem}>
               {w}
             </div>
@@ -215,7 +215,7 @@ const CoachSchedulePage = () => {
             const outside = !isCurrentMonth(d);
             const isToday = iso === todayIso;
 
-            // nếu là ngày của tháng khác → render ô trống (không hiển thị ngày/label)
+            // if it's a day from another month → render empty cell (don't show date/label)
             if (outside) {
               return (
                 <div
@@ -240,8 +240,8 @@ const CoachSchedulePage = () => {
                 aria-disabled="true"
                 title={
                   working
-                    ? "Ngày làm (do hệ thống quyết định)"
-                    : "Ngày nghỉ (do hệ thống quyết định)"
+                    ? "Working day (determined by system)"
+                    : "Off day (determined by system)"
                 }
               >
                 <div className={styles.dayTop}>
@@ -268,11 +268,11 @@ const CoachSchedulePage = () => {
 
       <div className={styles.legend}>
         <div className={styles.legendItem}>
-          <span className={styles.legendSwatchWorking} /> Ngày làm (
+          <span className={styles.legendSwatchWorking} /> Working day (
           {DEFAULT_START_TIME} - {DEFAULT_END_TIME})
         </div>
         <div className={styles.legendItem}>
-          <span className={styles.legendSwatchOff} /> Ngày nghỉ
+          <span className={styles.legendSwatchOff} /> Off day
         </div>
       </div>
     </div>

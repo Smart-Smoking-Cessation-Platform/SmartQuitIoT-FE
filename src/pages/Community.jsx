@@ -182,9 +182,9 @@ const Community = () => {
                 >
                   {/* Image */}
                   <div className="relative h-48 overflow-hidden bg-gradient-to-br from-emerald-100 to-teal-100">
-                    {post.mediaUrls || post.thumbnail ? (
+                    {post.mediaUrl || post.mediaUrls || post.thumbnail ? (
                       <img
-                        src={post.mediaUrls || post.thumbnail}
+                        src={post.mediaUrl || post.mediaUrls || post.thumbnail}
                         alt={post.title}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                       />
@@ -224,6 +224,14 @@ const Community = () => {
                     <p className="text-gray-600 text-sm line-clamp-3 mb-4">
                       {post.description || 'Read this inspiring story from our community...'}
                     </p>
+
+                    {/* Stats */}
+                    <div className="flex items-center gap-4 pt-3 border-t border-gray-100">
+                      <div className="flex items-center gap-1.5 text-gray-500 text-sm">
+                        <MessageSquare className="w-4 h-4" />
+                        <span>{post.commentCount ?? 0}</span>
+                      </div>
+                    </div>
                   </div>
                 </article>
               ))}

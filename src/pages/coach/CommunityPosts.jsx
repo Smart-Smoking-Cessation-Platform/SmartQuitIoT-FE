@@ -647,7 +647,7 @@ const CommunityPosts = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <MessageSquare className="w-4 h-4" />
-                  <span>{selectedPost.comments?.length || 0} Comments</span>
+                  <span>{selectedPost.commentCount ?? selectedPost.comments?.length ?? 0} Comments</span>
                 </div>
               </div>
             </div>
@@ -780,7 +780,7 @@ const CommunityPosts = () => {
                 onClick={() => setShowComments(true)}
                 className="px-6 py-3 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-colors font-medium shadow-sm hover:shadow-md"
               >
-                View Comments ({selectedPost.comments?.length || 0})
+                View Comments ({selectedPost.commentCount ?? selectedPost.comments?.length ?? 0})
               </button>
             </div>
           )}

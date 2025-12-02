@@ -18,8 +18,10 @@ const normalizePostSummary = (raw = {}) => {
     description: raw.description ?? "",
     thumbnail: raw.thumbnail ?? "",
     mediaUrls: raw.mediaUrls ?? "",
+    mediaUrl: raw.mediaUrl ?? "",
     createdAt: raw.createdAt ? new Date(raw.createdAt) : null,
     account: raw.account ?? null, // may be {id, username, ...}
+    commentCount: raw.commentCount ?? 0,
   };
 };
 
@@ -50,6 +52,7 @@ const normalizePostDetail = (raw) => {
     account: raw.account ?? null,
     media: Array.isArray(raw.media) ? raw.media.map((m) => ({ ...m })) : [],
     comments: normalizeComments(raw.comments),
+    commentCount: raw.commentCount ?? 0,
   };
 };
 

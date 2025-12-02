@@ -454,7 +454,7 @@ console.log('visiblePosts', visiblePosts);
             smoking.
           </p>
         
-          <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 items-stretch">
+          <div className="grid gap-6 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 items-stretch">
             {visiblePosts.map((p) => (
               <article
                 key={p.id}
@@ -511,6 +511,10 @@ console.log('visiblePosts', visiblePosts);
                     <div className="flex items-center gap-2">
                       <Calendar className="w-4 h-4" />
                       {formatDateRelative(p.createdAt)}
+                    </div>
+                    <div className="flex items-center gap-2">
+                         <MessageSquare className="w-4 h-4" />
+                          <span>{p.commentCount ?? p.comments?.length ?? 0} </span>
                     </div>
                   </div>
                 </div>
@@ -647,7 +651,7 @@ console.log('visiblePosts', visiblePosts);
                 </div>
                 <div className="flex items-center gap-2">
                   <MessageSquare className="w-4 h-4" />
-                  <span>{selectedPost.comments?.length || 0} Comments</span>
+                  <span>{selectedPost.commentCount ?? selectedPost.comments?.length ?? 0} Comments</span>
                 </div>
               </div>
             </div>

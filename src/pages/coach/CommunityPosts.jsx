@@ -7,14 +7,18 @@ import {
   Video,
   Plus,
   Search,
+  Edit,
+  Trash2,
 } from "lucide-react";
 import { toast } from "sonner";
 import postService from "@/services/postService";
 import commentService from "@/services/commentService";
 import MediaModal from "@/components/ui/media-modal";
 import CreatePostModal from "@/pages/coach/components/modals/CreatePostModal";
+import EditPostModal from "@/pages/coach/components/modals/EditPostModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import useAuth from "@/hooks/useAuth";
 
 /* ----------------------
    Helpers (date parsing + relative)
@@ -241,7 +245,7 @@ const CommentItem = ({ c, onReply }) => {
    Main CommunityPosts Component
    --------------------------- */
 const CommunityPosts = () => {
-  const [perPage] = useState(8);
+  const [perPage] = useState(6);
   const [page, setPage] = useState(1);
   const [posts, setPosts] = useState([]);
   const [totalCount, setTotalCount] = useState(0);
@@ -266,6 +270,17 @@ const CommunityPosts = () => {
 
   // Create post modal
   const [isCreatePostModalOpen, setIsCreatePostModalOpen] = useState(false);
+  
+  // Edit post modal
+  const [isEditPostModalOpen, setIsEditPostModalOpen] = useState(false);
+  const [postToEdit, setPostToEdit] = useState(null);
+  
+  // Delete post state
+  const [deletingPostId, setDeletingPostId] = useState(null);
+  
+  // Get current user account ID
+  const { getAccountId } = useAuth();
+  const currentAccountId = getAccountId();
 
   const totalPages = useMemo(() => {
     if (!totalCount) return 1;
@@ -396,6 +411,66 @@ const CommunityPosts = () => {
     toast.success("Post created successfully!");
   };
 
+  // Check if post belongs to current user
+  const isMyPost = (post) => {
+    if (!post || !post.account) return false;
+    const postAccountId = post.account.id || post.account.accountId;
+    return postAccountId === currentAccountId;
+  };
+
+  // Handle edit post
+  const handleEditPost = (e, post) => {
+    if (e && typeof e.stopPropagation === "function") {
+      e.stopPropagation();
+    }
+    setPostToEdit(post);
+    setIsEditPostModalOpen(true);
+  };
+
+  const handleEditPostSuccess = () => {
+    fetchPosts(searchQuery);
+    // If editing the currently selected post, reload it
+    if (selectedPost && postToEdit && selectedPost.id === postToEdit.id) {
+      loadPostDetail(selectedPost.id);
+    }
+    setIsEditPostModalOpen(false);
+    setPostToEdit(null);
+    toast.success("Post updated successfully!");
+  };
+
+  // Handle delete post
+  const handleDeletePost = async (e, postId) => {
+    if (e && typeof e.stopPropagation === "function") {
+      e.stopPropagation();
+    }
+
+    if (!window.confirm("Are you sure you want to delete this post? This action cannot be undone.")) {
+      return;
+    }
+
+    setDeletingPostId(postId);
+    try {
+      await postService.deletePost(postId);
+      
+      // Remove from list
+      setPosts((prev) => prev.filter((p) => p.id !== postId));
+      setTotalCount((prev) => Math.max(0, prev - 1));
+
+      // If viewing this post, go back to list
+      if (selectedPost && selectedPost.id === postId) {
+        setSelectedPost(null);
+        setShowComments(false);
+      }
+
+      toast.success("Post deleted successfully");
+    } catch (error) {
+      console.error("Delete post error:", error);
+      toast.error("Failed to delete post");
+    } finally {
+      setDeletingPostId(null);
+    }
+  };
+
   /* ----------------------
      RENDER
      ---------------------- */
@@ -458,6 +533,40 @@ const CommunityPosts = () => {
                   onClick={() => handleOpenPost(p.id)}
                   className="relative bg-white rounded-xl border border-gray-200 overflow-hidden cursor-pointer hover:border-emerald-300 hover:shadow-lg transition-all duration-300 flex flex-col h-full group"
                 >
+                  {/* Tag badge - only show if post belongs to current user */}
+                  {isMyPost(p) && (
+                    <div className="absolute top-2 left-2 z-10">
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-emerald-600 text-white shadow-md">
+                        My Post
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Edit and Delete buttons - only show if post belongs to current user */}
+                  {isMyPost(p) && (
+                    <div className="absolute top-2 right-2 z-10 flex gap-2">
+                      <button
+                        onClick={(e) => handleEditPost(e, p)}
+                        className="p-2 bg-emerald-600 text-white rounded-lg shadow-md hover:bg-emerald-700 transition-colors opacity-0 group-hover:opacity-100"
+                        title="Edit post"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </button>
+                      <button
+                        onClick={(e) => handleDeletePost(e, p.id)}
+                        disabled={deletingPostId === p.id}
+                        className={`p-2 rounded-lg shadow-md transition-colors opacity-0 group-hover:opacity-100 ${
+                          deletingPostId === p.id
+                            ? "bg-gray-400 cursor-not-allowed"
+                            : "bg-red-600 hover:bg-red-700 text-white"
+                        }`}
+                        title="Delete post"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
+                  
                   <div className="h-48 overflow-hidden bg-gray-100 flex items-center justify-center">
                     {p.mediaUrls || p.thumbnail ? (
                       <img
@@ -590,21 +699,56 @@ const CommunityPosts = () => {
   return (
     <div className="min-h-[90vh] bg-white">
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Back button */}
-        <button
-          onClick={handleBack}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors mb-6 text-sm font-medium"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Back to Community</span>
-        </button>
+        {/* Back button and Action buttons */}
+        <div className="flex items-center justify-between mb-6">
+          <button
+            onClick={handleBack}
+            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors text-sm font-medium"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Back to Community</span>
+          </button>
+          
+          {/* Edit and Delete buttons - only show if post belongs to current user */}
+          {isMyPost(selectedPost) && (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={(e) => handleEditPost(e, selectedPost)}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-colors text-sm font-medium shadow-sm hover:shadow-md"
+              >
+                <Edit className="w-4 h-4" />
+                Edit
+              </button>
+              <button
+                onClick={(e) => handleDeletePost(e, selectedPost.id)}
+                disabled={deletingPostId === selectedPost.id}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-white transition-colors text-sm font-medium shadow-sm hover:shadow-md ${
+                  deletingPostId === selectedPost.id
+                    ? "bg-gray-400 cursor-not-allowed"
+                    : "bg-red-600 hover:bg-red-700"
+                }`}
+              >
+                <Trash2 className="w-4 h-4" />
+                {deletingPostId === selectedPost.id ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          )}
+        </div>
 
         {/* Post Card */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden mb-6">
           <div className="p-6 sm:p-8">
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">
-              {selectedPost.title}
-            </h1>
+            <div className="flex items-start justify-between mb-4">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex-1">
+                {selectedPost.title}
+              </h1>
+              {/* Tag badge - only show if post belongs to current user */}
+              {isMyPost(selectedPost) && (
+                <span className="inline-flex items-center px-3 py-1.5 rounded-md text-sm font-semibold bg-emerald-600 text-white shadow-sm ml-4">
+                  My Post
+                </span>
+              )}
+            </div>
 
             {selectedPost.description && (
               <p className="text-gray-600 text-base mb-6 leading-relaxed">
@@ -794,6 +938,14 @@ const CommunityPosts = () => {
         mediaList={allMediaForModal}
         currentIndex={modalIndex}
         onNavigate={handleModalNavigate}
+      />
+
+      {/* Edit Post Modal */}
+      <EditPostModal
+        open={isEditPostModalOpen}
+        onOpenChange={setIsEditPostModalOpen}
+        onSuccess={handleEditPostSuccess}
+        post={postToEdit}
       />
     </div>
   );

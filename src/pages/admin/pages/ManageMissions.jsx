@@ -113,7 +113,7 @@ const ManageMissions = () => {
       <div className="flex gap-4 items-end">
         <div className="flex-1">
           <SearchBar
-            placeholderText={"Search missions by code, name, or description"}
+            placeholderText={"Search missions by code, name, description or condition"}
             searchString={searchString}
             setSearchString={setSearchString}
           />

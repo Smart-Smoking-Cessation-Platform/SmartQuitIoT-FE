@@ -129,6 +129,108 @@ export default function MeetingPage() {
     }
   };
 
+  // ---------- Local video mounting helper ----------
+
+  // Helper để mount local video với retry mechanism
+  const mountLocalVideo = async (track, containerRef, retries = 10) => {
+    for (let i = 0; i < retries; i++) {
+      // Đợi container mount (quan trọng khi deploy - React có thể render chậm hơn)
+      if (!containerRef.current) {
+        console.debug(
+          `[Agora] Waiting for localDivRef to mount (attempt ${
+            i + 1
+          }/${retries})`
+        );
+        await new Promise((r) => setTimeout(r, 200));
+        continue;
+      }
+
+      try {
+        const createOrGetLocalVideo = () => {
+          // try reuse
+          let videoEl = containerRef.current.querySelector(
+            "video[data-agora-local]"
+          );
+          if (videoEl) return videoEl;
+
+          // create
+          videoEl = document.createElement("video");
+          videoEl.setAttribute("data-agora-local", "1");
+          videoEl.autoplay = true;
+          videoEl.playsInline = true;
+          videoEl.muted = true; // necessary for autoplay
+          videoEl.style.position = "absolute";
+          videoEl.style.top = "0";
+          videoEl.style.left = "0";
+          videoEl.style.width = "100%";
+          videoEl.style.height = "100%";
+          videoEl.style.objectFit = "cover";
+
+          // ensure container positioned
+          const cs = getComputedStyle(containerRef.current);
+          if (cs.position === "static")
+            containerRef.current.style.position = "relative";
+
+          // remove non-video placeholders
+          Array.from(containerRef.current.children).forEach((ch) => {
+            if (ch.tagName !== "VIDEO") ch.remove();
+          });
+
+          containerRef.current.appendChild(videoEl);
+          return videoEl;
+        };
+
+        const videoEl = createOrGetLocalVideo();
+
+        // Đợi video element ready trước khi play (fix timing issues)
+        if (videoEl.readyState === 0) {
+          await new Promise((resolve) => {
+            videoEl.addEventListener("loadedmetadata", resolve, {
+              once: true,
+            });
+            setTimeout(resolve, 1000); // Timeout sau 1s để không block quá lâu
+          });
+        }
+
+        await track.play(videoEl);
+        console.debug("[Agora] Local video play -> using explicit element");
+
+        // Verify video đã play thành công và có dimensions
+        setTimeout(() => {
+          const v = containerRef.current?.querySelector(
+            "video[data-agora-local]"
+          );
+          if (v && v.videoWidth === 0) {
+            console.warn("[Agora] Video width is 0, retrying enable...");
+            track
+              .setEnabled(false)
+              .then(() => track.setEnabled(true))
+              .catch(() => {});
+          } else if (v && v.videoWidth > 0) {
+            console.debug("[Agora] Local video mounted successfully:", {
+              width: v.videoWidth,
+              height: v.videoHeight,
+            });
+          }
+        }, 1500);
+
+        return; // Success, exit retry loop
+      } catch (err) {
+        console.warn(
+          `[Agora] Local video mount attempt ${i + 1}/${retries} failed:`,
+          err
+        );
+        if (i < retries - 1) {
+          // Retry sau 500ms
+          await new Promise((r) => setTimeout(r, 500));
+        } else {
+          console.error("[Agora] All local video mount attempts failed");
+          // Không throw error để meeting vẫn có thể tiếp tục (chỉ không có video)
+        }
+      }
+    }
+  };
+
   // ---------- Snapshot helpers ----------
 
   // Parse appointment start time
@@ -899,121 +1001,8 @@ export default function MeetingPage() {
           videoTrack: cameraTrack,
         };
 
-        // preview local - với retry mechanism để fix màn hình đen khi deploy
-        // ✅ FIX: Đợi localDivRef mount với retry (quan trọng khi deploy - React có thể render chậm hơn)
-        const mountLocalVideo = async (track, retries = 5) => {
-          for (let i = 0; i < retries; i++) {
-            // Đợi ref mount (quan trọng khi deploy - React có thể render chậm hơn)
-            if (!localDivRef.current) {
-              console.debug(
-                `[Agora] Waiting for localDivRef to mount (attempt ${
-                  i + 1
-                }/${retries})`
-              );
-              await new Promise((r) => setTimeout(r, 200));
-              continue;
-            }
-
-            try {
-              const createOrGetLocalVideo = () => {
-                // try reuse
-                let videoEl = localDivRef.current.querySelector(
-                  "video[data-agora-local]"
-                );
-                if (videoEl) return videoEl;
-
-                // create
-                videoEl = document.createElement("video");
-                videoEl.setAttribute("data-agora-local", "1");
-                videoEl.autoplay = true;
-                videoEl.playsInline = true;
-                videoEl.muted = true; // necessary for autoplay
-                videoEl.style.position = "absolute";
-                videoEl.style.top = "0";
-                videoEl.style.left = "0";
-                videoEl.style.width = "100%";
-                videoEl.style.height = "100%";
-                videoEl.style.objectFit = "cover";
-
-                // ensure container positioned
-                const cs = getComputedStyle(localDivRef.current);
-                if (cs.position === "static")
-                  localDivRef.current.style.position = "relative";
-
-                // remove non-video placeholders
-                Array.from(localDivRef.current.children).forEach((ch) => {
-                  if (ch.tagName !== "VIDEO") ch.remove();
-                });
-
-                localDivRef.current.appendChild(videoEl);
-                return videoEl;
-              };
-
-              const videoEl = createOrGetLocalVideo();
-
-              // ✅ FIX: Đợi video element ready trước khi play (fix timing issues)
-              if (videoEl.readyState === 0) {
-                await new Promise((resolve) => {
-                  videoEl.addEventListener("loadedmetadata", resolve, {
-                    once: true,
-                  });
-                  setTimeout(resolve, 1000); // Timeout sau 1s để không block quá lâu
-                });
-              }
-
-              await track.play(videoEl);
-              console.debug(
-                "[Agora] Local video play -> using explicit element"
-              );
-
-              // ✅ FIX: Verify video đã play thành công và có dimensions
-              setTimeout(() => {
-                const v = localDivRef.current?.querySelector(
-                  "video[data-agora-local]"
-                );
-                if (v && v.videoWidth === 0) {
-                  console.warn("[Agora] Video width is 0, retrying enable...");
-                  track
-                    .setEnabled(false)
-                    .then(() => track.setEnabled(true))
-                    .catch(() => {});
-                } else if (v && v.videoWidth > 0) {
-                  console.debug("[Agora] Local video mounted successfully:", {
-                    width: v.videoWidth,
-                    height: v.videoHeight,
-                  });
-                }
-              }, 1500);
-
-              return; // Success, exit retry loop
-            } catch (err) {
-              console.warn(
-                `[Agora] Local video mount attempt ${i + 1}/${retries} failed:`,
-                err
-              );
-              if (i < retries - 1) {
-                // Retry sau 500ms
-                await new Promise((r) => setTimeout(r, 500));
-              } else {
-                console.error("[Agora] All local video mount attempts failed");
-                // Không throw error để meeting vẫn có thể tiếp tục (chỉ không có video)
-              }
-            }
-          }
-        };
-
-        // ✅ FIX: Gọi mountLocalVideo với retry mechanism
-        if (cameraTrack) {
-          try {
-            await mountLocalVideo(cameraTrack);
-          } catch (err) {
-            console.error(
-              "[Agora] Failed to mount local video after retries:",
-              err
-            );
-            // Không throw error để meeting vẫn có thể tiếp tục (chỉ không có video)
-          }
-        }
+        // ✅ FIX: Không mount video ở đây nữa - sẽ mount sau khi DOM render (trong useEffect riêng)
+        // Video sẽ được mount trong useEffect riêng sau khi loading = false và DOM ready
 
         // publish local - dùng clientRef.current để support cả client mới và cũ
         const currentClient = clientRef.current || client;
@@ -1099,6 +1088,80 @@ export default function MeetingPage() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // ✅ FIX: Mount local video sau khi DOM đã render và loading = false
+  useEffect(() => {
+    if (loading) {
+      return; // Đợi loading xong
+    }
+
+    let isMounted = true;
+    let mountAttempted = false;
+
+    // Hàm check và mount video
+    const tryMountVideo = async () => {
+      // Check xem video đã được mount chưa
+      const existingVideo = localDivRef.current?.querySelector(
+        "video[data-agora-local]"
+      );
+      if (existingVideo && existingVideo.videoWidth > 0) {
+        console.debug("[Agora] Local video already mounted");
+        return true; // Đã mount rồi
+      }
+
+      const cameraTrack = localTrackRefs.current?.videoTrack;
+      if (!cameraTrack) {
+        return false; // Chưa có track
+      }
+
+      if (!localDivRef.current) {
+        return false; // Container chưa ready
+      }
+
+      // Mount video với retry mechanism
+      if (!mountAttempted) {
+        mountAttempted = true;
+        console.debug("[Agora] Starting local video mount after DOM ready");
+        try {
+          await mountLocalVideo(cameraTrack, localDivRef);
+          return true;
+        } catch (err) {
+          console.error(
+            "[Agora] Failed to mount local video after DOM ready:",
+            err
+          );
+          mountAttempted = false; // Cho phép retry
+          return false;
+        }
+      }
+
+      return false;
+    };
+
+    // Thử mount ngay
+    tryMountVideo();
+
+    // Nếu chưa mount được, check lại sau mỗi 500ms (tối đa 10 lần = 5s)
+    const maxAttempts = 10;
+    let attempts = 0;
+    const intervalId = setInterval(async () => {
+      if (!isMounted || attempts >= maxAttempts) {
+        clearInterval(intervalId);
+        return;
+      }
+
+      attempts++;
+      const videoMounted = await tryMountVideo();
+      if (videoMounted) {
+        clearInterval(intervalId);
+      }
+    }, 500);
+
+    return () => {
+      isMounted = false;
+      clearInterval(intervalId);
+    };
+  }, [loading]); // Chạy lại khi loading thay đổi
 
   // Xử lý khi user đóng tab/refresh đột ngột
   useEffect(() => {

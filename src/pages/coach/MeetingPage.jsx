@@ -539,35 +539,23 @@ export default function MeetingPage() {
     const loadAndStart = async () => {
       setLoading(true);
       try {
+        // ✅ OPTION 2: Bỏ test stream, để Agora SDK tự handle permission
+        // (Nhưng sẽ mất khả năng show error message sớm)
+
         // Check HTTPS requirement for production
-        if (
-          location.protocol !== "https:" &&
-          location.hostname !== "localhost" &&
-          location.hostname !== "127.0.0.1"
-        ) {
+        const isSecureContext = 
+          window.location.protocol === "https:" ||
+          window.location.hostname === "localhost" ||
+          window.location.hostname === "127.0.0.1";
+
+        if (!isSecureContext) {
           console.warn("[Meeting] Camera access requires HTTPS in production!");
           // Không throw error ngay, vì có thể user vẫn muốn thử
           // Nhưng sẽ log warning
         }
 
-        // Check camera permission before creating tracks
-        try {
-          const testStream = await navigator.mediaDevices.getUserMedia({
-            video: true,
-            audio: true,
-          });
-          testStream.getTracks().forEach((track) => track.stop()); // Stop test stream
-          console.log("[Meeting] Camera permission granted");
-        } catch (permErr) {
-          console.error("[Meeting] Camera permission denied:", permErr);
-          if (mounted) {
-            setError(
-              "Camera permission denied. Please allow camera access in browser settings."
-            );
-            setLoading(false);
-            return;
-          }
-        }
+        // Bỏ phần test stream, để Agora SDK tự handle permission
+        // Nếu permission bị deny, Agora SDK sẽ throw error và được catch ở line 888
 
         // 1) get token data if missing
         let td = tokenData;

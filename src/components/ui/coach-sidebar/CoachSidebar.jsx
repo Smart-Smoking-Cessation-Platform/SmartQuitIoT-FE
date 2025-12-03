@@ -3,9 +3,12 @@ import React from "react";
 import {
   LayoutDashboard,
   Calendar,
-  ClipboardList,
+  CalendarCheck,
   MessageSquare,
   Users,
+  Settings,
+  Star,
+  FileText,
 } from "lucide-react";
 import logo from "@/assets/logo.png";
 import NavCoachSidebar from "./NavCoachSidebar";
@@ -23,15 +26,16 @@ import { useNavigate } from "react-router-dom";
 const items = [
   { title: "Dashboard", url: "/coach", icon: LayoutDashboard },
   { title: "Schedule", url: "/coach/schedule", icon: Calendar },
-  { title: "Appointments", url: "/coach/appointments", icon: ClipboardList },
+  { title: "Appointments", url: "/coach/appointments", icon: CalendarCheck },
   { title: "Chat", url: "/coach/chat", icon: MessageSquare },
   { title: "Members", url: "/coach/members", icon: Users },
-  { title: "Feedback", url: "/coach/feedback", icon: ClipboardList },
+  { title: "Feedback", url: "/coach/feedback", icon: Star },
   {
     title: "Community Posts",
     url: "/coach/community-posts",
-    icon: ClipboardList,
+    icon: FileText,
   },
+  { title: "Profile Setting", url: "/coach/profile-setting", icon: Settings },
 ];
 
 const CoachSidebar = () => {

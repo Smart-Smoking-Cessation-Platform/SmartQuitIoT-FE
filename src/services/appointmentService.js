@@ -26,7 +26,7 @@ export const getAppointmentDetailForCoach = (appointmentId) => {
 };
 
 /**
- * Coach hủy appointment (xóa row) - endpoint dành cho coach
+ * Coach hủy appointment - endpoint dành cho coach
  * DELETE /api/appointments/{appointmentId}/by-coach
  */
 export const cancelAppointmentByCoach = (appointmentId) => {
@@ -42,7 +42,7 @@ export const requestJoinToken = (appointmentId) => {
 };
 
 /**
- * Lấy appointment trong tương lai (ví dụ: từ hôm nay trở đi — tiện cho UI "upcoming"
+ * Lấy appointment trong tương lai (ví dụ: từ hôm nay trở đi
  * Sử dụng backend filter date bằng param `date`
  */
 export const getUpcomingAppointments = ({

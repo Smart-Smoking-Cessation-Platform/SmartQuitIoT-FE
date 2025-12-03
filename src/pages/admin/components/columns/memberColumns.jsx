@@ -166,7 +166,7 @@ export const memberColumns = (handlers) => [
     cell: ({ row }) => (
       <ActionMenu
         row={row}
-        onEdit={handlers?.onEdit}
+        onViewDetails={handlers?.onEdit}
         onDelete={handlers?.onDelete}
       />
     ),

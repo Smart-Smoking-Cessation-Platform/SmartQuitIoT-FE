@@ -54,6 +54,7 @@ import NewsFeeds from "./pages/admin/pages/NewsFeeds";
 import NewsFeedDetail from "./pages/admin/pages/NewsFeedDetail";
 import CommunityPostsPage from "./pages/coach/CommunityPosts";
 import ManageAppointment from "@/pages/admin/pages/ManageAppointment";
+import ProfileSettingPage from "./pages/coach/ProfileSettingPage";
 function App() {
   const [isLoading, setIsLoading] = useState(true);
 
@@ -100,6 +101,7 @@ function App() {
         { path: "/coach/members", element: <MemberManagementPage /> },
         { path: "/coach/feedback", element: <FeedbackPage /> },
         { path: "/coach/community-posts", element: <CommunityPostsPage /> },
+        { path: "/coach/profile-setting", element: <ProfileSettingPage /> },
       ],
     },
     {

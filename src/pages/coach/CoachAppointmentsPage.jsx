@@ -15,6 +15,7 @@ import {
   CalendarDays,
   Loader2,
   Bell,
+  RefreshCw,
 } from "lucide-react";
 import styles from "../../styles/CoachAppointmentsPage.module.css";
 import api from "@/api/appointments";
@@ -245,46 +246,62 @@ export default function CoachAppointmentsPage() {
     // Note: Don't set loading to false here as we're navigating away
   };
 
+  // Fetch appointments function - reusable
+  const fetchAppointments = useCallback(async (showLoading = false) => {
+    if (showLoading) setLoading(true);
+    setError(null);
+    try {
+      const resp = await api.getUpcomingAppointments({
+        fromDate: todayIso(),
+        page: 0,
+        size: 200,
+      });
+      const rawList = toArray(resp);
+      const mapped = rawList.map(mapBackendToUI);
+      mapped.sort((x, y) =>
+        x.date === y.date
+          ? x.time.localeCompare(y.time)
+          : x.date.localeCompare(y.date)
+      );
+      setAppointments(mapped);
+
+      const dates = [...new Set(mapped.map((a) => a.date))];
+      // Only update selectedDate if it's not already set or if today has appointments
+      setSelectedDate((prev) => {
+        if (dates.includes(prev)) return prev;
+        return dates.includes(todayIso()) ? todayIso() : dates[0] || todayIso();
+      });
+    } catch (e) {
+      console.error("fetch upcoming error", e);
+      setError(e.message || "Failed to load appointments");
+    } finally {
+      if (showLoading) setLoading(false);
+    }
+  }, []);
+
   // initial load: upcoming appointments from today
   useEffect(() => {
-    let mounted = true;
-    const fetchUpcoming = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const resp = await api.getUpcomingAppointments({
-          fromDate: todayIso(),
-          page: 0,
-          size: 200,
-        });
-        const rawList = toArray(resp);
-        const mapped = rawList.map(mapBackendToUI);
-        mapped.sort((x, y) =>
-          x.date === y.date
-            ? x.time.localeCompare(y.time)
-            : x.date.localeCompare(y.date)
-        );
-        if (!mounted) return;
-        setAppointments(mapped);
+    fetchAppointments(true);
+  }, [fetchAppointments]);
 
-        const dates = [...new Set(mapped.map((a) => a.date))];
-        setSelectedDate(
-          dates.includes(todayIso()) ? todayIso() : dates[0] || todayIso()
-        );
-      } catch (e) {
-        console.error("fetch upcoming error", e);
-        if (!mounted) return;
-        setError(e.message || "Failed to load appointments");
-      } finally {
-        if (mounted) setLoading(false);
-      }
+  // Auto-refresh appointments every 30 seconds (polling)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchAppointments(false); // Silent refresh, don't show loading
+    }, 30000); // 30 seconds
+
+    return () => clearInterval(interval);
+  }, [fetchAppointments]);
+
+  // Refresh when window gains focus (user comes back to tab)
+  useEffect(() => {
+    const handleFocus = () => {
+      fetchAppointments(false); // Silent refresh
     };
 
-    fetchUpcoming();
-    return () => {
-      mounted = false;
-    };
-  }, []);
+    window.addEventListener("focus", handleFocus);
+    return () => window.removeEventListener("focus", handleFocus);
+  }, [fetchAppointments]);
 
   // fetch notifications
   const fetchNotifications = useCallback(async () => {
@@ -322,10 +339,25 @@ export default function CoachAppointmentsPage() {
     return () => clearInterval(interval);
   }, []);
 
-  // listen for WebSocket notifications
+  // listen for WebSocket notifications - refresh appointments when new appointment is booked
   useEffect(() => {
-    const handleNotification = () => {
+    const handleNotification = (event) => {
+      const notification = event.detail;
+      
+      // Refresh appointments if it's an appointment-related notification
+      if (
+        notification?.notificationType === "APPOINTMENT_BOOKED" ||
+        notification?.notificationType === "APPOINTMENT_CANCELLED" ||
+        notification?.notificationType === "APPOINTMENT_REMINDER"
+      ) {
+        // Refresh appointments silently when appointment-related notification arrives
+        fetchAppointments(false);
+      }
+
+      // Always refresh unread count
       fetchUnreadCount();
+      
+      // Refresh notifications list if popover is open
       if (notificationOpen) {
         fetchNotifications();
       }
@@ -335,7 +367,7 @@ export default function CoachAppointmentsPage() {
     return () => {
       window.removeEventListener("ws:notification", handleNotification);
     };
-  }, [notificationOpen, fetchNotifications]);
+  }, [notificationOpen, fetchNotifications, fetchAppointments]);
 
   // fetch notifications when popover opens
   useEffect(() => {
@@ -545,8 +577,24 @@ export default function CoachAppointmentsPage() {
           </p>
         </div>
 
-        {/* Notification Bell */}
-        <Popover open={notificationOpen} onOpenChange={setNotificationOpen}>
+        <div className="flex items-center gap-2">
+          {/* Manual Refresh Button */}
+          <button
+            onClick={() => fetchAppointments(true)}
+            disabled={loading}
+            className="p-2 rounded-lg hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            title="Refresh appointments"
+            aria-label="Refresh appointments"
+          >
+            <RefreshCw
+              className={`w-5 h-5 text-gray-700 ${
+                loading ? "animate-spin" : ""
+              }`}
+            />
+          </button>
+
+          {/* Notification Bell */}
+          <Popover open={notificationOpen} onOpenChange={setNotificationOpen}>
           <PopoverTrigger asChild>
             <button
               className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors"
@@ -639,6 +687,7 @@ export default function CoachAppointmentsPage() {
             </ScrollArea>
           </PopoverContent>
         </Popover>
+        </div>
       </div>
 
       {/* Date Navigation & Calendar - Compact */}

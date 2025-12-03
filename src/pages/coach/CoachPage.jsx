@@ -1,5 +1,5 @@
 // src/pages/coach/CoachPage.jsx
-import React from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   Calendar,
   Clock,
@@ -14,88 +14,116 @@ import {
   Activity,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { getDashboardStatistics } from "@/services/statisticsService";
+import useToast from "@/hooks/useToast";
+import CircleLoading from "@/components/loadings/CircleLoading";
 
 const CoachPage = () => {
   const navigate = useNavigate();
+  const toast = useToast();
+  const [loading, setLoading] = useState(true);
+  const [statistics, setStatistics] = useState(null);
 
-  // Mock data - will be replaced by API
-  const stats = [
-    {
-      title: "Appointments Today",
-      value: 5,
-      icon: Calendar,
-      color: "text-emerald-600",
-      bgGradient: "bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50",
-      iconBg: "bg-emerald-100",
-      change: "+2 from yesterday",
-    },
-    {
-      title: "Pending Requests",
-      value: 2,
-      icon: AlertCircle,
-      color: "text-amber-600",
-      bgGradient: "bg-gradient-to-br from-amber-50 to-orange-50",
-      iconBg: "bg-amber-100",
-      change: "Requires attention",
-    },
-    {
-      title: "Completed This Week",
-      value: 12,
-      icon: CheckCircle2,
-      color: "text-teal-600",
-      bgGradient: "bg-gradient-to-br from-teal-50 via-cyan-50 to-emerald-50",
-      iconBg: "bg-teal-100",
-      change: "+3 from last week",
-    },
-    {
-      title: "Active Members",
-      value: 28,
-      icon: Users,
-      color: "text-cyan-600",
-      bgGradient: "bg-gradient-to-br from-cyan-50 via-teal-50 to-emerald-50",
-      iconBg: "bg-cyan-100",
-      change: "5 new this month",
-    },
-  ];
+  const fetchDashboardStatistics = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await getDashboardStatistics();
+      if (response?.status === 200) {
+        // Unwrap GlobalResponse
+        const data = response.data?.data || response.data;
+        setStatistics(data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch dashboard statistics:", error);
+      toast.error("Failed to load dashboard statistics. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }, [toast]);
 
-  const upcomingAppointments = [
-    {
-      id: 1,
-      time: "10:00",
-      memberName: "Nguyễn Văn A",
-      memberId: 101,
-      avatar: "https://i.pravatar.cc/150?img=12",
-      type: "Video Call",
-      status: "confirmed",
-    },
-    {
-      id: 2,
-      time: "11:30",
-      memberName: "Trần Thị B",
-      memberId: 102,
-      avatar: "https://i.pravatar.cc/150?img=13",
-      type: "In-Person",
-      status: "confirmed",
-    },
-    {
-      id: 3,
-      time: "14:00",
-      memberName: "Phạm Văn C",
-      memberId: 103,
-      avatar: "https://i.pravatar.cc/150?img=14",
-      type: "Video Call",
-      status: "pending",
-    },
-    {
-      id: 4,
-      time: "15:30",
-      memberName: "Lê Thị D",
-      memberId: 104,
-      avatar: "https://i.pravatar.cc/150?img=15",
-      type: "In-Person",
-      status: "confirmed",
-    },
-  ];
+  useEffect(() => {
+    fetchDashboardStatistics();
+  }, [fetchDashboardStatistics]);
+
+  // Calculate stats from API data
+  const stats = statistics
+    ? [
+        {
+          title: "Appointments Today",
+          value: statistics.appointmentsToday || 0,
+          icon: Calendar,
+          color: "text-emerald-600",
+          bgGradient:
+            "bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50",
+          iconBg: "bg-emerald-100",
+          change:
+            statistics.appointmentsYesterday !== undefined
+              ? statistics.appointmentsToday > statistics.appointmentsYesterday
+                ? `+${
+                    statistics.appointmentsToday -
+                    statistics.appointmentsYesterday
+                  } from yesterday`
+                : statistics.appointmentsToday <
+                  statistics.appointmentsYesterday
+                ? `${
+                    statistics.appointmentsToday -
+                    statistics.appointmentsYesterday
+                  } from yesterday`
+                : "Same as yesterday"
+              : "",
+        },
+        {
+          title: "Pending Requests",
+          value: statistics.pendingRequests || 0,
+          icon: AlertCircle,
+          color: "text-amber-600",
+          bgGradient: "bg-gradient-to-br from-amber-50 to-orange-50",
+          iconBg: "bg-amber-100",
+          change:
+            statistics.pendingRequests > 0 ? "Requires attention" : "All clear",
+        },
+        {
+          title: "Completed This Week",
+          value: statistics.completedThisWeek || 0,
+          icon: CheckCircle2,
+          color: "text-teal-600",
+          bgGradient:
+            "bg-gradient-to-br from-teal-50 via-cyan-50 to-emerald-50",
+          iconBg: "bg-teal-100",
+          change:
+            statistics.completedLastWeek !== undefined
+              ? statistics.completedThisWeek > statistics.completedLastWeek
+                ? `+${
+                    statistics.completedThisWeek - statistics.completedLastWeek
+                  } from last week`
+                : statistics.completedThisWeek < statistics.completedLastWeek
+                ? `${
+                    statistics.completedThisWeek - statistics.completedLastWeek
+                  } from last week`
+                : "Same as last week"
+              : "",
+        },
+        {
+          title: "Active Members",
+          value: statistics.activeMembers || 0,
+          icon: Users,
+          color: "text-cyan-600",
+          bgGradient:
+            "bg-gradient-to-br from-cyan-50 via-teal-50 to-emerald-50",
+          iconBg: "bg-cyan-100",
+          change:
+            statistics.newMembersThisMonth > 0
+              ? `${statistics.newMembersThisMonth} new this month`
+              : "No new members this month",
+        },
+      ]
+    : [];
+
+  // Map upcoming appointments from API - limit to 5 items
+  const upcomingAppointments = (statistics?.upcomingAppointments || []).slice(
+    0,
+    5
+  );
 
   const quickActions = [
     {
@@ -130,40 +158,28 @@ const CoachPage = () => {
     },
   ];
 
-  const recentActivity = [
-    {
-      type: "appointment",
-      message: "Completed appointment with Nguyễn Văn A",
-      time: "2 hours ago",
-      icon: CheckCircle2,
-      color: "text-emerald-600",
-      bgColor: "bg-emerald-100",
-    },
-    {
-      type: "message",
-      message: "New message from Trần Thị B",
-      time: "3 hours ago",
-      icon: MessageSquare,
-      color: "text-teal-600",
-      bgColor: "bg-teal-100",
-    },
-    {
-      type: "request",
-      message: "New appointment request from Phạm Văn C",
-      time: "5 hours ago",
-      icon: Calendar,
-      color: "text-cyan-600",
-      bgColor: "bg-cyan-100",
-    },
-    {
-      type: "feedback",
-      message: "Received new feedback from Lê Thị D",
-      time: "1 day ago",
-      icon: Activity,
-      color: "text-emerald-600",
-      bgColor: "bg-emerald-100",
-    },
-  ];
+  // Helper function to get status badge class
+  const getStatusBadgeClass = (status) => {
+    const statusLower = status?.toLowerCase() || "";
+    if (statusLower === "completed") {
+      return "bg-emerald-100 text-emerald-700";
+    } else if (statusLower === "pending") {
+      return "bg-amber-100 text-amber-700";
+    } else if (statusLower === "in_progress") {
+      return "bg-blue-100 text-blue-700";
+    } else if (statusLower === "cancelled") {
+      return "bg-red-100 text-red-700";
+    }
+    return "bg-gray-100 text-gray-700";
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <CircleLoading />
+      </div>
+    );
+  }
 
   return (
     <div className="px-10 py-6 min-h-screen scrollbar-hidden">
@@ -233,35 +249,41 @@ const CoachPage = () => {
                 <div
                   key={apt.id}
                   className="flex items-center gap-4 p-4 rounded-xl border border-gray-100 hover:border-emerald-200 hover:bg-emerald-50/50 transition-all duration-200 cursor-pointer"
-                  onClick={() => navigate(`/coach/appointments/${apt.id}`)}
+                  onClick={() =>
+                    navigate(`/coach/appointments/${apt.appointmentId}`)
+                  }
                 >
                   <div className="flex-shrink-0">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white font-semibold">
-                      {apt.memberName.charAt(0)}
-                    </div>
+                    {apt.memberAvatarUrl ? (
+                      <img
+                        src={apt.memberAvatarUrl}
+                        alt={apt.memberName || "Member"}
+                        className="w-12 h-12 rounded-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-white font-semibold">
+                        {apt.memberName?.charAt(0) || "M"}
+                      </div>
+                    )}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-1">
                       <p className="font-semibold text-gray-900 truncate">
-                        {apt.memberName}
+                        {apt.memberName || "Unknown Member"}
                       </p>
                       <span
-                        className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          apt.status === "confirmed"
-                            ? "bg-emerald-100 text-emerald-700"
-                            : "bg-amber-100 text-amber-700"
-                        }`}
+                        className={`px-2 py-1 rounded-full text-xs font-medium capitalize ${getStatusBadgeClass(
+                          apt.status
+                        )}`}
                       >
-                        {apt.status}
+                        {apt.status?.toLowerCase() || "unknown"}
                       </span>
                     </div>
                     <div className="flex items-center gap-3 text-sm text-gray-600">
                       <div className="flex items-center gap-1">
                         <Clock className="w-4 h-4" />
-                        <span>{apt.time}</span>
+                        <span>{apt.time || "N/A"}</span>
                       </div>
-                      <span>•</span>
-                      <span>{apt.type}</span>
                     </div>
                   </div>
                 </div>
@@ -311,58 +333,6 @@ const CoachPage = () => {
             })}
           </div>
         </div>
-      </div>
-
-      {/* Recent Activity */}
-      <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-cyan-100 rounded-lg">
-              <Activity className="w-5 h-5 text-cyan-600" />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">
-                Recent Activity
-              </h2>
-              <p className="text-sm text-gray-500">Latest updates</p>
-            </div>
-          </div>
-        </div>
-
-        {recentActivity.length > 0 ? (
-          <div className="space-y-4">
-            {recentActivity.map((activity, index) => {
-              const Icon = activity.icon;
-              return (
-                <div
-                  key={index}
-                  className="flex items-start gap-4 p-4 rounded-xl border border-gray-100 hover:bg-gray-50 transition-colors"
-                >
-                  <div
-                    className={`p-2 rounded-lg ${
-                      activity.bgColor || "bg-gray-100"
-                    } ${activity.color}`}
-                  >
-                    <Icon className="w-5 h-5" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="text-sm font-medium text-gray-900">
-                      {activity.message}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      {activity.time}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="text-center py-8">
-            <Activity className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-            <p className="text-gray-500 text-sm">No recent activity</p>
-          </div>
-        )}
       </div>
     </div>
   );

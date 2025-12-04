@@ -10,7 +10,14 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { X, Upload, Loader2, Image as ImageIcon, Video, Trash2 } from "lucide-react";
+import {
+  X,
+  Upload,
+  Loader2,
+  Image as ImageIcon,
+  Video,
+  Trash2,
+} from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import postService from "@/services/postService";
@@ -160,7 +167,7 @@ const CreatePostModal = ({ open, onOpenChange, onSuccess }) => {
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto overflow-x-hidden">
         <DialogHeader>
           <DialogTitle>Create New Post</DialogTitle>
           <DialogDescription>
@@ -210,7 +217,17 @@ const CreatePostModal = ({ open, onOpenChange, onSuccess }) => {
               rows={8}
               value={formData.content}
               onChange={(e) => handleChange("content", e.target.value)}
-              className={errors.content ? "border-red-500" : ""}
+              className={`resize-y overflow-wrap-anywhere break-words whitespace-pre-wrap ${
+                errors.content ? "border-red-500" : ""
+              }`}
+              style={{
+                wordWrap: "break-word",
+                overflowWrap: "break-word",
+                whiteSpace: "pre-wrap",
+                maxWidth: "100%",
+                minWidth: 0,
+                boxSizing: "border-box",
+              }}
               disabled={submitting || uploadingMedia}
             />
             {errors.content && (
@@ -318,4 +335,3 @@ const CreatePostModal = ({ open, onOpenChange, onSuccess }) => {
 };
 
 export default CreatePostModal;
-

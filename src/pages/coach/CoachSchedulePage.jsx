@@ -181,14 +181,6 @@ const CoachSchedulePage = () => {
           >
             <ChevronRight />
           </button>
-          {/* Disabled save: not used because BE is the source-of-truth */}
-          <button
-            className={styles.saveBtn}
-            disabled
-            title="Not available - read only from server"
-          >
-            Save
-          </button>
         </div>
       </div>
 

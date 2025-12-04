@@ -148,10 +148,27 @@ export default function CoachChatPage() {
     };
   };
 
-  // load inbox
-  useEffect(() => {
-    let mounted = true;
-    const loadInbox = async () => {
+  // Mark conversation as read
+  const markConversationAsRead = useCallback(async (convId) => {
+    if (!convId) return;
+    try {
+      await conversationsApi.markConversationRead(convId);
+      // Update unreadCount to 0 in conversations list
+      setConversations((prev) =>
+        prev.map((c) =>
+          c.id === convId || c.rawId?.toString() === convId
+            ? { ...c, unreadCount: 0 }
+            : c
+        )
+      );
+    } catch (e) {
+      console.warn("markConversationAsRead failed", e);
+    }
+  }, []);
+
+  // Load inbox function (reusable)
+  const loadInbox = useCallback(
+    async (skipAutoSelect = false) => {
       try {
         const data = await conversationsApi.fetchConversations({
           page: 0,
@@ -236,37 +253,71 @@ export default function CoachChatPage() {
           };
         });
 
-        if (!mounted) return;
         setConversations(mapped);
-        
-        // Check for conversationId in query params first
-        const queryConvId = searchParams.get("conversationId");
-        if (queryConvId) {
-          const found = mapped.find((c) => c.id === queryConvId || c.rawId?.toString() === queryConvId);
-          if (found) {
-            setSelectedConvId(found.id);
-            await loadMessagesForConv(found.id);
-            // Clear query param after using it
-            setSearchParams({});
-            return;
+
+        // Only auto-select on initial load, not on refresh
+        if (!skipAutoSelect) {
+          // Check for conversationId in query params first
+          const queryConvId = searchParams.get("conversationId");
+          if (queryConvId) {
+            const found = mapped.find(
+              (c) => c.id === queryConvId || c.rawId?.toString() === queryConvId
+            );
+            if (found) {
+              setSelectedConvId(found.id);
+              // loadMessagesForConv will be called in useEffect when selectedConvId changes
+              // Clear query param after using it
+              setSearchParams({});
+              return;
+            }
           }
-        }
-        
-        if (mapped.length > 0) {
-          setSelectedConvId(mapped[0].id);
-          await loadMessagesForConv(mapped[0].id);
+
+          if (mapped.length > 0 && !selectedConvId) {
+            setSelectedConvId(mapped[0].id);
+            // loadMessagesForConv will be called in useEffect when selectedConvId changes
+          }
         }
       } catch (e) {
         console.warn("loadInbox failed", e);
         setConversations([]);
       }
-    };
-    loadInbox();
-    return () => {
-      mounted = false;
-    };
+    },
+    [currentAccountId, searchParams, setSearchParams, selectedConvId]
+  );
+
+  // Initial load inbox
+  useEffect(() => {
+    loadInbox(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentAccountId]);
+
+  // Auto-refresh conversations every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      // Only refresh if tab is visible
+      if (!document.hidden) {
+        loadInbox(true); // Skip auto-select on refresh
+      }
+    }, 3000); // 30 seconds
+
+    return () => clearInterval(interval);
+  }, [loadInbox]);
+
+  // Refresh when tab becomes visible (user switches back to tab)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        // Tab is now visible, refresh conversations
+        loadInbox(true); // Skip auto-select on refresh
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [loadInbox]);
 
   // STOMP connect
   useEffect(() => {
@@ -326,7 +377,7 @@ export default function CoachChatPage() {
                   }
                 }
               );
-              
+
               // Subscribe to conversations updates to receive new conversations
               try {
                 if (conversationsSubRef.current) {
@@ -340,19 +391,31 @@ export default function CoachChatPage() {
                       const body = m.body ? JSON.parse(m.body) : m;
                       // Handle new conversation or conversation update
                       if (body.conversationId || body.id) {
-                        const convId = (body.conversationId || body.id).toString();
+                        const convId = (
+                          body.conversationId || body.id
+                        ).toString();
                         // Check if conversation already exists
                         setConversations((prev) => {
-                          const exists = prev.find((c) => c.id === convId || c.rawId?.toString() === convId);
+                          const exists = prev.find(
+                            (c) =>
+                              c.id === convId || c.rawId?.toString() === convId
+                          );
                           if (exists) {
                             // Update existing conversation
                             return prev.map((c) =>
                               c.id === convId || c.rawId?.toString() === convId
                                 ? {
                                     ...c,
-                                    lastMessage: body.lastMessage || body.content || c.lastMessage,
-                                    lastMessageTime: body.lastMessageTime || body.createdAt || c.lastMessageTime,
-                                    unreadCount: body.unreadCount ?? c.unreadCount,
+                                    lastMessage:
+                                      body.lastMessage ||
+                                      body.content ||
+                                      c.lastMessage,
+                                    lastMessageTime:
+                                      body.lastMessageTime ||
+                                      body.createdAt ||
+                                      c.lastMessageTime,
+                                    unreadCount:
+                                      body.unreadCount ?? c.unreadCount,
                                   }
                                 : c
                             );
@@ -462,7 +525,9 @@ export default function CoachChatPage() {
                 // Message from different conversation - check if it exists in list
                 setConversations((prev) => {
                   const exists = prev.find(
-                    (c) => c.id === messageConvId || c.rawId?.toString() === messageConvId
+                    (c) =>
+                      c.id === messageConvId ||
+                      c.rawId?.toString() === messageConvId
                   );
                   if (!exists) {
                     // New conversation - fetch details and add to list
@@ -470,7 +535,8 @@ export default function CoachChatPage() {
                   } else {
                     // Update existing conversation
                     return prev.map((c) =>
-                      c.id === messageConvId || c.rawId?.toString() === messageConvId
+                      c.id === messageConvId ||
+                      c.rawId?.toString() === messageConvId
                         ? {
                             ...c,
                             lastMessage: normalized.text || "",
@@ -522,10 +588,18 @@ export default function CoachChatPage() {
                 setConversations((prev) =>
                   prev.map((c) =>
                     c.id === selectedConvId
-                      ? { ...c, lastMessage: normalized.text || "", lastMessageTime: normalized.createdAt }
+                      ? {
+                          ...c,
+                          lastMessage: normalized.text || "",
+                          lastMessageTime: normalized.createdAt,
+                        }
                       : c
                   )
                 );
+                // Mark as read when receiving message in selected conversation
+                if (selectedConvId) {
+                  markConversationAsRead(selectedConvId);
+                }
               }
             } catch (e) {
               console.warn("failed to parse incoming stomp message", e, m);
@@ -550,7 +624,7 @@ export default function CoachChatPage() {
       } catch {}
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedConvId, currentAccountId]);
+  }, [selectedConvId, currentAccountId, markConversationAsRead]);
 
   useEffect(() => {
     const el = listRef.current;
@@ -559,118 +633,121 @@ export default function CoachChatPage() {
   }, [messages, selectedConvId]);
 
   // Load conversation details and add to list
-  const loadConversationDetails = useCallback(async (convId) => {
-    if (!convId) return;
-    try {
-      // Fetch conversations list to get the new one
-      const data = await conversationsApi.fetchConversations({
-        page: 0,
-        size: 100,
-      });
-      const mapped = (data || []).map((it) => {
-        const idRaw =
-          it.conversationId ??
-          it.id ??
-          it.conversation_id ??
-          it.convId ??
-          null;
-        let name = it.title ?? null;
-        let avatar = null;
-        let online = Boolean(it.online ?? it.isOnline ?? false);
-        let unreadCount = it.unreadCount ?? it.unread_count ?? 0;
-
-        if (
-          !name &&
-          Array.isArray(it.participants) &&
-          it.participants.length
-        ) {
-          const other = it.participants.find((p) => {
-            const pid = p?.id ?? p?.accountId ?? p?.participantId ?? null;
-            const parsed = pid ? Number(pid) : null;
-            return parsed !== currentAccountId;
-          });
-          const choose = other ?? it.participants[0];
-
-          name =
-            choose?.fullName ??
-            choose?.name ??
-            choose?.displayName ??
-            `User ${choose?.id ?? ""}`;
-          avatar =
-            choose?.avatarUrl ??
-            choose?.avatar ??
-            choose?.profile?.avatarUrl ??
-            choose?.picture ??
-            null;
-
-          online =
-            online || Boolean(choose?.online ?? choose?.isOnline ?? false);
-          unreadCount =
-            choose?.unreadCount ?? choose?.unread_count ?? unreadCount;
-        } else if (it.participants && it.participants.length) {
-          const p = it.participants[0];
-          avatar =
-            p?.avatarUrl ??
-            p?.avatar ??
-            p?.profile?.avatarUrl ??
-            p?.picture ??
-            null;
-        }
-
-        const lastMsgObj = it.lastMessage ?? it.last_message ?? null;
-        const lastMessageContent =
-          (lastMsgObj &&
-            (typeof lastMsgObj === "string"
-              ? lastMsgObj
-              : lastMsgObj.content ?? lastMsgObj.text)) ??
-          it.lastMessageContent ??
-          "";
-        const lastMessageTime =
-          (lastMsgObj &&
-            (lastMsgObj.createdAt ??
-              lastMsgObj.sentAt ??
-              lastMsgObj.updatedAt)) ??
-          it.lastMessageTime ??
-          it.lastUpdatedAt ??
-          null;
-
-        return {
-          id: idRaw?.toString() ?? Math.random().toString(36).slice(2),
-          rawId: idRaw,
-          name: name ?? `Conversation ${idRaw ?? ""}`,
-          avatar,
-          lastMessage: lastMessageContent,
-          lastMessageTime,
-          online,
-          unreadCount,
-        };
-      });
-
-      const targetConv = mapped.find(
-        (c) => c.id === convId || c.rawId?.toString() === convId
-      );
-
-      if (targetConv) {
-        setConversations((prev) => {
-          const exists = prev.find(
-            (c) => c.id === targetConv.id || c.rawId?.toString() === convId
-          );
-          if (!exists) {
-            // Add new conversation at the top
-            return [targetConv, ...prev];
-          }
-          // Update existing
-          return prev.map((c) =>
-            c.id === targetConv.id || c.rawId?.toString() === convId
-              ? targetConv
-              : c
-          );
+  const loadConversationDetails = useCallback(
+    async (convId) => {
+      if (!convId) return;
+      try {
+        // Fetch conversations list to get the new one
+        const data = await conversationsApi.fetchConversations({
+          page: 0,
+          size: 100,
         });
+        const mapped = (data || []).map((it) => {
+          const idRaw =
+            it.conversationId ??
+            it.id ??
+            it.conversation_id ??
+            it.convId ??
+            null;
+          let name = it.title ?? null;
+          let avatar = null;
+          let online = Boolean(it.online ?? it.isOnline ?? false);
+          let unreadCount = it.unreadCount ?? it.unread_count ?? 0;
+
+          if (
+            !name &&
+            Array.isArray(it.participants) &&
+            it.participants.length
+          ) {
+            const other = it.participants.find((p) => {
+              const pid = p?.id ?? p?.accountId ?? p?.participantId ?? null;
+              const parsed = pid ? Number(pid) : null;
+              return parsed !== currentAccountId;
+            });
+            const choose = other ?? it.participants[0];
+
+            name =
+              choose?.fullName ??
+              choose?.name ??
+              choose?.displayName ??
+              `User ${choose?.id ?? ""}`;
+            avatar =
+              choose?.avatarUrl ??
+              choose?.avatar ??
+              choose?.profile?.avatarUrl ??
+              choose?.picture ??
+              null;
+
+            online =
+              online || Boolean(choose?.online ?? choose?.isOnline ?? false);
+            unreadCount =
+              choose?.unreadCount ?? choose?.unread_count ?? unreadCount;
+          } else if (it.participants && it.participants.length) {
+            const p = it.participants[0];
+            avatar =
+              p?.avatarUrl ??
+              p?.avatar ??
+              p?.profile?.avatarUrl ??
+              p?.picture ??
+              null;
+          }
+
+          const lastMsgObj = it.lastMessage ?? it.last_message ?? null;
+          const lastMessageContent =
+            (lastMsgObj &&
+              (typeof lastMsgObj === "string"
+                ? lastMsgObj
+                : lastMsgObj.content ?? lastMsgObj.text)) ??
+            it.lastMessageContent ??
+            "";
+          const lastMessageTime =
+            (lastMsgObj &&
+              (lastMsgObj.createdAt ??
+                lastMsgObj.sentAt ??
+                lastMsgObj.updatedAt)) ??
+            it.lastMessageTime ??
+            it.lastUpdatedAt ??
+            null;
+
+          return {
+            id: idRaw?.toString() ?? Math.random().toString(36).slice(2),
+            rawId: idRaw,
+            name: name ?? `Conversation ${idRaw ?? ""}`,
+            avatar,
+            lastMessage: lastMessageContent,
+            lastMessageTime,
+            online,
+            unreadCount,
+          };
+        });
+
+        const targetConv = mapped.find(
+          (c) => c.id === convId || c.rawId?.toString() === convId
+        );
+
+        if (targetConv) {
+          setConversations((prev) => {
+            const exists = prev.find(
+              (c) => c.id === targetConv.id || c.rawId?.toString() === convId
+            );
+            if (!exists) {
+              // Add new conversation at the top
+              return [targetConv, ...prev];
+            }
+            // Update existing
+            return prev.map((c) =>
+              c.id === targetConv.id || c.rawId?.toString() === convId
+                ? targetConv
+                : c
+            );
+          });
+        }
+      } catch (e) {
+        console.warn("loadConversationDetails failed", e);
       }
-    } catch (e) {
-      console.warn("loadConversationDetails failed", e);
-    }
-  }, [currentAccountId]);
+    },
+    [currentAccountId]
+  );
 
   // load messages (REST)
   const loadMessagesForConv = async (convId) => {
@@ -704,6 +781,8 @@ export default function CoachChatPage() {
           new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
       );
       setMessages((prev) => ({ ...prev, [key]: unique }));
+      // Mark as read when loading messages (opening conversation)
+      await markConversationAsRead(key);
     } catch (e) {
       console.warn("loadMessagesForConv failed", e);
       setMessages((prev) => ({ ...prev, [key]: [] }));
@@ -905,7 +984,7 @@ export default function CoachChatPage() {
               ? "Online"
               : status === "connecting"
               ? "Connecting..."
-              : "No Socket"}
+              : "No Connection"}
           </span>
         </div>
 

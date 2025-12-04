@@ -21,6 +21,7 @@ import styles from "../../styles/CoachAppointmentsPage.module.css";
 import api from "@/api/appointments";
 import AppointmentDetailsModal from "./AppointmentDetailsModal";
 import notificationService from "@/services/notificationService";
+import useToast from "@/hooks/useToast";
 import {
   Popover,
   PopoverTrigger,
@@ -118,6 +119,7 @@ const getStatusLabel = (status) => {
 
 export default function CoachAppointmentsPage() {
   const navigate = useNavigate();
+  const toast = useToast();
 
   const [filterStatus, setFilterStatus] = useState("ALL");
   const [selectedDate, setSelectedDate] = useState(todayIso());
@@ -178,7 +180,7 @@ export default function CoachAppointmentsPage() {
         )
       );
       // feedback
-      alert("Marked as completed ✅");
+      toast.success("Marked as completed");
     } catch (err) {
       console.error("complete error", err);
       const msg =
@@ -186,7 +188,7 @@ export default function CoachAppointmentsPage() {
         err?.message ||
         "Failed to complete appointment";
       setError(msg);
-      alert("Error: " + msg);
+      toast.error(msg);
     } finally {
       setCompletingId(null);
     }
@@ -343,7 +345,7 @@ export default function CoachAppointmentsPage() {
   useEffect(() => {
     const handleNotification = (event) => {
       const notification = event.detail;
-      
+
       // Refresh appointments if it's an appointment-related notification
       if (
         notification?.notificationType === "APPOINTMENT_BOOKED" ||
@@ -356,7 +358,7 @@ export default function CoachAppointmentsPage() {
 
       // Always refresh unread count
       fetchUnreadCount();
-      
+
       // Refresh notifications list if popover is open
       if (notificationOpen) {
         fetchNotifications();
@@ -595,98 +597,98 @@ export default function CoachAppointmentsPage() {
 
           {/* Notification Bell */}
           <Popover open={notificationOpen} onOpenChange={setNotificationOpen}>
-          <PopoverTrigger asChild>
-            <button
-              className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors"
-              aria-label="Notifications"
-            >
-              <Bell className="w-5 h-5 text-gray-700" />
-              {unreadCount > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] flex items-center justify-center px-1 text-xs font-semibold text-white bg-red-500 rounded-full">
-                  {unreadCount > 99 ? "99+" : unreadCount}
-                </span>
-              )}
-            </button>
-          </PopoverTrigger>
-          <PopoverContent className="w-96 p-0" align="end">
-            <div className="flex items-center justify-between p-4 border-b">
-              <h3 className="font-semibold text-gray-900">Notifications</h3>
-              {unreadCount > 0 && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleMarkAllAsRead}
-                  className="text-xs text-emerald-600 hover:text-emerald-700"
-                >
-                  Mark all as read
-                </Button>
-              )}
-            </div>
-            <ScrollArea className="h-[400px]">
-              {loadingNotifications ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="w-6 h-6 text-emerald-600 animate-spin" />
-                </div>
-              ) : notifications.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-12 px-4">
-                  <Bell className="w-12 h-12 text-gray-300 mb-3" />
-                  <p className="text-sm font-medium text-gray-900 mb-1">
-                    No notifications
-                  </p>
-                  <p className="text-xs text-gray-500 text-center">
-                    You're all caught up!
-                  </p>
-                </div>
-              ) : (
-                <div className="divide-y">
-                  {notifications.map((notification) => {
-                    // Support both 'read' and 'isRead' from backend
-                    const isUnread = !(
-                      notification.read ??
-                      notification.isRead ??
-                      false
-                    );
-                    return (
-                      <button
-                        key={notification.id}
-                        onClick={() => handleNotificationClick(notification)}
-                        className={`w-full text-left p-4 hover:bg-gray-50 transition-colors ${
-                          isUnread ? "bg-emerald-50/50" : ""
-                        }`}
-                      >
-                        <div className="flex items-start gap-3">
-                          <div className="mt-0.5 flex-shrink-0">
-                            {getNotificationIcon(notification.type)}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-start justify-between gap-2 mb-1">
-                              <p
-                                className={`text-sm font-medium ${
-                                  isUnread ? "text-gray-900" : "text-gray-700"
-                                }`}
-                              >
-                                {notification.title}
-                              </p>
-                              {isUnread && (
-                                <div className="w-2 h-2 bg-emerald-500 rounded-full flex-shrink-0 mt-1.5" />
-                              )}
+            <PopoverTrigger asChild>
+              <button
+                className="relative p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                aria-label="Notifications"
+              >
+                <Bell className="w-5 h-5 text-gray-700" />
+                {unreadCount > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] flex items-center justify-center px-1 text-xs font-semibold text-white bg-red-500 rounded-full">
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </span>
+                )}
+              </button>
+            </PopoverTrigger>
+            <PopoverContent className="w-96 p-0" align="end">
+              <div className="flex items-center justify-between p-4 border-b">
+                <h3 className="font-semibold text-gray-900">Notifications</h3>
+                {unreadCount > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleMarkAllAsRead}
+                    className="text-xs text-emerald-600 hover:text-emerald-700"
+                  >
+                    Mark all as read
+                  </Button>
+                )}
+              </div>
+              <ScrollArea className="h-[400px]">
+                {loadingNotifications ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="w-6 h-6 text-emerald-600 animate-spin" />
+                  </div>
+                ) : notifications.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-12 px-4">
+                    <Bell className="w-12 h-12 text-gray-300 mb-3" />
+                    <p className="text-sm font-medium text-gray-900 mb-1">
+                      No notifications
+                    </p>
+                    <p className="text-xs text-gray-500 text-center">
+                      You're all caught up!
+                    </p>
+                  </div>
+                ) : (
+                  <div className="divide-y">
+                    {notifications.map((notification) => {
+                      // Support both 'read' and 'isRead' from backend
+                      const isUnread = !(
+                        notification.read ??
+                        notification.isRead ??
+                        false
+                      );
+                      return (
+                        <button
+                          key={notification.id}
+                          onClick={() => handleNotificationClick(notification)}
+                          className={`w-full text-left p-4 hover:bg-gray-50 transition-colors ${
+                            isUnread ? "bg-emerald-50/50" : ""
+                          }`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className="mt-0.5 flex-shrink-0">
+                              {getNotificationIcon(notification.type)}
                             </div>
-                            <p className="text-xs text-gray-600 mb-2 line-clamp-2">
-                              {notification.content}
-                            </p>
-                            <p className="text-xs text-gray-400">
-                              {formatNotificationTime(notification.createdAt)}
-                            </p>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between gap-2 mb-1">
+                                <p
+                                  className={`text-sm font-medium ${
+                                    isUnread ? "text-gray-900" : "text-gray-700"
+                                  }`}
+                                >
+                                  {notification.title}
+                                </p>
+                                {isUnread && (
+                                  <div className="w-2 h-2 bg-emerald-500 rounded-full flex-shrink-0 mt-1.5" />
+                                )}
+                              </div>
+                              <p className="text-xs text-gray-600 mb-2 line-clamp-2">
+                                {notification.content}
+                              </p>
+                              <p className="text-xs text-gray-400">
+                                {formatNotificationTime(notification.createdAt)}
+                              </p>
+                            </div>
                           </div>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </ScrollArea>
-          </PopoverContent>
-        </Popover>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </ScrollArea>
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
 
@@ -996,12 +998,15 @@ export default function CoachAppointmentsPage() {
                       </div>
 
                       <div className={styles.appActions}>
-                        <button
-                          className="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-700 text-sm font-medium hover:border-gray-300 hover:bg-gray-50 transition-colors"
-                          onClick={() => openDetails(appointment)}
-                        >
-                          Details
-                        </button>
+                        {/* Details button - hide for COMPLETED status since Evidence button opens the same modal */}
+                        {appointment.status !== "COMPLETED" && (
+                          <button
+                            className="px-3 py-1.5 rounded-lg border border-gray-200 text-gray-700 text-sm font-medium hover:border-gray-300 hover:bg-gray-50 transition-colors"
+                            onClick={() => openDetails(appointment)}
+                          >
+                            Details
+                          </button>
+                        )}
 
                         {/* Only show Cancel button for PENDING status */}
                         {appointment.status === "PENDING" && (
@@ -1072,10 +1077,10 @@ export default function CoachAppointmentsPage() {
                             <button
                               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-500 text-white text-sm font-medium hover:bg-blue-600 transition-colors shadow-sm hover:shadow"
                               onClick={() => openDetails(appointment)}
-                              title="Xem bằng chứng (snapshots)"
+                              title="View evidence (snapshots)"
                             >
                               <Video className="w-4 h-4" />
-                              <span>Bằng chứng</span>
+                              <span>Evidence</span>
                             </button>
                           </div>
                         )}

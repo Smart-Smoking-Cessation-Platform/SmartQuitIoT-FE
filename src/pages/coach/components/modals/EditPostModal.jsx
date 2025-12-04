@@ -182,7 +182,7 @@ const EditPostModal = ({ open, onOpenChange, onSuccess, post }) => {
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto overflow-x-hidden">
         <DialogHeader>
           <DialogTitle>Edit Post</DialogTitle>
           <DialogDescription>
@@ -232,7 +232,17 @@ const EditPostModal = ({ open, onOpenChange, onSuccess, post }) => {
               rows={8}
               value={formData.content}
               onChange={(e) => handleChange("content", e.target.value)}
-              className={errors.content ? "border-red-500" : ""}
+              className={`resize-y overflow-wrap-anywhere break-words whitespace-pre-wrap ${
+                errors.content ? "border-red-500" : ""
+              }`}
+              style={{
+                wordWrap: "break-word",
+                overflowWrap: "break-word",
+                whiteSpace: "pre-wrap",
+                maxWidth: "100%",
+                minWidth: 0,
+                boxSizing: "border-box",
+              }}
               disabled={submitting || uploadingMedia}
             />
             {errors.content && (

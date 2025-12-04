@@ -1,24 +1,22 @@
 import instance from "@/config/axiosConfig";
 
-<<<<<<< HEAD
-export const getAllPagedCoaches = async (
-  page,
-  size,
-  search,
-  sortBy,
-  isActive
-) => {
-  return instance.get(
-    `/coaches/all?page=${page}&size=${size}&searchString=${search}&sortBy=${sortBy}&isActive=${isActive}`
-  );
-=======
+// export const getAllPagedCoaches = async (
+//   page,
+//   size,
+//   search,
+//   sortBy,
+//   isActive
+// ) => {
+//   return instance.get(
+//     `/coaches/all?page=${page}&size=${size}&searchString=${search}&sortBy=${sortBy}&isActive=${isActive}`
+//   );
+// };
 /**
  * Get authenticated coach profile
  * @returns {Promise} Response with CoachDTO
  */
 export const getAuthenticatedCoach = async () => {
   return instance.get("/coaches/p");
->>>>>>> d8d5405 (feat: add dashboard for coach and setting profile)
 };
 
 /**

@@ -38,7 +38,7 @@ const EditPostModal = ({ open, onOpenChange, onSuccess, post }) => {
         content: post.content || "",
       });
       // Convert post.media to mediaList format
-      if (post.media && Array.isArray(post.media)) {
+      if (post.media && Array.isArray(post.media) && post.media.length > 0) {
         setMediaList(
           post.media.map((m) => ({
             mediaUrl: m.mediaUrl || m.media_url || "",
@@ -46,7 +46,20 @@ const EditPostModal = ({ open, onOpenChange, onSuccess, post }) => {
           }))
         );
       } else {
-        setMediaList([]);
+        // Fallback: if no media array, try to use mediaUrls or thumbnail
+        const mediaListFromUrls = [];
+        if (post.mediaUrls) {
+          mediaListFromUrls.push({
+            mediaUrl: post.mediaUrls,
+            mediaType: "IMAGE",
+          });
+        } else if (post.thumbnail) {
+          mediaListFromUrls.push({
+            mediaUrl: post.thumbnail,
+            mediaType: "IMAGE",
+          });
+        }
+        setMediaList(mediaListFromUrls);
       }
       setErrors({});
     }
@@ -169,7 +182,7 @@ const EditPostModal = ({ open, onOpenChange, onSuccess, post }) => {
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-3xl max-h-[90vh] overflow-y-auto overflow-x-hidden">
         <DialogHeader>
           <DialogTitle>Edit Post</DialogTitle>
           <DialogDescription>
@@ -219,7 +232,17 @@ const EditPostModal = ({ open, onOpenChange, onSuccess, post }) => {
               rows={8}
               value={formData.content}
               onChange={(e) => handleChange("content", e.target.value)}
-              className={errors.content ? "border-red-500" : ""}
+              className={`resize-y overflow-wrap-anywhere break-words whitespace-pre-wrap ${
+                errors.content ? "border-red-500" : ""
+              }`}
+              style={{
+                wordWrap: "break-word",
+                overflowWrap: "break-word",
+                whiteSpace: "pre-wrap",
+                maxWidth: "100%",
+                minWidth: 0,
+                boxSizing: "border-box",
+              }}
               disabled={submitting || uploadingMedia}
             />
             {errors.content && (

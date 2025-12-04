@@ -19,6 +19,7 @@ import EditPostModal from "@/pages/coach/components/modals/EditPostModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import useAuth from "@/hooks/useAuth";
+import useConfirm from "@/hooks/useConfirm";
 
 /* ----------------------
    Helpers (date parsing + relative)
@@ -274,6 +275,7 @@ const CommunityPosts = () => {
   // Edit post modal
   const [isEditPostModalOpen, setIsEditPostModalOpen] = useState(false);
   const [postToEdit, setPostToEdit] = useState(null);
+  const [loadingPostForEdit, setLoadingPostForEdit] = useState(false);
   
   // Delete post state
   const [deletingPostId, setDeletingPostId] = useState(null);
@@ -281,6 +283,7 @@ const CommunityPosts = () => {
   // Get current user account ID
   const { getAccountId } = useAuth();
   const currentAccountId = getAccountId();
+  const confirm = useConfirm();
 
   const totalPages = useMemo(() => {
     if (!totalCount) return 1;
@@ -419,12 +422,23 @@ const CommunityPosts = () => {
   };
 
   // Handle edit post
-  const handleEditPost = (e, post) => {
+  const handleEditPost = async (e, post) => {
     if (e && typeof e.stopPropagation === "function") {
       e.stopPropagation();
     }
-    setPostToEdit(post);
-    setIsEditPostModalOpen(true);
+    
+    // Load full post detail to get media array
+    setLoadingPostForEdit(true);
+    try {
+      const fullPost = await postService.getPostDetail(post.id);
+      setPostToEdit(fullPost);
+      setIsEditPostModalOpen(true);
+    } catch (error) {
+      console.error("Failed to load post detail for editing:", error);
+      toast.error("Failed to load post details");
+    } finally {
+      setLoadingPostForEdit(false);
+    }
   };
 
   const handleEditPostSuccess = () => {
@@ -444,7 +458,15 @@ const CommunityPosts = () => {
       e.stopPropagation();
     }
 
-    if (!window.confirm("Are you sure you want to delete this post? This action cannot be undone.")) {
+    const ok = await confirm({
+      title: "Delete Post",
+      message: "Are you sure you want to delete this post? This action cannot be undone.",
+      okText: "Delete",
+      cancelText: "Cancel",
+      destructive: true,
+    });
+
+    if (!ok) {
       return;
     }
 
@@ -539,31 +561,6 @@ const CommunityPosts = () => {
                       <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-semibold bg-emerald-600 text-white shadow-md">
                         My Post
                       </span>
-                    </div>
-                  )}
-
-                  {/* Edit and Delete buttons - only show if post belongs to current user */}
-                  {isMyPost(p) && (
-                    <div className="absolute top-2 right-2 z-10 flex gap-2">
-                      <button
-                        onClick={(e) => handleEditPost(e, p)}
-                        className="p-2 bg-emerald-600 text-white rounded-lg shadow-md hover:bg-emerald-700 transition-colors opacity-0 group-hover:opacity-100"
-                        title="Edit post"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={(e) => handleDeletePost(e, p.id)}
-                        disabled={deletingPostId === p.id}
-                        className={`p-2 rounded-lg shadow-md transition-colors opacity-0 group-hover:opacity-100 ${
-                          deletingPostId === p.id
-                            ? "bg-gray-400 cursor-not-allowed"
-                            : "bg-red-600 hover:bg-red-700 text-white"
-                        }`}
-                        title="Delete post"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
                     </div>
                   )}
                   
@@ -714,10 +711,11 @@ const CommunityPosts = () => {
             <div className="flex items-center gap-2">
               <button
                 onClick={(e) => handleEditPost(e, selectedPost)}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-colors text-sm font-medium shadow-sm hover:shadow-md"
+                disabled={loadingPostForEdit}
+                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-colors text-sm font-medium shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Edit className="w-4 h-4" />
-                Edit
+                {loadingPostForEdit ? "Loading..." : "Edit"}
               </button>
               <button
                 onClick={(e) => handleDeletePost(e, selectedPost.id)}

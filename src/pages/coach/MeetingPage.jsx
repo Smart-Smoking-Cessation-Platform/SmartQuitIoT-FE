@@ -34,6 +34,8 @@ export default function MeetingPage() {
   const localDivRef = useRef(null);
   const remoteDivRef = useRef(null); // ✅ Ref cho remote container
   const REMOTE_MOUNT_ID = "remote-mount";
+  const localVideoMountingRef = useRef(false); // ✅ Guard để tránh mount nhiều lần
+  const remoteVideoMountingRef = useRef(new Map()); // ✅ Guard cho remote videos: uid -> boolean
 
   // state of remote users: map uid -> { uid, hasVideo, hasAudio, name, isLocal }
   const [remoteUsers, setRemoteUsers] = useState({});
@@ -91,15 +93,71 @@ export default function MeetingPage() {
   // ---------- Remote video mounting helper ----------
 
   // Helper để mount remote video vào container của React (không tạo container thủ công)
-  const mountRemoteVideo = async (remoteVideoTrack) => {
+  const mountRemoteVideo = async (remoteVideoTrack, userUid) => {
     if (!remoteVideoTrack) return;
+    
+    // ✅ FIX: Guard để tránh mount nhiều lần cho cùng một remote user
+    const uid = userUid || 'unknown';
+    if (remoteVideoMountingRef.current.get(uid)) {
+      console.debug(`[Agora] Remote video mount for uid ${uid} already in progress, skipping...`);
+      return;
+    }
+
+    remoteVideoMountingRef.current.set(uid, true);
+
     try {
       const container =
         remoteDivRef.current || document.getElementById(REMOTE_MOUNT_ID);
       if (!container) throw new Error("Remote container not found");
 
+      // ✅ FIX: Xóa bất kỳ local video nào đang ở remote container
+      const localVideosInRemote = container.querySelectorAll("video[data-agora-local]");
+      localVideosInRemote.forEach((v) => {
+        console.warn("[Agora] Removing misplaced local video from remote container");
+        v.remove();
+      });
+
+      // ✅ FIX: Đảm bảo remote track không đang play ở local container
+      const localContainer = localDivRef.current || document.getElementById("local-mount");
+      if (localContainer) {
+        const remoteVideosInLocal = localContainer.querySelectorAll("video[data-agora-remote]");
+        remoteVideosInLocal.forEach((v) => {
+          console.warn("[Agora] Removing misplaced remote video from local container");
+          v.remove();
+        });
+      }
+
+      // ✅ FIX: Cleanup duplicate remote video elements
+      const existingRemoteVideos = container.querySelectorAll("video[data-agora-remote]");
+      if (existingRemoteVideos.length > 1) {
+        console.warn(`[Agora] Found ${existingRemoteVideos.length} remote video elements, cleaning up duplicates...`);
+        // Giữ lại element đầu tiên, xóa các element còn lại
+        for (let j = 1; j < existingRemoteVideos.length; j++) {
+          try {
+            const oldTrack = existingRemoteVideos[j]._agoraTrackRef;
+            if (oldTrack) {
+              await oldTrack.stop().catch(() => {});
+            }
+          } catch {}
+          existingRemoteVideos[j].remove();
+        }
+      }
+
       // create/reuse video element
       let videoEl = container.querySelector("video[data-agora-remote]");
+      if (videoEl && videoEl.videoWidth > 0) {
+        // Kiểm tra xem track có đang play trong element này không
+        const isPlaying = videoEl._agoraTrackRef === remoteVideoTrack || 
+                         (videoEl.srcObject && videoEl.srcObject.getTracks().length > 0);
+        if (isPlaying) {
+          console.debug("[Agora] Remote video already playing in correct container");
+          return; // Đã mount rồi, không cần mount lại
+        }
+        // Cleanup element cũ trước khi reuse
+        videoEl.srcObject = null;
+        videoEl.load(); // Reset video element
+      }
+
       if (!videoEl) {
         videoEl = document.createElement("video");
         videoEl.setAttribute("data-agora-remote", "1");
@@ -112,6 +170,8 @@ export default function MeetingPage() {
         videoEl.style.width = "100%";
         videoEl.style.height = "100%";
         videoEl.style.objectFit = "cover";
+        // Lưu track reference để có thể cleanup sau
+        videoEl._agoraTrackRef = remoteVideoTrack;
         const cs = getComputedStyle(container);
         if (cs.position === "static") container.style.position = "relative";
         // remove placeholders (keep if you want)
@@ -121,11 +181,18 @@ export default function MeetingPage() {
         container.appendChild(videoEl);
       }
 
-      await remoteVideoTrack.play(videoEl);
-      console.debug("[Agora] Remote play into explicit video element");
+      // ✅ FIX: Đảm bảo track chỉ play một lần
+      if (!remoteVideoTrack.isPlaying) {
+        await remoteVideoTrack.play(videoEl);
+        console.debug("[Agora] Remote play into explicit video element");
+      } else {
+        console.debug("[Agora] Remote video track already playing, skipping play()");
+      }
     } catch (err) {
       console.warn("[Agora] mountRemoteVideo failed", err);
       // keep existing fallback you already had
+    } finally {
+      remoteVideoMountingRef.current.set(uid, false);
     }
   };
 
@@ -133,101 +200,188 @@ export default function MeetingPage() {
 
   // Helper để mount local video với retry mechanism
   const mountLocalVideo = async (track, containerRef, retries = 10) => {
-    for (let i = 0; i < retries; i++) {
-      // Đợi container mount (quan trọng khi deploy - React có thể render chậm hơn)
-      if (!containerRef.current) {
-        console.debug(
-          `[Agora] Waiting for localDivRef to mount (attempt ${
-            i + 1
-          }/${retries})`
-        );
-        await new Promise((r) => setTimeout(r, 200));
-        continue;
-      }
+    // ✅ FIX: Guard để tránh mount nhiều lần đồng thời
+    if (localVideoMountingRef.current) {
+      console.debug("[Agora] Local video mount already in progress, skipping...");
+      return;
+    }
 
-      try {
-        const createOrGetLocalVideo = () => {
-          // try reuse
-          let videoEl = containerRef.current.querySelector(
-            "video[data-agora-local]"
+    localVideoMountingRef.current = true;
+
+    try {
+      for (let i = 0; i < retries; i++) {
+        // Đợi container mount (quan trọng khi deploy - React có thể render chậm hơn)
+        if (!containerRef.current) {
+          console.debug(
+            `[Agora] Waiting for localDivRef to mount (attempt ${
+              i + 1
+            }/${retries})`
           );
-          if (videoEl) return videoEl;
-
-          // create
-          videoEl = document.createElement("video");
-          videoEl.setAttribute("data-agora-local", "1");
-          videoEl.autoplay = true;
-          videoEl.playsInline = true;
-          videoEl.muted = true; // necessary for autoplay
-          videoEl.style.position = "absolute";
-          videoEl.style.top = "0";
-          videoEl.style.left = "0";
-          videoEl.style.width = "100%";
-          videoEl.style.height = "100%";
-          videoEl.style.objectFit = "cover";
-
-          // ensure container positioned
-          const cs = getComputedStyle(containerRef.current);
-          if (cs.position === "static")
-            containerRef.current.style.position = "relative";
-
-          // remove non-video placeholders
-          Array.from(containerRef.current.children).forEach((ch) => {
-            if (ch.tagName !== "VIDEO") ch.remove();
-          });
-
-          containerRef.current.appendChild(videoEl);
-          return videoEl;
-        };
-
-        const videoEl = createOrGetLocalVideo();
-
-        // Đợi video element ready trước khi play (fix timing issues)
-        if (videoEl.readyState === 0) {
-          await new Promise((resolve) => {
-            videoEl.addEventListener("loadedmetadata", resolve, {
-              once: true,
-            });
-            setTimeout(resolve, 1000); // Timeout sau 1s để không block quá lâu
-          });
+          await new Promise((r) => setTimeout(r, 200));
+          continue;
         }
 
-        await track.play(videoEl);
-        console.debug("[Agora] Local video play -> using explicit element");
-
-        // Verify video đã play thành công và có dimensions
-        setTimeout(() => {
-          const v = containerRef.current?.querySelector(
-            "video[data-agora-local]"
-          );
-          if (v && v.videoWidth === 0) {
-            console.warn("[Agora] Video width is 0, retrying enable...");
-            track
-              .setEnabled(false)
-              .then(() => track.setEnabled(true))
-              .catch(() => {});
-          } else if (v && v.videoWidth > 0) {
-            console.debug("[Agora] Local video mounted successfully:", {
-              width: v.videoWidth,
-              height: v.videoHeight,
+        try {
+          // ✅ FIX: Xóa bất kỳ local video nào đang ở sai chỗ (remote container)
+          const remoteContainer = remoteDivRef.current || document.getElementById(REMOTE_MOUNT_ID);
+          if (remoteContainer) {
+            const misplacedLocalVideos = remoteContainer.querySelectorAll("video[data-agora-local]");
+            misplacedLocalVideos.forEach((v) => {
+              console.warn("[Agora] Removing misplaced local video from remote container");
+              v.remove();
             });
           }
-        }, 1500);
 
-        return; // Success, exit retry loop
-      } catch (err) {
-        console.warn(
-          `[Agora] Local video mount attempt ${i + 1}/${retries} failed:`,
-          err
-        );
-        if (i < retries - 1) {
-          // Retry sau 500ms
-          await new Promise((r) => setTimeout(r, 500));
-        } else {
-          console.error("[Agora] All local video mount attempts failed");
-          // Không throw error để meeting vẫn có thể tiếp tục (chỉ không có video)
+          // ✅ FIX: Cleanup tất cả video elements cũ trong local container trước
+          const existingVideos = containerRef.current.querySelectorAll("video[data-agora-local]");
+          if (existingVideos.length > 1) {
+            console.warn(`[Agora] Found ${existingVideos.length} local video elements, cleaning up duplicates...`);
+            // Giữ lại element đầu tiên, xóa các element còn lại
+            for (let j = 1; j < existingVideos.length; j++) {
+              try {
+                const oldTrack = existingVideos[j]._agoraTrackRef;
+                if (oldTrack) {
+                  await oldTrack.stop().catch(() => {});
+                }
+              } catch {}
+              existingVideos[j].remove();
+            }
+          }
+
+          // ✅ FIX: Kiểm tra xem track đã được play chưa
+          const existingVideo = containerRef.current.querySelector("video[data-agora-local]");
+          if (existingVideo && existingVideo.videoWidth > 0) {
+            // Kiểm tra xem track có đang play trong element này không
+            const isPlaying = existingVideo._agoraTrackRef === track || 
+                             (existingVideo.srcObject && existingVideo.srcObject.getTracks().length > 0);
+            if (isPlaying) {
+              console.debug("[Agora] Local video already playing in correct container");
+              return; // Đã mount rồi, không cần mount lại
+            }
+          }
+
+          // ✅ FIX: Stop track trước khi mount lại (nếu đã được mount ở đâu đó)
+          // Chỉ stop nếu track đang playing
+          try {
+            if (track.isPlaying) {
+              await track.stop();
+              // Đợi một chút để track cleanup xong
+              await new Promise((r) => setTimeout(r, 100));
+            }
+          } catch {
+            // Ignore nếu track chưa được play hoặc đã stop
+          }
+
+          const createOrGetLocalVideo = () => {
+            // try reuse - chỉ tìm trong local container
+            let videoEl = containerRef.current.querySelector(
+              "video[data-agora-local]"
+            );
+            if (videoEl) {
+              // Cleanup element cũ trước khi reuse
+              videoEl.srcObject = null;
+              videoEl.load(); // Reset video element
+              return videoEl;
+            }
+
+            // create
+            videoEl = document.createElement("video");
+            videoEl.setAttribute("data-agora-local", "1");
+            videoEl.autoplay = true;
+            videoEl.playsInline = true;
+            videoEl.muted = true; // necessary for autoplay
+            videoEl.style.position = "absolute";
+            videoEl.style.top = "0";
+            videoEl.style.left = "0";
+            videoEl.style.width = "100%";
+            videoEl.style.height = "100%";
+            videoEl.style.objectFit = "cover";
+            // Lưu track reference để có thể cleanup sau
+            videoEl._agoraTrackRef = track;
+
+            // ensure container positioned
+            const cs = getComputedStyle(containerRef.current);
+            if (cs.position === "static")
+              containerRef.current.style.position = "relative";
+
+            // remove non-video placeholders
+            Array.from(containerRef.current.children).forEach((ch) => {
+              if (ch.tagName !== "VIDEO") ch.remove();
+            });
+
+            containerRef.current.appendChild(videoEl);
+            return videoEl;
+          };
+
+          const videoEl = createOrGetLocalVideo();
+
+          // Đợi video element ready trước khi play (fix timing issues)
+          if (videoEl.readyState === 0) {
+            await new Promise((resolve) => {
+              videoEl.addEventListener("loadedmetadata", resolve, {
+                once: true,
+              });
+              setTimeout(resolve, 1000); // Timeout sau 1s để không block quá lâu
+            });
+          }
+
+          // ✅ FIX: Đảm bảo track chỉ play một lần
+          if (!track.isPlaying) {
+            await track.play(videoEl);
+            console.debug("[Agora] Local video play -> using explicit element");
+          } else {
+            console.debug("[Agora] Local video track already playing, skipping play()");
+          }
+
+          // ✅ FIX: Verify video chỉ có trong local container
+          setTimeout(() => {
+            const localVideos = containerRef.current?.querySelectorAll(
+              "video[data-agora-local]"
+            );
+            const remoteVideos = remoteContainer?.querySelectorAll(
+              "video[data-agora-local]"
+            );
+            
+            if (remoteVideos && remoteVideos.length > 0) {
+              console.warn("[Agora] Found local video in remote container, removing...");
+              remoteVideos.forEach((v) => v.remove());
+            }
+
+            const v = containerRef.current?.querySelector(
+              "video[data-agora-local]"
+            );
+            if (v && v.videoWidth === 0) {
+              console.warn("[Agora] Video width is 0, retrying enable...");
+              track
+                .setEnabled(false)
+                .then(() => track.setEnabled(true))
+                .catch(() => {});
+            } else if (v && v.videoWidth > 0) {
+              console.debug("[Agora] Local video mounted successfully:", {
+                width: v.videoWidth,
+                height: v.videoHeight,
+                container: containerRef.current.id,
+              });
+            }
+          }, 1500);
+
+          return; // Success, exit retry loop
+        } catch (err) {
+          console.warn(
+            `[Agora] Local video mount attempt ${i + 1}/${retries} failed:`,
+            err
+          );
+          if (i < retries - 1) {
+            // Retry sau 500ms
+            await new Promise((r) => setTimeout(r, 500));
+          } else {
+            console.error("[Agora] All local video mount attempts failed");
+            // Không throw error để meeting vẫn có thể tiếp tục (chỉ không có video)
+          }
         }
       }
+    } finally {
+      localVideoMountingRef.current = false;
     }
   };
 
@@ -810,7 +964,7 @@ export default function MeetingPage() {
           if (mediaType === "video") {
             const remoteVideoTrack = user.videoTrack;
             if (remoteVideoTrack) {
-              await mountRemoteVideo(remoteVideoTrack);
+              await mountRemoteVideo(remoteVideoTrack, user.uid);
             }
           }
 
@@ -1162,6 +1316,38 @@ export default function MeetingPage() {
       clearInterval(intervalId);
     };
   }, [loading]); // Chạy lại khi loading thay đổi
+
+  // ✅ FIX: Cleanup video elements không đúng chỗ định kỳ
+  useEffect(() => {
+    if (loading) return;
+
+    const cleanupInterval = setInterval(() => {
+      const localContainer = localDivRef.current || document.getElementById("local-mount");
+      const remoteContainer = remoteDivRef.current || document.getElementById(REMOTE_MOUNT_ID);
+
+      // Xóa local video khỏi remote container
+      if (remoteContainer) {
+        const misplacedLocalVideos = remoteContainer.querySelectorAll("video[data-agora-local]");
+        if (misplacedLocalVideos.length > 0) {
+          console.warn(`[Agora] Cleaning up ${misplacedLocalVideos.length} misplaced local video(s) from remote container`);
+          misplacedLocalVideos.forEach((v) => v.remove());
+        }
+      }
+
+      // Xóa remote video khỏi local container
+      if (localContainer) {
+        const misplacedRemoteVideos = localContainer.querySelectorAll("video[data-agora-remote]");
+        if (misplacedRemoteVideos.length > 0) {
+          console.warn(`[Agora] Cleaning up ${misplacedRemoteVideos.length} misplaced remote video(s) from local container`);
+          misplacedRemoteVideos.forEach((v) => v.remove());
+        }
+      }
+    }, 2000); // Check mỗi 2 giây
+
+    return () => {
+      clearInterval(cleanupInterval);
+    };
+  }, [loading]);
 
   // Xử lý khi user đóng tab/refresh đột ngột
   useEffect(() => {

@@ -174,34 +174,30 @@ const FeedbackPage = () => {
               key={fb.id}
               className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-100 flex flex-col h-full"
             >
-              {/* Header */}
+              {/* Header - Simplified: chỉ avatar, tên, rating */}
               <div className="bg-gradient-to-br from-emerald-50 to-teal-50 p-5">
-                <div className="flex items-start gap-4">
+                <div className="flex items-center gap-3">
                   {/* Avatar */}
-                  <div className="relative">
+                  <div className="relative flex-shrink-0">
                     <div className="absolute inset-0 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-full blur-sm opacity-30"></div>
                     <img
                       src={fb.avatarUrl || "/images/avatar-placeholder.png"}
                       alt={fb.memberName || "Member"}
-                      className="relative w-16 h-16 rounded-full object-cover ring-2 ring-white shadow-md"
+                      className="relative w-14 h-14 rounded-full object-cover ring-2 ring-white shadow-md"
                     />
                   </div>
 
+                  {/* Member Name */}
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-gray-900 text-lg truncate">
+                    <h3 className="font-semibold text-gray-900 text-base truncate">
                       {fb.memberName ?? "—"}
                     </h3>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-sm text-gray-600">
-                        {formatDate(fb.date)}
-                      </span>
-                    </div>
                   </div>
 
-                  {/* Rating badge - number + icon only */}
-                  <div className="flex items-center gap-1 bg-white rounded-xl px-3 py-2 shadow-sm">
-                    <Star size={18} className="fill-amber-400 text-amber-400" />
-                    <span className="font-bold text-lg text-gray-900">
+                  {/* Rating badge */}
+                  <div className="flex items-center gap-1 bg-white rounded-lg px-2.5 py-1.5 shadow-sm flex-shrink-0">
+                    <Star size={16} className="fill-amber-400 text-amber-400" />
+                    <span className="font-bold text-base text-gray-900">
                       {fb.rating}
                     </span>
                   </div>
@@ -209,36 +205,54 @@ const FeedbackPage = () => {
               </div>
 
               {/* Content section */}
-              <div className="p-5 flex-1 flex flex-col">
-                {/* Feedback content */}
-                <div className="flex-1 mb-4 min-h-[80px]">
-                  <p className="text-sm text-gray-600 leading-relaxed line-clamp-4">
-                    {fb.content}
+              <div className="p-5 flex-1 flex flex-col space-y-4">
+                {/* Feedback Date Section */}
+                <div className="border-b border-gray-100 pb-3">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs font-medium text-gray-500 mb-0.5">
+                        Feedback submitted
+                      </div>
+                      <div className="text-sm font-medium text-gray-900">
+                        {formatDate(fb.date)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Feedback Content */}
+                <div className="flex-1">
+                  <div className="text-xs font-medium text-gray-500 mb-2">
+                    Comment
+                  </div>
+                  <p className="text-sm text-gray-700 leading-relaxed line-clamp-4 min-h-[60px]">
+                    {fb.content || (
+                      <span className="text-gray-400 italic">
+                        No comment provided.
+                      </span>
+                    )}
                   </p>
                 </div>
 
-                {/* Appointment info - improved compact layout */}
-                <div className="mb-4">
-                  <div className="relative group">
-                    <div className="absolute inset-0 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl opacity-0 group-hover:opacity-5 transition-opacity"></div>
-                    <div className="relative bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-3 border border-gray-200">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                          <Calendar className="w-4 h-4 text-emerald-600 flex-shrink-0" />
-                          <div className="min-w-0">
-                            <div className="text-sm font-semibold text-gray-900 truncate">
-                              {formatDate(fb.appointmentDate)}
-                            </div>
-                            {fb.startTime && fb.endTime && (
-                              <div className="flex items-center gap-1 mt-0.5 text-xs text-gray-500">
-                                <Clock className="w-3 h-3 flex-shrink-0" />
-                                <span className="truncate">
-                                  {formatSlot(fb.startTime, fb.endTime)}
-                                </span>
-                              </div>
-                            )}
-                          </div>
+                {/* Appointment Info */}
+                <div className="border-t border-gray-100 pt-3">
+                  <div className="text-xs font-medium text-gray-500 mb-2">
+                    Appointment
+                  </div>
+                  <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-3 border border-gray-200">
+                    <div className="flex items-start gap-2">
+                      <Calendar className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-semibold text-gray-900">
+                          {formatDate(fb.appointmentDate)}
                         </div>
+                        {fb.startTime && fb.endTime && (
+                          <div className="flex items-center gap-1 mt-1 text-xs text-gray-600">
+                            <Clock className="w-3 h-3 flex-shrink-0" />
+                            <span>{formatSlot(fb.startTime, fb.endTime)}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -248,7 +262,7 @@ const FeedbackPage = () => {
                 {fb.memberId && (
                   <button
                     onClick={() => handleViewProfile(fb.memberId)}
-                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-medium text-sm hover:from-emerald-600 hover:to-teal-700 shadow-md hover:shadow-lg transition-all duration-200"
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-medium text-sm hover:from-emerald-600 hover:to-teal-700 shadow-md hover:shadow-lg transition-all duration-200 mt-2"
                   >
                     <User size={18} />
                     <span>View Profile</span>

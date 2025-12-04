@@ -28,6 +28,10 @@ const ProfileSettingPage = () => {
   const [coachData, setCoachData] = useState(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [uploadingCertificate, setUploadingCertificate] = useState(false);
+  const [avatarError, setAvatarError] = useState(false);
+  // Local state for immediate preview updates
+  const [avatarUrl, setAvatarUrl] = useState("");
+  const [certificateUrl, setCertificateUrl] = useState("");
 
   const {
     register,
@@ -47,9 +51,6 @@ const ProfileSettingPage = () => {
     },
   });
 
-  const avatarUrl = watch("avatarUrl");
-  const certificateUrl = watch("certificateUrl");
-
   const fetchCoachProfile = useCallback(async () => {
     setFetching(true);
     try {
@@ -59,8 +60,14 @@ const ProfileSettingPage = () => {
         setCoachData(data);
         setValue("firstName", data.firstName || "");
         setValue("lastName", data.lastName || "");
-        setValue("avatarUrl", data.avatarUrl || "");
-        setValue("certificateUrl", data.certificateUrl || "");
+        const avatar = data.avatarUrl || "";
+        const certificate = data.certificateUrl || "";
+        setValue("avatarUrl", avatar);
+        setValue("certificateUrl", certificate);
+        // Update local state for immediate preview
+        setAvatarUrl(avatar);
+        setCertificateUrl(certificate);
+        setAvatarError(false); // Reset error state when loading new data
         setValue("bio", data.bio || "");
         setValue("experienceYears", data.experienceYears || 0);
         setValue("specializations", data.specializations || "");
@@ -77,41 +84,178 @@ const ProfileSettingPage = () => {
     fetchCoachProfile();
   }, [fetchCoachProfile]);
 
+  // Auto-save avatar to database
+  const autoSaveAvatar = async (avatarUrlValue) => {
+    if (!coachData?.id) {
+      console.warn("Cannot auto-save: Coach ID not found");
+      return;
+    }
+
+    try {
+      const currentFormData = watch(); // Get current form values
+      // Use the passed value directly (null for remove, URL for upload)
+      // Convert empty string to null for proper deletion
+      const finalAvatarUrl = avatarUrlValue === "" ? null : (avatarUrlValue || null);
+      
+      const response = await updateCoachProfile(coachData.id, {
+        firstName: currentFormData.firstName || coachData.firstName,
+        lastName: currentFormData.lastName || coachData.lastName,
+        avatarUrl: finalAvatarUrl,
+        certificateUrl: currentFormData.certificateUrl || coachData.certificateUrl || null,
+        bio: currentFormData.bio || coachData.bio || null,
+        experienceYears: currentFormData.experienceYears || coachData.experienceYears || 0,
+        specializations: currentFormData.specializations || coachData.specializations || null,
+      });
+
+      if (response?.status === 200) {
+        // Refresh profile data to get latest from server
+        await fetchCoachProfile();
+        console.log("Avatar auto-saved successfully");
+      }
+    } catch (error) {
+      console.error("Failed to auto-save avatar:", error);
+      // Don't show error toast for auto-save, just log it
+      // User can still manually save later
+    }
+  };
+
+  // Auto-save certificate to database
+  const autoSaveCertificate = async (certificateUrlValue) => {
+    if (!coachData?.id) {
+      console.warn("Cannot auto-save: Coach ID not found");
+      return;
+    }
+
+    try {
+      const currentFormData = watch(); // Get current form values
+      // Use the passed value directly (null for remove, URL for upload)
+      // Convert empty string to null for proper deletion
+      const finalCertificateUrl = certificateUrlValue === "" ? null : (certificateUrlValue || null);
+      
+      const response = await updateCoachProfile(coachData.id, {
+        firstName: currentFormData.firstName || coachData.firstName,
+        lastName: currentFormData.lastName || coachData.lastName,
+        avatarUrl: currentFormData.avatarUrl || coachData.avatarUrl || null,
+        certificateUrl: finalCertificateUrl,
+        bio: currentFormData.bio || coachData.bio || null,
+        experienceYears: currentFormData.experienceYears || coachData.experienceYears || 0,
+        specializations: currentFormData.specializations || coachData.specializations || null,
+      });
+
+      if (response?.status === 200) {
+        // Refresh profile data to get latest from server
+        await fetchCoachProfile();
+        console.log("Certificate auto-saved successfully");
+      }
+    } catch (error) {
+      console.error("Failed to auto-save certificate:", error);
+      // Don't show error toast for auto-save, just log it
+      // User can still manually save later
+    }
+  };
+
   const handleAvatarUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      e.target.value = "";
+      return;
+    }
+
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("Image size must be less than 10MB");
+      e.target.value = "";
+      return;
+    }
+
     setUploadingAvatar(true);
     try {
       const result = await uploadUnsigned(file, { folder: "coaches/avatars" });
-      setValue("avatarUrl", result.secure_url);
+      console.log("Upload result:", result);
+      
+      const imageUrl = result.secure_url || result.url;
+      if (!imageUrl) {
+        console.error("No URL in upload result:", result);
+        throw new Error("No URL returned from upload");
+      }
+      
+      // Update both form value and local state for immediate preview
+      setValue("avatarUrl", imageUrl, { shouldValidate: true });
+      setAvatarUrl(imageUrl); // Update local state for immediate preview
+      // Update coachData state immediately for preview
+      setCoachData((prev) => ({ ...prev, avatarUrl: imageUrl }));
+      setAvatarError(false); // Reset error state on new upload
       toast.success("Avatar uploaded successfully");
+      
+      // Auto-save to database
+      await autoSaveAvatar(imageUrl);
     } catch (error) {
       console.error("Avatar upload failed:", error);
-      toast.error("Failed to upload avatar. Please try again.");
+      const errorMessage = error?.message || error?.raw?.error?.message || "Failed to upload avatar";
+      toast.error(errorMessage);
     } finally {
       setUploadingAvatar(false);
+      // Reset input to allow re-uploading the same file
+      e.target.value = "";
     }
   };
+
 
   const handleCertificateUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // Validate file type - only images allowed
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      e.target.value = "";
+      return;
+    }
+
+    // Validate file size (max 10MB)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("File size must be less than 10MB");
+      e.target.value = "";
+      return;
+    }
 
     setUploadingCertificate(true);
     try {
       const result = await uploadUnsigned(file, {
         folder: "coaches/certificates",
       });
-      setValue("certificateUrl", result.secure_url);
+      console.log("Certificate upload result:", result);
+      
+      const fileUrl = result.secure_url || result.url;
+      if (!fileUrl) {
+        console.error("No URL in upload result:", result);
+        throw new Error("No URL returned from upload");
+      }
+      
+      // Update both form value and local state for immediate preview
+      setValue("certificateUrl", fileUrl, { shouldValidate: true });
+      setCertificateUrl(fileUrl); // Update local state for immediate preview
+      // Update coachData state immediately for preview
+      setCoachData((prev) => ({ ...prev, certificateUrl: fileUrl }));
       toast.success("Certificate uploaded successfully");
+      
+      // Auto-save to database
+      await autoSaveCertificate(fileUrl);
     } catch (error) {
       console.error("Certificate upload failed:", error);
-      toast.error("Failed to upload certificate. Please try again.");
+      const errorMessage = error?.message || error?.raw?.error?.message || "Failed to upload certificate";
+      toast.error(errorMessage);
     } finally {
       setUploadingCertificate(false);
+      // Reset input to allow re-uploading the same file
+      e.target.value = "";
     }
   };
+
 
   const onSubmit = async (data) => {
     if (!coachData?.id) {
@@ -121,11 +265,15 @@ const ProfileSettingPage = () => {
 
     setLoading(true);
     try {
+      // Use local state as fallback to ensure we have the latest values
+      const finalAvatarUrl = data.avatarUrl || avatarUrl || null;
+      const finalCertificateUrl = data.certificateUrl || certificateUrl || null;
+      
       const response = await updateCoachProfile(coachData.id, {
         firstName: data.firstName,
         lastName: data.lastName,
-        avatarUrl: data.avatarUrl || null,
-        certificateUrl: data.certificateUrl || null,
+        avatarUrl: finalAvatarUrl,
+        certificateUrl: finalCertificateUrl,
         bio: data.bio || null,
         experienceYears: parseInt(data.experienceYears) || 0,
         specializations: data.specializations || null,
@@ -187,12 +335,19 @@ const ProfileSettingPage = () => {
                   <div className="flex items-start gap-6">
                     <div className="flex-shrink-0">
                       <div className="relative">
-                        <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-emerald-100 bg-gray-100">
-                          {avatarUrl ? (
+                        <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-emerald-100 bg-gray-100 relative">
+                          {avatarUrl && !avatarError ? (
                             <img
+                              key={avatarUrl} // Force re-render when URL changes
                               src={avatarUrl}
                               alt="Avatar"
                               className="w-full h-full object-cover"
+                              onError={() => {
+                                setAvatarError(true);
+                              }}
+                              onLoad={() => {
+                                setAvatarError(false);
+                              }}
                             />
                           ) : (
                             <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-emerald-400 to-teal-500 text-white text-3xl font-bold">
@@ -224,16 +379,6 @@ const ProfileSettingPage = () => {
                           className="hidden"
                           disabled={uploadingAvatar}
                         />
-                        {avatarUrl && (
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setValue("avatarUrl", "")}
-                          >
-                            Remove
-                          </Button>
-                        )}
                       </div>
                       <p className="text-sm text-gray-500 mt-2">
                         Recommended: Square image, at least 400x400px
@@ -386,7 +531,11 @@ const ProfileSettingPage = () => {
                     <div className="flex flex-col gap-3">
                       <label
                         htmlFor="certificate-upload"
-                        className="cursor-pointer inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
+                        className={`cursor-pointer inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+                          uploadingCertificate
+                            ? "bg-emerald-400 text-white cursor-not-allowed"
+                            : "bg-emerald-600 text-white hover:bg-emerald-700"
+                        }`}
                       >
                         <Upload className="w-4 h-4" />
                         {uploadingCertificate
@@ -396,35 +545,51 @@ const ProfileSettingPage = () => {
                       <input
                         id="certificate-upload"
                         type="file"
-                        accept="image/*,.pdf"
+                        accept="image/*"
                         onChange={handleCertificateUpload}
                         className="hidden"
                         disabled={uploadingCertificate}
                       />
+                      
+                      {/* Certificate Preview */}
                       {certificateUrl && (
-                        <>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setValue("certificateUrl", "")}
-                          >
-                            Remove
-                          </Button>
-                          <a
-                            href={certificateUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-sm text-emerald-600 hover:underline flex items-center gap-1"
-                          >
-                            <FileText className="w-4 h-4" />
-                            View Certificate
-                          </a>
-                        </>
+                        <div className="border border-gray-200 rounded-lg p-3 bg-gray-50">
+                          <div className="flex items-start gap-3">
+                            <img
+                              src={certificateUrl}
+                              alt="Certificate"
+                              className="w-16 h-20 object-cover rounded border border-gray-200"
+                              onError={(e) => {
+                                e.target.style.display = "none";
+                                const fallback = e.target.parentElement.querySelector(".certificate-fallback");
+                                if (fallback) fallback.style.display = "flex";
+                              }}
+                            />
+                            <div className="flex-shrink-0 w-16 h-20 bg-red-100 rounded flex items-center justify-center certificate-fallback" style={{ display: "none" }}>
+                              <FileText className="w-8 h-8 text-red-600" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-medium text-gray-900 mb-2 truncate">
+                                Certificate
+                              </p>
+                              <div className="flex flex-col gap-2">
+                                <a
+                                  href={certificateUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-sm text-emerald-600 hover:underline flex items-center gap-1 w-fit"
+                                >
+                                  <FileText className="w-4 h-4" />
+                                  View Certificate
+                                </a>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
                       )}
                     </div>
                     <p className="text-sm text-gray-500 mt-2">
-                      Upload your professional certification documents
+                      Upload your professional certification documents (Image only, max 10MB)
                     </p>
                   </div>
 

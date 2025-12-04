@@ -38,7 +38,7 @@ const EditPostModal = ({ open, onOpenChange, onSuccess, post }) => {
         content: post.content || "",
       });
       // Convert post.media to mediaList format
-      if (post.media && Array.isArray(post.media)) {
+      if (post.media && Array.isArray(post.media) && post.media.length > 0) {
         setMediaList(
           post.media.map((m) => ({
             mediaUrl: m.mediaUrl || m.media_url || "",
@@ -46,7 +46,20 @@ const EditPostModal = ({ open, onOpenChange, onSuccess, post }) => {
           }))
         );
       } else {
-        setMediaList([]);
+        // Fallback: if no media array, try to use mediaUrls or thumbnail
+        const mediaListFromUrls = [];
+        if (post.mediaUrls) {
+          mediaListFromUrls.push({
+            mediaUrl: post.mediaUrls,
+            mediaType: "IMAGE",
+          });
+        } else if (post.thumbnail) {
+          mediaListFromUrls.push({
+            mediaUrl: post.thumbnail,
+            mediaType: "IMAGE",
+          });
+        }
+        setMediaList(mediaListFromUrls);
       }
       setErrors({});
     }

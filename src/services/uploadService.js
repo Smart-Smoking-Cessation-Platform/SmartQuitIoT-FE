@@ -29,46 +29,93 @@ if (!UPLOAD_PRESET) {
  */
 export async function uploadUnsigned(file, opts = {}) {
   if (!file) throw new Error("No file provided for upload");
-  const cloud = CLOUD_NAME || opts.cloudName;
+  
+  // Get cloud name and preset with fallbacks
+  const cloud = opts.cloudName || CLOUD_NAME;
   const preset = opts.upload_preset || UPLOAD_PRESET;
 
-  if (!cloud)
-    throw new Error(
-      "Cloudinary cloud name missing (VITE_CLOUDINARY_CLOUD_NAME)."
+  // Validate required parameters
+  if (!cloud) {
+    const error = new Error(
+      "Cloudinary cloud name missing. Please set VITE_CLOUDINARY_CLOUD_NAME environment variable or provide cloudName in opts."
     );
-  if (!preset)
-    throw new Error(
-      "Cloudinary upload preset missing (VITE_CLOUDINARY_UPLOAD_PRESET)."
+    console.error("Upload error:", error.message);
+    throw error;
+  }
+  
+  if (!preset) {
+    const error = new Error(
+      "Cloudinary upload preset missing. Please set VITE_CLOUDINARY_UPLOAD_PRESET environment variable or provide upload_preset in opts."
     );
-
-  const url = `https://api.cloudinary.com/v1_1/${cloud}/auto/upload`;
-  const fd = new FormData();
-  fd.append("file", file);
-  fd.append("upload_preset", preset);
-  if (opts.folder) fd.append("folder", opts.folder);
-  // optional timestamp (not required)
-  fd.append("timestamp", Math.floor(Date.now() / 1000));
-
-  const res = await fetch(url, {
-    method: "POST",
-    body: fd,
-  });
-
-  const data = await res.json();
-  if (!res.ok) {
-    const msg = data?.error?.message || JSON.stringify(data);
-    const e = new Error("Cloudinary upload failed: " + msg);
-    e.raw = data;
-    throw e;
+    console.error("Upload error:", error.message);
+    throw error;
   }
 
-  return {
-    secure_url: data.secure_url,
-    url: data.secure_url,
-    public_id: data.public_id,
-    resource_type: data.resource_type,
-    raw: data,
-  };
+  // Build upload URL
+  const url = `https://api.cloudinary.com/v1_1/${cloud}/auto/upload`;
+  
+  // Create FormData
+  const fd = new FormData();
+  fd.append("file", file);
+  fd.append("upload_preset", preset); // Always append preset
+  
+  if (opts.folder) {
+    fd.append("folder", opts.folder);
+  }
+  
+  // Optional timestamp
+  fd.append("timestamp", Math.floor(Date.now() / 1000));
+
+  // Log for debugging (only in development)
+  if (import.meta.env.DEV) {
+    console.log("Uploading to Cloudinary:", {
+      cloud,
+      preset: preset.substring(0, 10) + "...", // Only show first 10 chars for security
+      folder: opts.folder,
+      fileName: file.name,
+      fileSize: file.size,
+    });
+  }
+
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      body: fd,
+    });
+
+    const data = await res.json();
+    
+    if (!res.ok) {
+      const msg = data?.error?.message || JSON.stringify(data);
+      const e = new Error("Cloudinary upload failed: " + msg);
+      e.raw = data;
+      e.status = res.status;
+      console.error("Cloudinary upload error:", {
+        status: res.status,
+        error: data,
+        message: msg,
+      });
+      throw e;
+    }
+
+    // Return normalized response
+    return {
+      secure_url: data.secure_url,
+      url: data.secure_url || data.url,
+      public_id: data.public_id,
+      resource_type: data.resource_type,
+      raw: data,
+    };
+  } catch (error) {
+    // Re-throw if it's already our custom error
+    if (error.message.includes("Cloudinary")) {
+      throw error;
+    }
+    // Wrap network errors
+    const wrappedError = new Error("Network error during upload: " + error.message);
+    wrappedError.originalError = error;
+    throw wrappedError;
+  }
 }
 
 /**

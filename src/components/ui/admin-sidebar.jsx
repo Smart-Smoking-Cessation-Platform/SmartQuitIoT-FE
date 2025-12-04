@@ -78,6 +78,11 @@ const items = [
     url: "/admin/manage-slot-times",
     icon: List,
   },
+  {
+    title: "Manage Appointments",
+    url: "/admin/manage-appointments",
+    icon: List,
+  },
   //Feedbacks, Appointments
 ];
 

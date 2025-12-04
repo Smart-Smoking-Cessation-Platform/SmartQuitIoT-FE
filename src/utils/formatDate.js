@@ -50,6 +50,15 @@ export const formatDateTime = (dateString) => {
   });
 };
 
+export const formatTime = (timeString) => {
+  if (!timeString) return "N/A";
+  return new Date(`2000-01-01T${timeString}`).toLocaleTimeString("en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+};
+
 export const formatTimeAgo = (dateString) => {
   if (!dateString) return "N/A";
   const now = new Date();

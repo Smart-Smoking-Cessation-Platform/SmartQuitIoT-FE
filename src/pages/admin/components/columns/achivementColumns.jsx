@@ -36,7 +36,9 @@ export const achievementColumns = (handlers) => [
       };
       return (
         <Badge
-          className={`px-2 py-0.5 text-xs font-medium ${typeColors[type] || "bg-gray-100 text-gray-700"}`}
+          className={`px-2 py-0.5 text-xs font-medium ${
+            typeColors[type] || "bg-gray-100 text-gray-700"
+          }`}
         >
           {type || "—"}
         </Badge>
@@ -73,7 +75,7 @@ export const achievementColumns = (handlers) => [
     cell: ({ getValue }) => {
       const updatedAt = getValue();
       if (!updatedAt) return <span className="text-muted-foreground">—</span>;
-      
+
       const date = new Date(updatedAt);
       const formatted = date.toLocaleDateString("en-US", {
         year: "numeric",
@@ -82,7 +84,7 @@ export const achievementColumns = (handlers) => [
         hour: "2-digit",
         minute: "2-digit",
       });
-      
+
       return <span className="text-gray-600 text-sm">{formatted}</span>;
     },
   },

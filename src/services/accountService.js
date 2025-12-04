@@ -13,5 +13,5 @@ export const getMemberStatistics = async () => {
 };
 
 export const deletedAccount = async (accountId) => {
-  return instance.put(`/accounts/ban/${accountId}`);
+  return instance.put(`/accounts/delete/${accountId}`);
 };

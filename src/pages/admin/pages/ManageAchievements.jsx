@@ -1,14 +1,17 @@
-import AppBreadcrumb from "@/components/ui/app-breadcrumb";
-import { DataTable } from "@/components/ui/tables/data-table";
-import React, { useEffect, useState } from "react";
-import { achievementColumns as buildAchievementColumns } from "@/pages/admin/components/columns/achivementColumns";
-import useDebounce from "@/hooks/useDebounce";
-import SearchBar from "@/components/ui/search-bar";
-import { toast } from "sonner";
-import { getAllAchievements, deleteAchievement } from "@/services/achievementService";
 import TableLoadingSkeleton from "@/components/loadings/TableLoadingSkeleton";
-import { useNavigate } from "react-router-dom";
+import AppBreadcrumb from "@/components/ui/app-breadcrumb";
 import { Button } from "@/components/ui/button";
+import SearchBar from "@/components/ui/search-bar";
+import { DataTable } from "@/components/ui/tables/data-table";
+import useDebounce from "@/hooks/useDebounce";
+import { achievementColumns as buildAchievementColumns } from "@/pages/admin/components/columns/achivementColumns";
+import {
+  deleteAchievement,
+  getAllAchievements,
+} from "@/services/achievementService";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 
 const ManageAchievements = () => {
   const navigate = useNavigate();
@@ -20,7 +23,7 @@ const ManageAchievements = () => {
   const [achievements, setAchievements] = useState([]);
   const inputSearchDebounce = useDebounce(searchString, 300);
   const [isLoading, setIsLoading] = useState(false);
-  
+
   const handlePageChange = (newPage) => {
     setCurrentPage(newPage);
   };
@@ -32,7 +35,7 @@ const ManageAchievements = () => {
 
   const handleDelete = async (row) => {
     const { id, name } = row.original;
-    
+
     try {
       await deleteAchievement(id);
       toast.success("Achievement deleted successfully");

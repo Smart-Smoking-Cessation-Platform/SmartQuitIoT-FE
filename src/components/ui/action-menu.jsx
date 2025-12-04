@@ -16,10 +16,18 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Pencil, Trash2, Eye } from "lucide-react";
+import { Eye, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 
-export default function ActionMenu({ row, onEdit, onDelete, onViewDetails }) {
+export default function ActionMenu({
+  row,
+  onEdit,
+  onDelete,
+  onViewDetails,
+  editMessage = "Edit",
+  deleteMessage = "Delete",
+  viewDetailsMessage = "View Details",
+}) {
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   return (
@@ -34,12 +42,12 @@ export default function ActionMenu({ row, onEdit, onDelete, onViewDetails }) {
         <DropdownMenuContent align="end" className="w-40">
           {onViewDetails && (
             <DropdownMenuItem onClick={() => onViewDetails?.(row)}>
-              <Eye className="mr-2 h-4 w-4" /> View Details
+              <Eye className="mr-2 h-4 w-4" /> {viewDetailsMessage}
             </DropdownMenuItem>
           )}
           {onEdit && (
             <DropdownMenuItem onClick={() => onEdit?.(row)}>
-              <Pencil className="mr-2 h-4 w-4" /> Edit
+              <Pencil className="mr-2 h-4 w-4" /> {editMessage}
             </DropdownMenuItem>
           )}
           {onDelete && (
@@ -49,7 +57,7 @@ export default function ActionMenu({ row, onEdit, onDelete, onViewDetails }) {
                 onClick={() => setConfirmOpen(true)}
                 className="text-red-500 focus:text-red-500 focus:bg-red-50"
               >
-                <Trash2 className="mr-2 h-4 w-4" /> Delete
+                <Trash2 className="mr-2 h-4 w-4" /> {deleteMessage}
               </DropdownMenuItem>
             </>
           )}

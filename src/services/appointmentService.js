@@ -82,6 +82,12 @@ export const getAppointmentSnapshots = (appointmentId) => {
   return instance.get(`/appointments/${appointmentId}/snapshots`);
 };
 
+export const getAllAppointments = (page, size, status) => {
+  return instance.get(
+    `/appointments/manage?page=${page}&size=${size}&status=${status}`
+  );
+};
+
 export default {
   listCoachAppointments,
   getAppointmentDetailForCoach,

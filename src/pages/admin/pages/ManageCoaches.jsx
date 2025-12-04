@@ -5,6 +5,7 @@ import SearchBar from "@/components/ui/search-bar";
 import { DataTable } from "@/components/ui/tables/data-table";
 import useDebounce from "@/hooks/useDebounce";
 import { coachesColumns as buildCoachesColumns } from "@/pages/admin/components/columns/coachesColumns";
+import { deletedAccount } from "@/services/accountService";
 import { getAllPagedCoaches } from "@/services/coachService";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -18,6 +19,7 @@ const ManageCoaches = () => {
   const [totalElements, setTotalElements] = useState(0);
   const [sortBy, setSortBy] = useState("ASC");
   const [searchString, setSearchString] = useState("");
+  const [isActive, setIsActive] = useState(true);
   const inputSearchDebounce = useDebounce(searchString, 300);
   const [isLoading, setIsLoading] = useState(false);
   const nav = useNavigate();
@@ -29,7 +31,8 @@ const ManageCoaches = () => {
         currentPage,
         pageSize,
         inputSearchDebounce,
-        sortBy
+        sortBy,
+        isActive
       );
       setCoaches(response.data?.data?.content);
       setTotalPages(response.data?.data?.page?.totalPages);
@@ -43,23 +46,32 @@ const ManageCoaches = () => {
 
   useEffect(() => {
     fetchCoaches();
-  }, [currentPage, inputSearchDebounce, sortBy]);
+  }, [currentPage, inputSearchDebounce, sortBy, isActive]);
 
-  const handleEdit = (row) => {
+  const handleViewDetail = (row) => {
     const { id } = row.original; // your row data
     // open edit modal, navigate, etc.
     console.log("View Detail:", id);
     nav(`/admin/manage-coaches/${id}`);
   };
 
-  const handleDelete = (row) => {
-    const { id } = row.original;
-    // call API then refresh table
-    console.log("Delete id:", id);
+  const handleDelete = async (row) => {
+    const id = row.original.account?.id;
+    try {
+      const response = await deletedAccount(id);
+      if (response) {
+        toast.success(response.data?.data);
+        fetchCoaches();
+      }
+    } catch (error) {
+      toast.error(error.response.data?.message, {
+        duration: 5000,
+      });
+    }
   };
 
   const cols = buildCoachesColumns({
-    onEdit: handleEdit,
+    onEdit: handleViewDetail,
     onDelete: handleDelete,
   });
 
@@ -93,6 +105,8 @@ const ManageCoaches = () => {
         setSearchString={setSearchString}
         sortBy={sortBy}
         setSortBy={setSortBy}
+        filterBy={isActive}
+        setFilterBy={setIsActive}
       />
       <DataTable
         columns={cols}

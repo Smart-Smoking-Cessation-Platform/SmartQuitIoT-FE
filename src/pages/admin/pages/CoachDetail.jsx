@@ -11,13 +11,13 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { getCoachById } from "@/services/coachService";
+import { formatDateTime } from "@/utils/formatDate";
 import {
   Award,
   Ban,
   Briefcase,
   CheckCircle2,
   Clock,
-  Edit,
   FileText,
   Mail,
   Shield,
@@ -42,7 +42,6 @@ const CoachDetail = () => {
     try {
       setLoading(true);
       const response = await getCoachById(coachId);
-      console.log(response.data);
       setCoach(response.data);
     } catch (error) {
       console.log(error);
@@ -55,17 +54,6 @@ const CoachDetail = () => {
   useEffect(() => {
     fetchCoachDetail();
   }, [coachId]);
-
-  const formatDateTime = (dateString) => {
-    if (!dateString) return "N/A";
-    return new Date(dateString).toLocaleString("en-US", {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
 
   const getStatusBadge = (isActive, isBanned) => {
     if (isBanned) {
@@ -140,10 +128,6 @@ const CoachDetail = () => {
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => navigate(-1)}>
             Back
-          </Button>
-          <Button onClick={() => toast.info("Edit feature coming soon")}>
-            <Edit className="h-4 w-4 mr-2" />
-            Edit Coach
           </Button>
         </div>
       </div>

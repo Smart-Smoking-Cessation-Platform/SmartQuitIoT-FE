@@ -24,7 +24,7 @@ export const coachesColumns = (handlers) => [
           <div className="flex flex-col">
             <span className="font-medium">{name || "—"}</span>
             <span className="text-xs text-muted-foreground">
-              ID: {row.original.id}
+              Account ID: {row.original.account?.id}
             </span>
           </div>
         </div>
@@ -129,14 +129,36 @@ export const coachesColumns = (handlers) => [
     },
   },
   {
+    id: "isActive",
+    header: "Active",
+    accessorFn: (row) => row?.account?.isActive ?? "",
+    cell: ({ getValue }) => {
+      const isActive = getValue();
+      return (
+        <>{isActive ? <Badge variant="" /> : <Badge variant="destructive" />}</>
+      );
+    },
+  },
+  {
     id: "actions",
     header: "",
     cell: ({ row }) => (
-      <ActionMenu
-        row={row}
-        onEdit={handlers?.onEdit}
-        onDelete={handlers?.onDelete}
-      />
+      <>
+        {row.original.account?.isActive === true ? (
+          <ActionMenu
+            row={row}
+            onEdit={handlers?.onEdit}
+            onDelete={handlers?.onDelete}
+            editMessage="View Detail"
+          />
+        ) : (
+          <ActionMenu
+            row={row}
+            onEdit={handlers?.onEdit}
+            editMessage="View Detail"
+          />
+        )}
+      </>
     ),
     size: 48, // optional
     enableHiding: false,

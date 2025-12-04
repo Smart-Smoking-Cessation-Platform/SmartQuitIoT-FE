@@ -24,7 +24,7 @@ export const memberColumns = (handlers) => [
           <div className="flex flex-col">
             <span className="font-medium">{name || "—"}</span>
             <span className="text-xs text-muted-foreground">
-              ID: {row.original.account?.id}
+              Account ID: {row.original.account?.id}
             </span>
           </div>
         </div>
@@ -164,11 +164,22 @@ export const memberColumns = (handlers) => [
     id: "actions",
     header: "",
     cell: ({ row }) => (
-      <ActionMenu
-        row={row}
-        onEdit={handlers?.onEdit}
-        onDelete={handlers?.onDelete}
-      />
+      <>
+        {row.original.account?.isActive === true ? (
+          <ActionMenu
+            row={row}
+            onEdit={handlers?.onEdit}
+            onDelete={handlers?.onDelete}
+            editMessage="View Detail"
+          />
+        ) : (
+          <ActionMenu
+            row={row}
+            onEdit={handlers?.onEdit}
+            editMessage="View Detail"
+          />
+        )}
+      </>
     ),
     size: 48, // optional
     enableHiding: false,

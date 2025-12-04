@@ -61,10 +61,16 @@ const ManageMembers = () => {
     const id = row.original?.account?.id;
 
     // call API then refresh table
-    const response = await deletedAccount(id);
-    if (response) {
-      toast.success(response.data?.data);
-      fetchMembers();
+    try {
+      const response = await deletedAccount(id);
+      if (response) {
+        toast.success(response.data?.data);
+        fetchMembers();
+      }
+    } catch (error) {
+      toast.error(error.response.data?.message, {
+        duration: 5000,
+      });
     }
   };
 

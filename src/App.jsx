@@ -53,6 +53,7 @@ import FeedbackPage from "./pages/coach/FeedbackPage";
 import NewsFeeds from "./pages/admin/pages/NewsFeeds";
 import NewsFeedDetail from "./pages/admin/pages/NewsFeedDetail";
 import CommunityPostsPage from "./pages/coach/CommunityPosts";
+import ManageAppointment from "@/pages/admin/pages/ManageAppointment";
 function App() {
   const [isLoading, setIsLoading] = useState(true);
 
@@ -215,6 +216,10 @@ function App() {
         {
           path: "/admin/manage-members/diary/:memberId",
           element: <MemberDiaryRecords />,
+        },
+        {
+          path: "/admin/manage-appointments",
+          element: <ManageAppointment />,
         },
       ],
     },

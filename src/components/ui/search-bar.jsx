@@ -21,6 +21,8 @@ const SearchBar = ({
   setFilterBy,
   filterBySubscriptionStatus,
   setFilterBySubscriptionStatus,
+  filterByAppointmentStatus,
+  setFilterByAppointmentStatus,
 }) => {
   return (
     <div className="flex flex-col md:flex-row gap-4">
@@ -71,7 +73,7 @@ const SearchBar = ({
             <SelectGroup>
               <SelectLabel>Status</SelectLabel>
               <SelectItem value="true">Active</SelectItem>
-              <SelectItem value="false">Banned</SelectItem>
+              <SelectItem value="false">Deleted</SelectItem>
             </SelectGroup>
           </SelectContent>
         </Select>
@@ -82,7 +84,7 @@ const SearchBar = ({
         <Select
           value={filterBySubscriptionStatus || "all"}
           onValueChange={(val) => {
-            if (val === "all") return setFilterBySubscriptionStatus(undefined);
+            if (val === "all") return setFilterBySubscriptionStatus("");
             setFilterBySubscriptionStatus(val);
           }}
         >
@@ -96,6 +98,31 @@ const SearchBar = ({
               <SelectItem value="AVAILABLE">Available</SelectItem>
               <SelectItem value="EXPIRED">Expired</SelectItem>
               <SelectItem value="UNAVAILABLE">Unavailable</SelectItem>
+            </SelectGroup>
+          </SelectContent>
+        </Select>
+      ) : (
+        <></>
+      )}
+      {filterByAppointmentStatus !== undefined ? (
+        <Select
+          value={filterByAppointmentStatus || "all"}
+          onValueChange={(val) => {
+            if (val === "all") return setFilterByAppointmentStatus("");
+            setFilterByAppointmentStatus(val);
+          }}
+        >
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectGroup>
+              <SelectLabel>Status</SelectLabel>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="PENDING">Pending</SelectItem>
+              <SelectItem value="IN_PROGRESS">In Progres</SelectItem>
+              <SelectItem value="COMPLETED">Completed</SelectItem>
+              <SelectItem value="CANCELLED">Cancelled</SelectItem>
             </SelectGroup>
           </SelectContent>
         </Select>

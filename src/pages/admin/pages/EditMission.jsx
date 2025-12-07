@@ -38,6 +38,7 @@ const CONDITION_FIELDS = [
   { value: "relapse_count_in_phase", label: "Relapse Count In Phase", type: "number" },
   { value: "use_nrt", label: "Use NRT", type: "boolean" },
   { value: "morning_smoking_frequency", label: "Morning Smoking Frequency", type: "boolean" },
+  { value: "avg_in_take_nicotine_per_day", label: "Avg In Take Nicotine Per Day", type: "number" },
   { value: "minutes_after_waking_to_smoke", label: "Minutes After Waking To Smoke", type: "number" },
   { value: "smoke_avg_per_day", label: "Smoke Avg Per Day", type: "number" },
   { value: "mt_smoke_avg_per_day", label: "MT Smoke Avg Per Day", type: "number" },

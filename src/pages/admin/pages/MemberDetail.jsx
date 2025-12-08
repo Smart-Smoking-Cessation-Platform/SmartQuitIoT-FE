@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/card";
 import MemberCurrentPlanModal from "@/components/ui/modals/member-current-plan-modal";
 import MemberHealthModal from "@/components/ui/modals/member-health-modal";
+import MemberSubscriptionModal from "@/components/ui/modals/member-subscription-modal";
 import { Separator } from "@/components/ui/separator";
 import { getMemberById } from "@/services/memberService";
 import {
@@ -40,6 +41,7 @@ const MemberDetail = () => {
   const { memberId } = useParams();
   const [healthOpen, setHealthOpen] = useState(false);
   const [currentPlanOpen, setCurrentPlanOpen] = useState(false);
+  const [subscriptionOpen, setSubscriptionOpen] = useState(false);
   const navigate = useNavigate();
 
   const fetchMemberDetail = async () => {
@@ -101,6 +103,10 @@ const MemberDetail = () => {
     navigate(`/admin/manage-members/diary/${memberId}`);
   };
 
+  const handleViewSubscriptions = () => {
+    setSubscriptionOpen(true);
+  };
+
   if (loading) {
     return (
       <div className="p-6 space-y-6">
@@ -143,6 +149,13 @@ const MemberDetail = () => {
           memberId={memberId}
           isOpen={currentPlanOpen}
           onOpenChange={setCurrentPlanOpen}
+        />
+      )}
+      {subscriptionOpen && (
+        <MemberSubscriptionModal
+          memberId={memberId}
+          isOpen={subscriptionOpen}
+          onOpenChange={setSubscriptionOpen}
         />
       )}
       <div className="p-6 space-y-6">
@@ -366,6 +379,7 @@ const MemberDetail = () => {
                 <Button
                   variant="outline"
                   className="justify-start gap-2 border-orange-200 hover:bg-orange-50 hover:text-orange-700 hover:border-orange-300"
+                  onClick={handleViewSubscriptions}
                 >
                   <CreditCard className="h-4 w-4" />
                   View Subscriptions

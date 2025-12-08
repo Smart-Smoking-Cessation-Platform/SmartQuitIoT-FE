@@ -1,8 +1,8 @@
 // ...existing code...
 import { Badge } from "@/components/ui/badge";
-import ActionMenu from "@/components/ui/action-menu";
-import { formatDateTime } from "@/utils/formatDate";
 import { formatCurrency } from "@/utils/currencyFormat";
+import { formatDateTime } from "@/utils/formatDate";
+import { useNavigate } from "react-router-dom";
 
 const statusBadge = (s) => {
   switch (s) {
@@ -29,7 +29,7 @@ const statusBadge = (s) => {
   }
 };
 
-export const paymentColumns = (handlers) => [
+export const paymentColumns = () => [
   {
     accessorKey: "id",
     header: "ID",
@@ -49,13 +49,17 @@ export const paymentColumns = (handlers) => [
     header: "Member",
     cell: ({ row }) => {
       const m = row.original.member;
+      const nav = useNavigate();
       return (
-        <div className="flex flex-col">
+        <div
+          className="flex flex-col cursor-pointer"
+          onClick={() => nav(`/admin/manage-members/${m?.id}`)}
+        >
           <span className="font-medium">
             {m?.firstName} {m?.lastName}
           </span>
           <span className="text-xs text-muted-foreground">
-            ID: {m?.id ?? "—"}
+            Member ID: {m?.id ?? "—"}
           </span>
         </div>
       );
@@ -95,18 +99,5 @@ export const paymentColumns = (handlers) => [
       <span className="text-xs">{formatDateTime(row.original.createdAt)}</span>
     ),
     size: 170,
-  },
-  {
-    id: "actions",
-    header: "",
-    enableHiding: false,
-    size: 60,
-    cell: ({ row }) => (
-      <ActionMenu
-        row={row}
-        onView={() => handlers?.onView?.(row.original.id)}
-        onRefund={() => handlers?.onRefund?.(row.original.id)}
-      />
-    ),
   },
 ];

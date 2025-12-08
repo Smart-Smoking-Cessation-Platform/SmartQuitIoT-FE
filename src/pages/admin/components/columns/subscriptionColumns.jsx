@@ -2,6 +2,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/utils/currencyFormat";
 import { formatDate, formatDateTime } from "@/utils/formatDate";
+import { useNavigate } from "react-router-dom";
 
 const getStatusBadge = (status) => {
   switch (status) {
@@ -40,7 +41,7 @@ const getPackageTypeBadge = (type) => {
   }
 };
 
-export const subscriptionColumns = (handlers) => [
+export const subscriptionColumns = () => [
   {
     accessorKey: "id",
     header: "ID",
@@ -53,8 +54,12 @@ export const subscriptionColumns = (handlers) => [
     size: 250,
     cell: ({ row }) => {
       const member = row.original.member;
+      const nav = useNavigate();
       return (
-        <div className="flex items-center gap-3">
+        <div
+          className="flex items-center gap-3 cursor-pointer"
+          onClick={() => nav(`/admin/manage-members/${member?.id}`)}
+        >
           <Avatar className="h-10 w-10">
             <AvatarImage
               src={member?.avatarUrl}

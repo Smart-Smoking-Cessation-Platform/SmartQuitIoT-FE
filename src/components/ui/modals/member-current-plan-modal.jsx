@@ -165,7 +165,7 @@ const MemberCurrentPlanModal = ({ isOpen, onOpenChange, memberId }) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-8xl h-full">
+      <DialogContent className="sm:max-w-7xl h-full">
         <DialogHeader>
           <DialogTitle>Current Quit Plan</DialogTitle>
           <DialogDescription>
@@ -204,7 +204,7 @@ const MemberCurrentPlanModal = ({ isOpen, onOpenChange, memberId }) => {
 
               <div className="mt-3">
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>Overall progress</span>
+                  <span>Current progress</span>
                   <span className="font-medium">
                     {overall.done}/{overall.total} ({overall.percent}%)
                   </span>

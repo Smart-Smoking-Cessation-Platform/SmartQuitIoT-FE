@@ -41,11 +41,7 @@ const ManagePayment = () => {
     fetchPayments();
   }, [currentPage, inputSearchDebounce]);
 
-  const cols = buildPaymentColumns({
-    onEdit: (row) => {
-      console.log("Edit payment:", row.original);
-    },
-  });
+  const cols = buildPaymentColumns();
 
   if (isLoading) return <TableLoadingSkeleton />;
 

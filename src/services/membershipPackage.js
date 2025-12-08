@@ -35,3 +35,7 @@ export const updateMembershipPackage = async (id, newPrice) => {
     price: newPrice,
   });
 };
+
+export const getMemberSubscriptions = async (memberId) => {
+  return instance.get(`/membership-subscriptions/member/${memberId}`);
+};

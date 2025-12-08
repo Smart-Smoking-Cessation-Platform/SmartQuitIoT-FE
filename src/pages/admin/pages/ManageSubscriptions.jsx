@@ -44,23 +44,7 @@ const ManageSubscriptions = () => {
     fetchSubscriptions();
   }, [currentPage, sortBy, inputSearchDebounce, filterBy]);
 
-  const handleEdit = (row) => {
-    const { id } = row.original; // your row data
-    // open edit modal, navigate, etc.
-    console.log("View Detail:", id);
-    nav(`/admin/manage-coaches/${id}`);
-  };
-
-  const handleDelete = (row) => {
-    const { id } = row.original;
-    // call API then refresh table
-    console.log("Delete id:", id);
-  };
-
-  const cols = buildSubscriptionColumns({
-    onEdit: handleEdit,
-    onDelete: handleDelete,
-  });
+  const cols = buildSubscriptionColumns({});
 
   const handlePageChange = (newPage) => {
     setCurrentPage(newPage);

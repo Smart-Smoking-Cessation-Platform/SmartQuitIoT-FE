@@ -2,6 +2,7 @@ import ActionMenu from "@/components/ui/action-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { User, UserCircle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 export const memberColumns = (handlers) => [
   {
@@ -15,8 +16,12 @@ export const memberColumns = (handlers) => [
     cell: ({ row, getValue }) => {
       const name = getValue();
       const avatar = row.original.avatarUrl;
+      const nav = useNavigate();
       return (
-        <div className="flex items-center gap-3">
+        <div
+          className="flex items-center gap-3 cursor-pointer"
+          onClick={() => nav(`/admin/manage-members/${row.original.id}`)}
+        >
           <Avatar>
             <AvatarImage src={avatar} alt={name} />
             <AvatarFallback>{name}</AvatarFallback>

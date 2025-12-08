@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import CoachFeedback from "@/pages/admin/components/cards/CoachFeedback";
 import { getCoachById } from "@/services/coachService";
 import { formatDateTime } from "@/utils/formatDate";
 import {
@@ -35,6 +36,7 @@ import { toast } from "sonner";
 const CoachDetail = () => {
   const [coach, setCoach] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isViewFeedback, setIsViewFeedback] = useState(false);
   const { coachId } = useParams();
   const navigate = useNavigate();
 
@@ -110,6 +112,10 @@ const CoachDetail = () => {
       </div>
     );
   }
+
+  const handleViewFeedbacks = () => {
+    setIsViewFeedback(true);
+  };
 
   return (
     <div className="p-6 space-y-6">
@@ -410,6 +416,8 @@ const CoachDetail = () => {
               <Button
                 variant="outline"
                 className="justify-start gap-2 border-orange-200 hover:bg-orange-50 hover:text-orange-700 hover:border-orange-300"
+                onClick={handleViewFeedbacks}
+                disabled={isViewFeedback}
               >
                 <TrendingUp className="h-4 w-4" />
                 View Feedbacks & Ratings
@@ -417,6 +425,9 @@ const CoachDetail = () => {
             </div>
           </CardContent>
         </Card>
+      </div>
+      <div className="">
+        {isViewFeedback && <CoachFeedback coachId={coach.id} />}
       </div>
     </div>
   );

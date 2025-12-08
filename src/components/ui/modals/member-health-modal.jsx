@@ -69,7 +69,7 @@ const fmtDuration = (mins) => {
   return `${d}d ${rh}h`;
 };
 
-const levelToPercent = (v = 0, max = 5) => clamp(Math.round((v / max) * 100));
+const levelToPercent = (v = 0, max = 10) => clamp(Math.round((v / max) * 100));
 
 const currency = (v) =>
   new Intl.NumberFormat(undefined, {
@@ -376,18 +376,12 @@ const MetricBox = ({ label, value }) => (
 
 const LevelBox = ({ title, items }) => (
   <div className="rounded-lg border p-4 bg-card/50">
-    <div className="flex items-center justify-between mb-2">
-      <span className="font-semibold">{title}</span>
-      <Badge variant="secondary" className="text-xs">
-        Scale 1–5
-      </Badge>
-    </div>
     <div className="space-y-3">
       {items.map((it) => (
         <div key={it.name}>
           <div className="flex items-center justify-between text-xs">
             <span>{it.name}</span>
-            <span className="font-medium">{it.value ?? 0}/5</span>
+            <span className="font-medium">{it.value ?? 0}/10</span>
           </div>
           <Progress className="mt-1.5" value={levelToPercent(it.value ?? 0)} />
         </div>

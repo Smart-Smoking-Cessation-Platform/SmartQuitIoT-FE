@@ -182,9 +182,9 @@ const Community = () => {
                 >
                   {/* Image */}
                   <div className="relative h-48 overflow-hidden bg-gradient-to-br from-emerald-100 to-teal-100">
-                    {post.mediaUrl || post.mediaUrls || post.thumbnail ? (
+                    {post.thumbnail ? (
                       <img
-                        src={post.mediaUrl || post.mediaUrls || post.thumbnail}
+                        src={post.thumbnail}
                         alt={post.title}
                         className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                       />

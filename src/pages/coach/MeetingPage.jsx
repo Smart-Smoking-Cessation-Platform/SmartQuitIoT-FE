@@ -94,7 +94,10 @@ export default function MeetingPage() {
 
   // Helper để mount remote video vào container của React (không tạo container thủ công)
   const mountRemoteVideo = async (remoteVideoTrack, userUid) => {
-    if (!remoteVideoTrack) return;
+    if (!remoteVideoTrack) {
+      console.warn("[Agora] mountRemoteVideo: no track provided");
+      return;
+    }
     
     // ✅ FIX: Guard để tránh mount nhiều lần cho cùng một remote user
     const uid = userUid || 'unknown';
@@ -108,7 +111,15 @@ export default function MeetingPage() {
     try {
       const container =
         remoteDivRef.current || document.getElementById(REMOTE_MOUNT_ID);
-      if (!container) throw new Error("Remote container not found");
+      if (!container) {
+        console.warn("[Agora] Remote container not found, retrying in 500ms...");
+        // Retry sau 500ms nếu container chưa ready
+        setTimeout(() => {
+          remoteVideoMountingRef.current.set(uid, false);
+          mountRemoteVideo(remoteVideoTrack, userUid);
+        }, 500);
+        return;
+      }
 
       // ✅ FIX: Xóa bất kỳ local video nào đang ở remote container
       const localVideosInRemote = container.querySelectorAll("video[data-agora-local]");
@@ -127,7 +138,7 @@ export default function MeetingPage() {
         });
       }
 
-      // ✅ FIX: Cleanup duplicate remote video elements
+      // ✅ FIX: Cleanup duplicate remote video elements (chỉ giữ lại 1)
       const existingRemoteVideos = container.querySelectorAll("video[data-agora-remote]");
       if (existingRemoteVideos.length > 1) {
         console.warn(`[Agora] Found ${existingRemoteVideos.length} remote video elements, cleaning up duplicates...`);
@@ -135,7 +146,7 @@ export default function MeetingPage() {
         for (let j = 1; j < existingRemoteVideos.length; j++) {
           try {
             const oldTrack = existingRemoteVideos[j]._agoraTrackRef;
-            if (oldTrack) {
+            if (oldTrack && oldTrack !== remoteVideoTrack) {
               await oldTrack.stop().catch(() => {});
             }
           } catch {}
@@ -145,22 +156,31 @@ export default function MeetingPage() {
 
       // create/reuse video element
       let videoEl = container.querySelector("video[data-agora-remote]");
-      if (videoEl && videoEl.videoWidth > 0) {
-        // Kiểm tra xem track có đang play trong element này không
-        const isPlaying = videoEl._agoraTrackRef === remoteVideoTrack || 
-                         (videoEl.srcObject && videoEl.srcObject.getTracks().length > 0);
-        if (isPlaying) {
-          console.debug("[Agora] Remote video already playing in correct container");
-          return; // Đã mount rồi, không cần mount lại
+      
+      // ✅ FIX: Nếu video element đã tồn tại và đang play đúng track, không cần mount lại
+      if (videoEl && videoEl._agoraTrackRef === remoteVideoTrack) {
+        if (videoEl.videoWidth > 0 && remoteVideoTrack.isPlaying) {
+          console.debug("[Agora] Remote video already playing in correct container with same track");
+          remoteVideoMountingRef.current.set(uid, false);
+          return;
         }
-        // Cleanup element cũ trước khi reuse
-        videoEl.srcObject = null;
-        videoEl.load(); // Reset video element
+        // Nếu track đã thay đổi, cleanup element cũ
+        if (videoEl._agoraTrackRef !== remoteVideoTrack) {
+          try {
+            const oldTrack = videoEl._agoraTrackRef;
+            if (oldTrack && oldTrack !== remoteVideoTrack) {
+              await oldTrack.stop().catch(() => {});
+            }
+          } catch {}
+          videoEl.srcObject = null;
+          videoEl.load();
+        }
       }
 
       if (!videoEl) {
         videoEl = document.createElement("video");
         videoEl.setAttribute("data-agora-remote", "1");
+        videoEl.setAttribute("data-user-uid", String(uid));
         videoEl.autoplay = true;
         videoEl.playsInline = true;
         videoEl.muted = false;
@@ -170,6 +190,7 @@ export default function MeetingPage() {
         videoEl.style.width = "100%";
         videoEl.style.height = "100%";
         videoEl.style.objectFit = "cover";
+        videoEl.style.backgroundColor = "#000";
         // Lưu track reference để có thể cleanup sau
         videoEl._agoraTrackRef = remoteVideoTrack;
         const cs = getComputedStyle(container);
@@ -179,20 +200,45 @@ export default function MeetingPage() {
           if (ch.tagName !== "VIDEO") ch.remove();
         });
         container.appendChild(videoEl);
+      } else {
+        // Update track reference nếu element đã tồn tại
+        videoEl._agoraTrackRef = remoteVideoTrack;
       }
 
-      // ✅ FIX: Đảm bảo track chỉ play một lần
+      // ✅ FIX: Đảm bảo track chỉ play một lần và retry nếu cần
       if (!remoteVideoTrack.isPlaying) {
-        await remoteVideoTrack.play(videoEl);
-        console.debug("[Agora] Remote play into explicit video element");
+        try {
+          await remoteVideoTrack.play(videoEl);
+          console.debug("[Agora] Remote video play successful");
+        } catch (playErr) {
+          console.warn("[Agora] Remote video play failed, retrying...", playErr);
+          // Retry sau 500ms
+          setTimeout(async () => {
+            try {
+              if (!remoteVideoTrack.isPlaying && videoEl) {
+                await remoteVideoTrack.play(videoEl);
+                console.debug("[Agora] Remote video play retry successful");
+              }
+            } catch (retryErr) {
+              console.error("[Agora] Remote video play retry failed", retryErr);
+            }
+          }, 500);
+        }
       } else {
-        console.debug("[Agora] Remote video track already playing, skipping play()");
+        console.debug("[Agora] Remote video track already playing");
       }
     } catch (err) {
-      console.warn("[Agora] mountRemoteVideo failed", err);
-      // keep existing fallback you already had
+      console.error("[Agora] mountRemoteVideo failed", err);
+      // Retry sau 1s nếu có lỗi
+      setTimeout(() => {
+        remoteVideoMountingRef.current.set(uid, false);
+        mountRemoteVideo(remoteVideoTrack, userUid);
+      }, 1000);
     } finally {
-      remoteVideoMountingRef.current.set(uid, false);
+      // Chỉ release guard sau khi đã hoàn thành hoặc retry
+      setTimeout(() => {
+        remoteVideoMountingRef.current.set(uid, false);
+      }, 100);
     }
   };
 
@@ -944,9 +990,16 @@ export default function MeetingPage() {
           console.debug("[Agora] user-published", user.uid, mediaType);
           try {
             await client.subscribe(user, mediaType);
+            console.debug(`[Agora] Subscribed to user ${user.uid} ${mediaType}`);
           } catch (err) {
             console.error("[Agora] subscribe error", err);
-            return;
+            // Không return ngay, vẫn cập nhật state để UI biết user đã vào
+            // Nhưng không mount media nếu subscribe fail
+            if (err.message?.includes("already subscribed")) {
+              console.debug("[Agora] Already subscribed, continuing...");
+            } else {
+              return;
+            }
           }
 
           setRemoteUsers((prev) => ({
@@ -964,7 +1017,23 @@ export default function MeetingPage() {
           if (mediaType === "video") {
             const remoteVideoTrack = user.videoTrack;
             if (remoteVideoTrack) {
-              await mountRemoteVideo(remoteVideoTrack, user.uid);
+              console.debug(`[Agora] Mounting remote video for user ${user.uid}`);
+              // Retry mount nếu fail lần đầu
+              try {
+                await mountRemoteVideo(remoteVideoTrack, user.uid);
+              } catch (mountErr) {
+                console.warn("[Agora] Initial mount failed, will retry", mountErr);
+                // Retry sau 1s
+                setTimeout(async () => {
+                  try {
+                    await mountRemoteVideo(remoteVideoTrack, user.uid);
+                  } catch (retryErr) {
+                    console.error("[Agora] Retry mount also failed", retryErr);
+                  }
+                }, 1000);
+              }
+            } else {
+              console.warn(`[Agora] User ${user.uid} published video but no videoTrack found`);
             }
           }
 
@@ -972,9 +1041,18 @@ export default function MeetingPage() {
             const remoteAudioTrack = user.audioTrack;
             if (remoteAudioTrack) {
               try {
-                remoteAudioTrack.play();
+                await remoteAudioTrack.play();
+                console.debug(`[Agora] Remote audio playing for user ${user.uid}`);
               } catch (e) {
                 console.warn("[Agora] remote audio play failed", e);
+                // Retry sau 500ms
+                setTimeout(async () => {
+                  try {
+                    await remoteAudioTrack.play();
+                  } catch (retryErr) {
+                    console.error("[Agora] Remote audio retry failed", retryErr);
+                  }
+                }, 500);
               }
             }
           }
@@ -992,6 +1070,15 @@ export default function MeetingPage() {
           });
           // Không cleanup DOM - để Agora SDK tự xử lý khi track được stop
           // Cleanup DOM sẽ gây conflict với React unmount
+        });
+
+        client.on("user-left", (user) => {
+          console.debug("[Agora] user-left", user.uid);
+          setRemoteUsers((prev) => {
+            const copy = { ...prev };
+            delete copy[user.uid];
+            return copy;
+          });
         });
 
         client.on("connection-state-change", (cur, rev) => {
@@ -1043,9 +1130,14 @@ export default function MeetingPage() {
             console.debug("[Agora] user-published", user.uid, mediaType);
             try {
               await newClient.subscribe(user, mediaType);
+              console.debug(`[Agora] Subscribed to user ${user.uid} ${mediaType}`);
             } catch (err) {
               console.error("[Agora] subscribe error", err);
-              return;
+              if (err.message?.includes("already subscribed")) {
+                console.debug("[Agora] Already subscribed, continuing...");
+              } else {
+                return;
+              }
             }
 
             setRemoteUsers((prev) => ({
@@ -1063,7 +1155,19 @@ export default function MeetingPage() {
             if (mediaType === "video") {
               const remoteVideoTrack = user.videoTrack;
               if (remoteVideoTrack) {
-                await mountRemoteVideo(remoteVideoTrack);
+                console.debug(`[Agora] Mounting remote video for user ${user.uid}`);
+                try {
+                  await mountRemoteVideo(remoteVideoTrack, user.uid);
+                } catch (mountErr) {
+                  console.warn("[Agora] Initial mount failed, will retry", mountErr);
+                  setTimeout(async () => {
+                    try {
+                      await mountRemoteVideo(remoteVideoTrack, user.uid);
+                    } catch (retryErr) {
+                      console.error("[Agora] Retry mount also failed", retryErr);
+                    }
+                  }, 1000);
+                }
               }
             }
 
@@ -1071,9 +1175,17 @@ export default function MeetingPage() {
               const remoteAudioTrack = user.audioTrack;
               if (remoteAudioTrack) {
                 try {
-                  remoteAudioTrack.play();
+                  await remoteAudioTrack.play();
+                  console.debug(`[Agora] Remote audio playing for user ${user.uid}`);
                 } catch (e) {
                   console.warn("[Agora] remote audio play failed", e);
+                  setTimeout(async () => {
+                    try {
+                      await remoteAudioTrack.play();
+                    } catch (retryErr) {
+                      console.error("[Agora] Remote audio retry failed", retryErr);
+                    }
+                  }, 500);
                 }
               }
             }
@@ -1087,6 +1199,15 @@ export default function MeetingPage() {
                 if (type === "video") copy[user.uid].hasVideo = false;
                 if (type === "audio") copy[user.uid].hasAudio = false;
               }
+              return copy;
+            });
+          });
+
+          newClient.on("user-left", (user) => {
+            console.debug("[Agora] user-left", user.uid);
+            setRemoteUsers((prev) => {
+              const copy = { ...prev };
+              delete copy[user.uid];
               return copy;
             });
           });
@@ -1426,32 +1547,51 @@ export default function MeetingPage() {
 
   // toggle mic
   const toggleMic = async () => {
-    const t = localTrackRefs.current.audioTrack;
-    if (!t) return;
+    const t = localTrackRefs.current?.audioTrack;
+    if (!t) {
+      console.warn("[Meeting] No audio track available for toggle");
+      return;
+    }
     try {
-      await t.setEnabled(!micOn);
-      setMicOn((s) => !s);
+      const newState = !micOn;
+      await t.setEnabled(newState);
+      setMicOn(newState);
+      console.debug(`[Meeting] Mic ${newState ? "enabled" : "disabled"}`);
     } catch (e) {
-      console.warn("toggleMic failed", e);
+      console.error("[Meeting] toggleMic failed", e);
+      // Không set error state để tránh làm component render error screen
+      // Chỉ log error và giữ nguyên state
     }
   };
 
   // toggle cam
   const toggleCam = async () => {
-    const t = localTrackRefs.current.videoTrack;
-    if (!t) return;
-    try {
-      await t.setEnabled(!camOn);
-    } catch (err) {
-      console.warn("toggleCam failed", err);
+    const t = localTrackRefs.current?.videoTrack;
+    if (!t) {
+      console.warn("[Meeting] No video track available for toggle");
+      return;
     }
-    setCamOn((s) => !s);
-    setRemoteUsers((prev) => {
-      const copy = { ...prev };
-      const localUid = tokenData?.uid ?? 0;
-      if (copy[localUid]) copy[localUid].hasVideo = !copy[localUid].hasVideo;
-      return copy;
-    });
+    try {
+      const newState = !camOn;
+      await t.setEnabled(newState);
+      setCamOn(newState);
+      
+      // Update remote users state
+      setRemoteUsers((prev) => {
+        const copy = { ...prev };
+        const localUid = tokenData?.uid ?? 0;
+        if (copy[localUid]) {
+          copy[localUid].hasVideo = newState;
+        }
+        return copy;
+      });
+      
+      console.debug(`[Meeting] Camera ${newState ? "enabled" : "disabled"}`);
+    } catch (err) {
+      console.error("[Meeting] toggleCam failed", err);
+      // Không set error state để tránh làm component render error screen
+      // Chỉ log error và giữ nguyên state
+    }
   };
 
   const leaveAndBack = async () => {

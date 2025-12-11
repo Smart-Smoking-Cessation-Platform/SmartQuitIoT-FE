@@ -88,6 +88,20 @@ export const getAllAppointments = (page, size, status) => {
   );
 };
 
+// fetch available coaches for date + slotId
+export const getAvailableCoaches = ({ date, slotId, excludeCoachId } = {}) => {
+  return instance.get(`/appointments/available-coaches`, {
+    params: { date, slotId, excludeCoachId },
+  });
+};
+
+// reassign appointment to another coach
+export const reassignAppointment = (appointmentId, targetCoachId) => {
+  return instance.put(`/appointments/${appointmentId}/reassign`, {
+    targetCoachId,
+  });
+};
+
 export default {
   listCoachAppointments,
   getAppointmentDetailForCoach,
@@ -97,4 +111,7 @@ export default {
   completeAppointmentByCoach,
   saveAppointmentSnapshots,
   getAppointmentSnapshots,
+  getAllAppointments,
+  getAvailableCoaches, // added to default export
+  reassignAppointment,
 };

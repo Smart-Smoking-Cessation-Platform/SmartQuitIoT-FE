@@ -16,7 +16,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Eye, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { Eye, MoreHorizontal, Pencil, Trash2, UserRoundCog } from "lucide-react";
 import { useState } from "react";
 
 export default function ActionMenu({
@@ -24,9 +24,11 @@ export default function ActionMenu({
   onEdit,
   onDelete,
   onViewDetails,
+  onReassign,
   editMessage = "Edit",
   deleteMessage = "Delete",
   viewDetailsMessage = "View Details",
+  reassignMessage = "Reassign",
 }) {
   const [confirmOpen, setConfirmOpen] = useState(false);
 
@@ -49,6 +51,14 @@ export default function ActionMenu({
             <DropdownMenuItem onClick={() => onEdit?.(row)}>
               <Pencil className="mr-2 h-4 w-4" /> {editMessage}
             </DropdownMenuItem>
+          )}
+          {onReassign && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => onReassign?.(row)}>
+                <UserRoundCog className="mr-2 h-4 w-4" /> {reassignMessage}
+              </DropdownMenuItem>
+            </>
           )}
           {onDelete && (
             <>

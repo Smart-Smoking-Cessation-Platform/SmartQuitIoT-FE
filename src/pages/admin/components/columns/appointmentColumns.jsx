@@ -1,5 +1,38 @@
 import ActionMenu from "@/components/ui/action-menu";
+import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
+
+export const getAppointmentStatusBadge = (status) => {
+  const statusUpper = (status || "").toUpperCase();
+  switch (statusUpper) {
+    case "PENDING":
+      return (
+        <Badge className="bg-amber-500 hover:bg-amber-600 text-white">
+          Pending
+        </Badge>
+      );
+    case "IN_PROGRESS":
+      return (
+        <Badge className="bg-blue-500 hover:bg-blue-600 text-white">
+          In Progress
+        </Badge>
+      );
+    case "COMPLETED":
+      return (
+        <Badge className="bg-emerald-500 hover:bg-emerald-600 text-white">
+          Completed
+        </Badge>
+      );
+    case "CANCELLED":
+      return (
+        <Badge className="bg-red-500 hover:bg-red-600 text-white">
+          Cancelled
+        </Badge>
+      );
+    default:
+      return <Badge variant="secondary">{status || "—"}</Badge>;
+  }
+};
 
 export const appointmentColumns = (handlers) => [
   {
@@ -59,16 +92,38 @@ export const appointmentColumns = (handlers) => [
     header: "End Time",
   },
   {
+    id: "status",
+    header: "Status",
+    accessorFn: (row) => row.realAppointmentStatus || row.appointmentStatus || "",
+    cell: ({ getValue }) => {
+      const status = getValue();
+      return getAppointmentStatusBadge(status);
+    },
+  },
+  {
     id: "actions",
     header: "",
-    cell: ({ row }) => (
-      <ActionMenu
-        row={row}
-        onEdit={handlers?.onEdit}
-        editMessage="View Detail"
-      />
-    ),
-    size: 48, // optional
+    cell: ({ row }) => {
+      // Only show reassign option for PENDING appointments
+      // Check multiple possible field names for status
+      const status = 
+        row.original.realAppointmentStatus || 
+        row.original.appointmentStatus || 
+        row.original.status ||
+        "";
+      const statusUpper = String(status).toUpperCase().trim();
+      const isPending = statusUpper === "PENDING";
+      
+      return (
+        <ActionMenu
+          row={row}
+          onEdit={handlers?.onEdit}
+          editMessage="View Detail"
+          onReassign={isPending ? handlers?.onReassign : undefined}
+        />
+      );
+    },
+    size: 48,
     enableHiding: false,
   },
 ];

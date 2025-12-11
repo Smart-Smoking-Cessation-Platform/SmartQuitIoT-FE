@@ -73,7 +73,7 @@ const CoachPage = () => {
               : "",
         },
         {
-          title: "Pending Requests",
+          title: "Pending Appointments",
           value: statistics.pendingRequests || 0,
           icon: AlertCircle,
           color: "text-amber-600",

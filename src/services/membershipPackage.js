@@ -1,7 +1,7 @@
 import instance from "@/config/axiosConfig";
 
 export const getAllMembershipPackages = async () => {
-  return instance.get(`/membership-packages`);
+  return instance.get(`/membership-packages/manage`);
 };
 
 export const getMembershipPackagesStatistics = async () => {

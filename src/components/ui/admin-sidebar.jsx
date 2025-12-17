@@ -1,4 +1,4 @@
-import { LayoutDashboard, List, Newspaper } from "lucide-react";
+import { LayoutDashboard, List, Newspaper, Bell } from "lucide-react";
 
 import logo from "@/assets/logo.png";
 import NavAdminSidebar from "@/components/ui/nav-admin-sidebar";
@@ -82,6 +82,11 @@ const items = [
     title: "Manage Appointments",
     url: "/admin/manage-appointments",
     icon: List,
+  },
+  {
+    title: "Manage Reminder Templates",
+    url: "/admin/manage-reminder-templates",
+    icon: Bell,
   },
   //Feedbacks, Appointments
 ];

@@ -40,6 +40,7 @@ import EditAchievement from "@/pages/admin/pages/EditAchievement";
 import ManagePhases from "@/pages/admin/pages/ManagePhases";
 import ManagePassCondition from "@/pages/admin/pages/ManagePassCondition";
 import ManagePayment from "@/pages/admin/pages/ManagePayment";
+import ManageReminderTemplates from "@/pages/admin/pages/ManageReminderTemplates";
 import ManageSubscriptions from "@/pages/admin/pages/ManageSubscriptions";
 import ManageMembers from "@/pages/admin/pages/ManageMembers";
 import ManagePosts from "@/pages/admin/pages/ManagePosts";
@@ -194,6 +195,10 @@ function App() {
         {
           path: "/admin/manage-payments",
           element: <ManagePayment />,
+        },
+        {
+          path: "/admin/manage-reminder-templates",
+          element: <ManageReminderTemplates />,
         },
         {
           path: "/admin/manage-subscriptions",

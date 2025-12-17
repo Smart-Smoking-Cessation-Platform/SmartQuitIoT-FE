@@ -94,7 +94,7 @@ const ManageReminderTemplates = () => {
       </div>
 
       <SearchBar
-        placeholderText={"Search by phase, type, trigger code, or content..."}
+        placeholderText={"Search by content..."}
         searchString={searchString}
         setSearchString={setSearchString}
       />

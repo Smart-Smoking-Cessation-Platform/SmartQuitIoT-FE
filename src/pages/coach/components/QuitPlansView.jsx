@@ -152,15 +152,15 @@ function DayDetail({ detail }) {
           <div className="w-3 h-3 rounded-full bg-indigo-500" />
           <div>
             <div className="font-medium">{detail.name}</div>
-            <div className="text-xs text-gray-500">
-              {formatDate(detail.date)} · Ngày {detail.dayIndex}
-            </div>
+            {/* <div className="text-xs text-gray-500">
+              {formatDate(detail.date)} · Day: {detail.dayIndex}
+            </div> */}
           </div>
         </div>
         <div className="text-sm text-gray-500 flex items-center gap-3">
-          <div>
+          {/* <div>
             {detail.missionCompleted}/{detail.totalMission} completed
-          </div>
+          </div> */}
           {open ? <ChevronDown /> : <ChevronRight />}
         </div>
       </button>
@@ -170,8 +170,10 @@ function DayDetail({ detail }) {
           <div className="space-y-2">
             {detail.missions && detail.missions.length ? (
               detail.missions
-                .filter(m => m != null) // Filter null missions
-                .map((m) => <MissionRow key={m.id || Math.random()} mission={m} />)
+                .filter((m) => m != null) // Filter null missions
+                .map((m) => (
+                  <MissionRow key={m.id || Math.random()} mission={m} />
+                ))
             ) : (
               <div className="text-sm text-gray-500 p-3 bg-white rounded border border-gray-100">
                 No missions scheduled for this day.
@@ -217,7 +219,8 @@ function PhaseCard({ phase }) {
             <div className="text-sm">
               <div className="text-xs text-gray-500">Time Period</div>
               <div className="font-medium">
-                {formatDate(phase.startDate) || "-"} → {formatDate(phase.endDate) || "-"}
+                {formatDate(phase.startDate) || "-"} →{" "}
+                {formatDate(phase.endDate) || "-"}
               </div>
             </div>
 
@@ -282,7 +285,11 @@ function PhaseCard({ phase }) {
 }
 
 /* ---------- Main QuitPlansView ---------- */
-export default function QuitPlansView({ quitPlans = [], loading = false, error = null }) {
+export default function QuitPlansView({
+  quitPlans = [],
+  loading = false,
+  error = null,
+}) {
   // Error state
   if (error) {
     return (
@@ -290,16 +297,20 @@ export default function QuitPlansView({ quitPlans = [], loading = false, error =
         <div className="w-20 h-20 rounded-full bg-gradient-to-br from-red-100 to-rose-100 flex items-center justify-center mb-4">
           <Calendar size={32} className="text-red-400" />
         </div>
-        <p className="text-gray-700 font-semibold mb-1">Failed to load quit plans</p>
+        <p className="text-gray-700 font-semibold mb-1">
+          Failed to load quit plans
+        </p>
         <p className="text-gray-500 text-sm text-center max-w-md">
-          {typeof error === "string" ? error : "Unable to fetch quit plans. Please try again later."}
+          {typeof error === "string"
+            ? error
+            : "Unable to fetch quit plans. Please try again later."}
         </p>
       </div>
     );
   }
-  
+
   const plans = Array.isArray(quitPlans)
-    ? quitPlans.filter(p => p != null) // Filter out null/undefined
+    ? quitPlans.filter((p) => p != null) // Filter out null/undefined
     : quitPlans && typeof quitPlans === "object"
     ? [quitPlans]
     : [];
@@ -332,7 +343,8 @@ export default function QuitPlansView({ quitPlans = [], loading = false, error =
         </div>
         <p className="text-gray-700 font-semibold mb-1">No quit plans yet</p>
         <p className="text-gray-500 text-sm text-center max-w-md mt-1">
-          The member hasn't created any quit plans. Plans will appear here once they start their journey.
+          The member hasn't created any quit plans. Plans will appear here once
+          they start their journey.
         </p>
       </div>
     );
@@ -427,7 +439,8 @@ export default function QuitPlansView({ quitPlans = [], loading = false, error =
                 <div>
                   <div className="text-xs text-gray-500">Time Period</div>
                   <div className="font-medium">
-                    {formatDate(plan.startDate) || "-"} → {formatDate(plan.endDate) || "-"}
+                    {formatDate(plan.startDate) || "-"} →{" "}
+                    {formatDate(plan.endDate) || "-"}
                   </div>
                   <div className="text-sm text-gray-500 mt-1">
                     {elapsed || 0}/{totalDays || 0} days
@@ -453,9 +466,9 @@ export default function QuitPlansView({ quitPlans = [], loading = false, error =
                   <div className="text-sm font-medium text-gray-700">
                     Phase ({phasesCount})
                   </div>
-                  <div className="text-xs text-gray-500">
+                  {/* <div className="text-xs text-gray-500">
                     Complete: {completedPhases}/{phasesCount}
-                  </div>
+                  </div> */}
                 </div>
 
                 <div className="space-y-3">

@@ -34,7 +34,7 @@ const CONDITION_FIELDS = [
   { value: "avg_mood", label: "Avg Mood", type: "number" },
   { value: "avg_anxiety", label: "Avg Anxiety", type: "number" },
   { value: "streaks", label: "Streaks", type: "number" },
-  { value: "relapse_count_in_phase", label: "Relapse Count In Phase", type: "number" },
+  // { value: "relapse_count_in_phase", label: "Relapse Count In Phase", type: "number" },
   { value: "use_nrt", label: "Use NRT", type: "boolean" },
   { value: "morning_smoking_frequency", label: "Morning Smoking Frequency", type: "boolean" },
   { value: "avg_in_take_nicotine_per_day", label: "Avg In Take Nicotine Per Day", type: "number" },

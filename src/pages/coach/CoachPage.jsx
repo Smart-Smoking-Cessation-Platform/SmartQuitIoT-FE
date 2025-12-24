@@ -249,9 +249,9 @@ const CoachPage = () => {
                 <div
                   key={apt.id}
                   className="flex items-center gap-4 p-4 rounded-xl border border-gray-100 hover:border-emerald-200 hover:bg-emerald-50/50 transition-all duration-200 cursor-pointer"
-                  onClick={() =>
-                    navigate(`/coach/appointments/${apt.appointmentId}`)
-                  }
+                  // onClick={() =>
+                  //   navigate(`/coach/appointments/${apt.appointmentId}`)
+                  // }
                 >
                   <div className="flex-shrink-0">
                     {apt.memberAvatarUrl ? (

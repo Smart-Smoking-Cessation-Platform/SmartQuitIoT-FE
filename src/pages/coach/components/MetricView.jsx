@@ -385,8 +385,8 @@ export default function MetricView({ metric, loading = false, error = null }) {
         {/* Quick Stats Row */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <StatCard label="Streaks" value={`${fmtNum(streaks)} 🔥`} />
-          <StatCard label="Smoke-free %" value={`${fmtNum(smokeFreePct)}%`} />
-          <StatCard label="Reduction" value={`${fmtNum(reductionPct)}%`} />
+          <StatCard label="Smoke-free %" value={`${fmt2(smokeFreePct)}%`} />
+          <StatCard label="Reduction" value={`${fmt2(reductionPct)}%`} />
           <StatCard label="Money saved" value={formatVND(moneySaved)} />
         </div>
       </section>

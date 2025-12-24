@@ -37,7 +37,9 @@ const SystemActivityCard = ({ size }) => {
   useEffect(() => {
     const connectSocket = (callback) => {
       const client = new Client({
-        brokerURL: "ws://localhost:8080/api/ws",
+        brokerURL:
+          "ws://localhost:8080/api/ws" ||
+          "wss://server.smartquitiot.website/api/ws",
         connectHeaders: {},
         reconnectDelay: 5000,
         onConnect: () => {

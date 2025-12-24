@@ -1,80 +1,257 @@
+import { motion } from "framer-motion";
+import { DollarSign, Heart, Star, TrendingUp, Users } from "lucide-react";
+
 const StatsSection = () => {
   const stats = [
     {
-      icon: (
-        <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
-          <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
-        </svg>
-      ),
-      label: 'Active Members',
-      value: '25k+',
-      description: 'People actively using SmartQuit'
+      icon: <Users className="w-8 h-8" />,
+      label: "Active Members",
+      value: "25+",
+      description: "People actively using SmartQuit",
+      gradient: "from-emerald-500 to-teal-500",
+      bgGradient: "from-emerald-50 to-teal-50",
     },
     {
-      icon: (
-        <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
-          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-        </svg>
-      ),
-      label: 'Success Rate',
-      value: '78%',
-      description: 'Of users who stay smoke-free'
+      icon: <Star className="w-8 h-8" />,
+      label: "Success Rate",
+      value: "78%",
+      description: "Of users who stay smoke-free",
+      gradient: "from-yellow-500 to-orange-500",
+      bgGradient: "from-yellow-50 to-orange-50",
     },
     {
-      icon: (
-        <span className="text-4xl font-bold">$</span>
-      ),
-      label: 'Money Saved',
-      value: '$2.5M+',
-      description: 'Total money saved by our community'
+      icon: <DollarSign className="w-8 h-8" />,
+      label: "Money Saved",
+      value: "2.5M+",
+      description: "Total money saved by our community",
+      gradient: "from-green-500 to-emerald-500",
+      bgGradient: "from-green-50 to-emerald-50",
     },
     {
-      icon: (
-        <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
-          <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
-        </svg>
-      ),
-      label: 'Lives Improved',
-      value: '15k+',
-      description: 'People who successfully quit'
-    }
+      icon: <Heart className="w-8 h-8" />,
+      label: "Lives Improved",
+      value: "15+",
+      description: "People who successfully quit",
+      gradient: "from-pink-500 to-rose-500",
+      bgGradient: "from-pink-50 to-rose-50",
+    },
   ];
 
+  // Animation variants
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.15,
+      },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 30 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.6,
+        ease: "easeOut",
+      },
+    },
+  };
+
+  const fadeInUp = {
+    hidden: { opacity: 0, y: 40 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: {
+        duration: 0.6,
+        ease: "easeOut",
+      },
+    },
+  };
+
   return (
-    <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-green-50 to-blue-50">
-      <div className="max-w-7xl mx-auto">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold text-gray-900 mb-4">
+    <section className="relative py-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 overflow-hidden">
+      {/* Animated background blobs */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <motion.div
+          className="absolute top-20 -right-20 w-96 h-96 bg-emerald-300/10 rounded-full blur-3xl"
+          animate={{
+            x: [0, -30, 0],
+            y: [0, 50, 0],
+            scale: [1, 1.2, 1],
+          }}
+          transition={{
+            duration: 10,
+            repeat: Infinity,
+            ease: "easeInOut",
+          }}
+        />
+        <motion.div
+          className="absolute bottom-20 -left-20 w-96 h-96 bg-teal-300/10 rounded-full blur-3xl"
+          animate={{
+            x: [0, 30, 0],
+            y: [0, -50, 0],
+            scale: [1, 1.3, 1],
+          }}
+          transition={{
+            duration: 12,
+            repeat: Infinity,
+            ease: "easeInOut",
+            delay: 1,
+          }}
+        />
+      </div>
+
+      <div className="max-w-7xl mx-auto relative z-10">
+        <motion.div
+          className="text-center mb-16"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+          variants={fadeInUp}
+        >
+          <motion.div
+            className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 backdrop-blur-sm px-4 py-2 rounded-full border border-emerald-200 mb-4"
+            whileHover={{ scale: 1.05 }}
+          >
+            <TrendingUp className="w-4 h-4 text-emerald-600" />
+            <span className="text-emerald-700 font-semibold text-sm">
+              OUR IMPACT
+            </span>
+          </motion.div>
+          <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-cyan-600 bg-clip-text text-transparent">
             SmartQuitIoT by the Numbers
           </h2>
-          <p className="text-lg text-gray-600">
-            Join thousands who have transformed their lives
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            Join thousands who have transformed their lives with our proven
+            system
           </p>
-        </div>
+        </motion.div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <motion.div
+          className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 md:gap-8"
+          variants={containerVariants}
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-100px" }}
+        >
           {stats.map((stat, index) => (
-            <div key={index} className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-shadow">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center text-green-600 mx-auto mb-4">
-                {stat.icon}
-              </div>
-              <p className="text-sm text-gray-600 text-center mb-2">{stat.label}</p>
-              <p className="text-3xl font-bold text-gray-900 text-center mb-3">{stat.value}</p>
-              <p className="text-sm text-gray-500 text-center">{stat.description}</p>
-            </div>
-          ))}
-        </div>
+            <motion.div
+              key={index}
+              className="group relative bg-white/80 backdrop-blur-lg rounded-3xl p-8 shadow-lg hover:shadow-2xl transition-all overflow-hidden border border-gray-100"
+              variants={itemVariants}
+              whileHover={{ y: -10, scale: 1.02 }}
+              transition={{ duration: 0.3 }}
+            >
+              {/* Animated gradient background */}
+              <motion.div
+                className={`absolute inset-0 bg-gradient-to-br ${stat.bgGradient} opacity-0 group-hover:opacity-100 transition-opacity duration-500`}
+                initial={{ scale: 0, rotate: 0 }}
+                whileHover={{ scale: 1, rotate: 180 }}
+                transition={{ duration: 0.5 }}
+              />
 
-        <div className="text-center mt-16">
-          <h3 className="text-3xl font-bold text-gray-900 mb-4">
-            Be Part of Our Success Story
-          </h3>
-          <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-            Every day, more people join SmartQuitIoT and take control of their health. Start your journey today.
+              {/* Shimmer effect */}
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+
+              <div className="relative z-10">
+                <motion.div
+                  className={`w-16 h-16 bg-gradient-to-br ${stat.gradient} rounded-2xl flex items-center justify-center text-white mx-auto mb-6 shadow-lg`}
+                  whileHover={{ rotate: 360, scale: 1.1 }}
+                  transition={{ duration: 0.6 }}
+                >
+                  {stat.icon}
+                </motion.div>
+
+                <p className="text-sm text-gray-600 text-center mb-2 font-medium uppercase tracking-wider">
+                  {stat.label}
+                </p>
+
+                <motion.p
+                  className={`text-4xl md:text-5xl font-bold text-center mb-3 bg-gradient-to-r ${stat.gradient} bg-clip-text text-transparent`}
+                  initial={{ scale: 0 }}
+                  whileInView={{ scale: 1 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: index * 0.1 + 0.3, type: "spring" }}
+                >
+                  {stat.value}
+                </motion.p>
+
+                <p className="text-sm text-gray-600 text-center leading-relaxed">
+                  {stat.description}
+                </p>
+              </div>
+
+              {/* Corner decoration */}
+              <motion.div
+                className={`absolute top-0 right-0 w-20 h-20 bg-gradient-to-br ${stat.gradient} opacity-10 rounded-bl-full`}
+                initial={{ scale: 0 }}
+                whileInView={{ scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ delay: index * 0.1 + 0.5 }}
+              />
+            </motion.div>
+          ))}
+        </motion.div>
+
+        <motion.div
+          className="text-center mt-20"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true }}
+          variants={fadeInUp}
+        >
+          <motion.div
+            className="relative inline-block"
+            whileHover={{ scale: 1.02 }}
+          >
+            <h3 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4 bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent">
+              Be Part of Our Success Story
+            </h3>
+            <motion.div
+              className="absolute -bottom-2 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full"
+              initial={{ scaleX: 0 }}
+              whileInView={{ scaleX: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.3, duration: 0.6 }}
+            />
+          </motion.div>
+          <p className="text-lg text-gray-600 max-w-3xl mx-auto mt-6 leading-relaxed">
+            Every day, more people join SmartQuitIoT and take control of their
+            health. Start your journey today and become part of a thriving
+            community committed to living smoke-free.
           </p>
-        </div>
+
+          <motion.div
+            className="flex flex-wrap justify-center gap-4 mt-8"
+            variants={containerVariants}
+          >
+            <motion.button
+              className="group relative bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white font-semibold px-8 py-4 rounded-xl transition-all shadow-lg overflow-hidden"
+              variants={itemVariants}
+              whileHover={{ scale: 1.05, y: -2 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <span className="relative z-10">Join Our Community</span>
+              <div className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"></div>
+            </motion.button>
+
+            <motion.button
+              className="bg-white/80 backdrop-blur-sm hover:bg-white text-gray-900 font-semibold px-8 py-4 rounded-xl border-2 border-emerald-200 hover:border-emerald-300 transition-all"
+              variants={itemVariants}
+              whileHover={{ scale: 1.05, y: -2 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              Learn More
+            </motion.button>
+          </motion.div>
+        </motion.div>
       </div>
     </section>
   );
 };
+
 export default StatsSection;
